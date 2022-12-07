@@ -25,6 +25,6 @@ int foo(int i, int j){
 
 int bar(int i, int j){
   //  int q = errno;
-  ioputs("hello");
+  puts("hello");
   return i+j;
 } 

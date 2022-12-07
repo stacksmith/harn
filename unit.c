@@ -12,6 +12,9 @@
 #include "seg.h"
 #include "unit.h"
 
+#include "pkg.h"
+extern sPkg pkg;
+
 extern sSeg scode;
 extern sSeg sdata;
 
@@ -222,9 +225,14 @@ void unit_lib(sUnit*pu,void* dlhan, U32 num,char*namebuf){
     psym->seg  = 1;
     psym->type = 0;
     psym->ostr = pstr - pu->strings; // get string offset
-    psym++;
-    *phash++ = string_hash(pstr);
+    U32 hash = string_hash(pstr);
+
+    pkg_add(&pkg,pstr,(U32)(U64)addr,sizeof(buf));
+	    
     pstr += (strlen(pstr)+1);        // find next string
+    *phash++ = hash;
+    psym++;
+
   }
   
   // update bounds of unit

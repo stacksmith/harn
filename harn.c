@@ -18,13 +18,15 @@
 #include "unit.h"
 #include "lib.h"
 #include "system.h"
-
+#include "pkg.h"
 
 
 
 sSeg scode;
 sSeg sdata;
 sSystem sys;
+
+sPkg pkg;
 
 typedef U64 (*fptr)(int,int);
 
@@ -82,6 +84,7 @@ void testmult(U32 cnt,char**paths){
 */
 int main(int argc, char **argv){
   sys_init();
+  pkg_init(&pkg,"test");
   
   seg_alloc(&scode,"SCODE",0x10000000,(void*)0x80000000,
 	    PROT_READ|PROT_WRITE|PROT_EXEC);
@@ -94,5 +97,9 @@ int main(int argc, char **argv){
   test2(argv[1]);
   //  testab("o/twoA.o","o/twoB.o");
   //testmult(argc-1,argv+1);
+  pkg_dump(&pkg);
+  //  printf("sizeof sDataSize is %ld\n",sizeof(sDataSize));
+  sDataSize ds = pkg_find_name(&pkg,"catopen");
+  printf("found: %08x %d\n",ds.data, ds.size);
   return 0;
 }
