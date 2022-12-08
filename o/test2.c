@@ -30,11 +30,8 @@ struct fuck {
 };
 
 int bar(int i, int j){
-
-  puts("hello");
+  printf("called bar(%d,%d)\n",i,j);
+    puts("hello, world!");
   return i+j;
 }
 
-int foo(int i){
-  return i;
-}

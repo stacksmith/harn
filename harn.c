@@ -15,38 +15,37 @@
 #include "elf.h"
 #include "elfdump.h" 
 #include "seg.h"
-#include "unit.h"
-#include "lib.h"
-#include "system.h"
+//#include "unit.h"
+//#include "system.h"
 #include "pkg.h"
 
 
 
 sSeg scode;
 sSeg sdata;
-sSystem sys;
+//sSystem sys;
 
 sPkg pkg;
 
 typedef U64 (*fptr)(int,int);
 
 void test2(char*name){
-  sUnit* pu = sys_load_elf(name);
-
+  pkg_load_elf(&pkg,name);
   //  unit_dump(puLib);
 
   //  sys_dump();
   //unit_dump(pu);
-  
+  // pkg_dump(&pkg);  
   printf("-------------------\n");
-
-  fptr entry = (fptr)sys_symbol_address("bar");
+ 
+  fptr entry = (fptr)(U64)(pkg_find_name(&pkg,"bar").data);
   printf("found %p\n",entry);
   if(entry){
     //    fptr entry = (fptr)(U64)(pu->dats[i].off);
     U64 ret = (*entry)(1,2);
     printf("returned: %lx\n",ret);
   }
+  
 }
 /*
 void testab(char*name1,char*name2){
@@ -83,7 +82,7 @@ void testmult(U32 cnt,char**paths){
 }
 */
 int main(int argc, char **argv){
-  sys_init();
+  //  sys_init();
   pkg_init(&pkg,"test");
   
   seg_alloc(&scode,"SCODE",0x10000000,(void*)0x80000000,
@@ -92,12 +91,14 @@ int main(int argc, char **argv){
 	    PROT_READ|PROT_WRITE);
 
   // create bindings for libc
-  sys_add(lib_make("libc.so.6","libc.txt"));
- 
+  pkg_lib(&pkg,"libc.so.6","libc.txt");
+  
   test2(argv[1]);
+
+
   //  testab("o/twoA.o","o/twoB.o");
   //testmult(argc-1,argv+1);
-  pkg_dump(&pkg);
+  
   //  printf("sizeof sDataSize is %ld\n",sizeof(sDataSize));
   // sDataSize ds = pkg_find_name(&pkg,"catopen");
   //printf("found: %08x %d\n",ds.data, ds.size);

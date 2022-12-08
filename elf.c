@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdlib.h> //malloc
 #include <sys/mman.h>
+#include <string.h>
 
 
 #include "global.h"
@@ -60,23 +61,27 @@ void elf_delete(sElf* pelf){
   free(pelf);
 }
 
-  
-// a loop for processing all elf symbols, calling a function on each
-// void proc(Elf64_sym*)
-//
-/*
-void elf_process_symbols(sElf* pelf,pfElfSymProc proc){
-  Elf64_Sym* psym = pelf->psym + pelf->symnum-1;
-  for(U32 i=2;i<pelf->symnum;i++,psym--){
-    (*proc)(psym);
+U32 elf_find_section(sElf*pelf,char*name){
+  char* strtab = pelf->buf + (ELF_SHSTRTAB(pelf))->sh_offset;
+  U32 i;
+  Elf64_Shdr* shdr = (pelf->shdr) + 1;
+
+  for(i=1; i< pelf->shnum; i++,shdr++){
+    if(!strcmp(name, (strtab + shdr->sh_name)))
+      return i;
   }
+  return 0;
 }
-*/
-void elf_process_symbols(sElf* pelf,pfElfSymProc proc){
+// Process each symbol by calling proc.  If proc returns
+// non-zero, exit with the index that bounced us.  If all
+// symbols are processed, return 1
+U32 elf_process_symbols(sElf* pelf,pfElfSymProc proc){
   Elf64_Sym* psym = pelf->psym + pelf->symnum-1;
   for(U32 i=pelf->symnum-1;i>1;i--,psym--){
-    (*proc)(psym,i);
+    if((*proc)(psym,i))
+      return i; // return the symbol that bounced us
   }
+  return 0; //fully processed all
 }
 /* 
   Count the number of func-symbols in this ELF
@@ -84,19 +89,33 @@ void elf_process_symbols(sElf* pelf,pfElfSymProc proc){
  */
 U32 elf_func_count(sElf* pelf){
   U32 cnt = 0;
-  void proc(Elf64_Sym* psym,U32 i){
+  U32 proc(Elf64_Sym* psym,U32 i){
     if( //(STB_GLOBAL == ELF64_ST_BIND(psym->st_info)) &&
-	(STT_FUNC == ELF64_ST_TYPE(psym->st_info)) )
+       (STT_FUNC == ELF64_ST_TYPE(psym->st_info)) ) 
       cnt++;
+    return 0; // never bounce
   }
   elf_process_symbols(pelf,&proc);
   return cnt;
 }
 
+U32 elf_func_find(sElf* pelf){;
+  U32 proc(Elf64_Sym* psym,U32 i){
+    if( //(STB_GLOBAL == ELF64_ST_BIND(psym->st_info)) &&
+       (STT_FUNC == ELF64_ST_TYPE(psym->st_info)) )
+      return 1;
+    return 0;
+  }
+  return elf_process_symbols(pelf,&proc);
+
+}
+
+
+
 U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup){
   // resolve ELF symbols to actual addresses
   U32 nUndef = 0;
-  void proc(Elf64_Sym* psym,U32 i){
+  U32 proc(Elf64_Sym* psym,U32 i){
     U32 shi = psym->st_shndx; // get section we are referring to
     if(shi){ //for defined symbols, add section base
       psym->st_value += pelf->shdr[shi].sh_addr;
@@ -107,6 +126,7 @@ U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup){
 	nUndef++;
     }
     //          sym_dump(pelf,psym);
+    return 0;
   }
   elf_process_symbols(pelf,proc);
   return nUndef;
@@ -116,7 +136,7 @@ U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup){
 U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup){
   // resolve ELF symbols to actual addresses
   U32 nUndef = 0;
-  void proc(Elf64_Sym* psym,U32 i){
+  U32 proc(Elf64_Sym* psym,U32 i){
     // only process NOTYPE symbols with 0 value as undefs
     if((STT_NOTYPE == ELF64_ST_TYPE(psym->st_info)) &&
        (!psym->st_value)) {
@@ -128,6 +148,7 @@ U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup){
       }
     }
     //          sym_dump(pelf,psym);
+    return 0;
   }
   elf_process_symbols(pelf,proc);
   return nUndef;
@@ -157,14 +178,19 @@ void process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto){
 }
 
 
-static void process_rel_section(sElf* pelf, Elf64_Shdr* shrel){
-  U32 relnum = shrel->sh_size / shrel->sh_entsize;
-  Elf64_Rela* prel = (Elf64_Rela*)(pelf->buf + shrel->sh_offset);
-  // applying relocations to this section
-  Elf64_Shdr* shto = &pelf->shdr[shrel->sh_info];
-  //  printf("Applying relocations against %lX, %ld\n",shto->sh_addr,shto->sh_size);
-  for(U32 i=0; i<relnum; i++,prel++){
-    process_rel(pelf,prel,shto);
+void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel){
+  printf("elf_process_rel_section: processing section %p\n",shrel);
+  if(SHT_RELA == shrel->sh_type){
+    U32 relnum = shrel->sh_size / shrel->sh_entsize;
+    Elf64_Rela* prel = (Elf64_Rela*)(pelf->buf + shrel->sh_offset);
+    // applying relocations to this section
+    Elf64_Shdr* shto = &pelf->shdr[shrel->sh_info];
+    printf("Applying relocations against %lX, %ld\n",shto->sh_addr,shto->sh_size);
+    for(U32 i=0; i<relnum; i++,prel++){
+      process_rel(pelf,prel,shto);
+    }
+  } else {
+    printf("elf_process_rel_section: no relocations\n");
   }
 }
 
@@ -174,7 +200,7 @@ void elf_apply_rels(sElf* pelf){
   for(U32 i=0; i< pelf->shnum; i++,shdr++){
     if(SHT_RELA == shdr->sh_type){
       //  sechead_dump(pelf,i);
-      process_rel_section(pelf,shdr);
+      elf_process_rel_section(pelf,shdr);
     }
   }
 }  

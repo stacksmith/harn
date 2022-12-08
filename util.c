@@ -74,7 +74,9 @@ S64 file_map(void** pbuf, char* path,int prot){
   return len;
   
 }
-
+void unmap(void* buf,size_t size){
+  munmap(buf,size);
+}
 static char* msg[] = {
   "opening %s\n",
   "seeking end of %s\n",

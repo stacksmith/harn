@@ -9,7 +9,7 @@ all: harn
 tsv2names: tsv2names.c
 	$(CC) -o $@ $^ $(CFLAGS) 	
 
-harn: harn.c elf.c elfdump.c seg.c util.c unit.c lib.c pkg.c system.c 
+harn: harn.c elf.c elfdump.c seg.c util.c pkg.c
 	$(CC) -o $@ $^ $(CFLAGS) 
 
 clean:

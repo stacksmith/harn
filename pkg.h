@@ -54,4 +54,5 @@ void pkg_init(sPkg* pkg,char* name);
 void pkg_add(sPkg* pkg,char*name,U32 data,U32 size);
 sDataSize pkg_find_name(sPkg* pkg,char*name);
 sDataSize pkg_find_hash(sPkg* pkg,U32 hash);
-
+void pkg_lib(sPkg* pkg,char*dllpath,char*namespath);
+void pkg_load_elf(sPkg* pkg,char* path);

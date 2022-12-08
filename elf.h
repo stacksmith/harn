@@ -43,13 +43,18 @@ typedef struct sPiece {
 S64 elf_load(sElf* pelf, char* path);
 sElf* elf_new();
 void  elf_delete(sElf* pelf);
+U32 elf_find_section(sElf*pelf,char*name);
 
 //void elf_syms(sElf* pelf);
 void elf_apply_rels(sElf* pelf);
 
-typedef void (*pfElfSymProc)(Elf64_Sym*psym,U32 i);
-void elf_process_symbols(sElf* pelf, pfElfSymProc proc);
+// process symbol
+typedef U32 (*pfElfSymProc)(Elf64_Sym*psym,U32 i);
+
+U32 elf_process_symbols(sElf* pelf, pfElfSymProc proc);
 U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup);
 U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup);
 
+void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel);
 U32 elf_func_count(sElf* pelf);
+U32 elf_func_find(sElf* pelf);
