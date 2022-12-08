@@ -99,7 +99,8 @@ int main(int argc, char **argv){
   //testmult(argc-1,argv+1);
   pkg_dump(&pkg);
   //  printf("sizeof sDataSize is %ld\n",sizeof(sDataSize));
-  sDataSize ds = pkg_find_name(&pkg,"catopen");
-  printf("found: %08x %d\n",ds.data, ds.size);
+  // sDataSize ds = pkg_find_name(&pkg,"catopen");
+  //printf("found: %08x %d\n",ds.data, ds.size);
+
   return 0;
 }

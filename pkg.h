@@ -55,18 +55,3 @@ void pkg_add(sPkg* pkg,char*name,U32 data,U32 size);
 sDataSize pkg_find_name(sPkg* pkg,char*name);
 sDataSize pkg_find_hash(sPkg* pkg,U32 hash);
 
-/*
-void pkgunit_dump(sUnit* pu);
-char* unit_name(sUnit* pu);
-void unit_sections_from_elf(sUnit*pu,sElf* pelf);
-void unit_symbols_from_elf(sUnit*pu,sElf* pelf);
-sUnit* unit_ingest_elf1(sElf* pelf,char* path);
-void   unit_ingest_elf2(sUnit* pu,sElf* pelf);
-U32 unit_elf_resolve(sElf*pelf,pfresolver resolver);
-
-U32    unit_find_hash(sUnit*pu,U32 hash);
-
-
-//void unit_lib(sUnit*pu, char* name,U32 num, void**funs, char**names); 
-void unit_lib(sUnit*pu,void* dlhan, U32 num,char*namebuf);
-*/

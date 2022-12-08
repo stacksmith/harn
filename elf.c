@@ -78,6 +78,20 @@ void elf_process_symbols(sElf* pelf,pfElfSymProc proc){
     (*proc)(psym,i);
   }
 }
+/* 
+  Count the number of func-symbols in this ELF
+
+ */
+U32 elf_func_count(sElf* pelf){
+  U32 cnt = 0;
+  void proc(Elf64_Sym* psym,U32 i){
+    if( //(STB_GLOBAL == ELF64_ST_BIND(psym->st_info)) &&
+	(STT_FUNC == ELF64_ST_TYPE(psym->st_info)) )
+      cnt++;
+  }
+  elf_process_symbols(pelf,&proc);
+  return cnt;
+}
 
 U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup){
   // resolve ELF symbols to actual addresses
@@ -164,3 +178,4 @@ void elf_apply_rels(sElf* pelf){
     }
   }
 }  
+

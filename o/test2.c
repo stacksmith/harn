@@ -23,8 +23,18 @@ int foo(int i, int j){
 }
 */
 
+struct fuck {
+  int a;
+  int b;
+  long c;
+};
+
 int bar(int i, int j){
-  //  int q = errno;
+
   puts("hello");
   return i+j;
-} 
+}
+
+int foo(int i){
+  return i;
+}

@@ -76,7 +76,32 @@ void unit_sections_from_elf(sUnit*pu,sElf* pelf){
   pu->szCode = scode.fill - pu->oCode;
   pu->szData = sdata.fill - pu->oData;
 }
+/* --------------------------------------------------------------------------
+  For a function, we ingest 
 
+
+ */
+void unit_func_sections_from_elf1(sUnit*pu,sElf* pelf){
+ 
+  //printf("Of interest:\n");
+  Elf64_Shdr* shdr = pelf->shdr;  
+  for(U32 i=0; i< pelf->shnum; i++,shdr++){
+    U64 flags = shdr->sh_flags;
+    if(flags & SHF_ALLOC){
+      // select code or data segment to append
+      sSeg*pseg = (flags & SHF_EXECINSTR) ? &scode : &sdata;
+      // src and size of append
+      U8* src = (shdr->sh_type == SHT_NOBITS)?
+	0 : pelf->buf + shdr->sh_offset;
+      seg_align(pseg,shdr->sh_addralign);
+      shdr->sh_addr = (U64)seg_append(pseg,src,shdr->sh_size);
+      //      sechead_dump(pelf,i);
+    }
+  }
+  // update unit sizes
+  pu->szCode = scode.fill - pu->oCode;
+  pu->szData = sdata.fill - pu->oData;
+}
 
 void unit_symbols_from_elf(sUnit*pu,sElf* pelf){
 
@@ -137,6 +162,7 @@ void unit_ingest_elf2(sUnit* pu,sElf* pelf){
   elf_apply_rels(pelf);
   unit_symbols_from_elf(pu,pelf);
 }
+
 sUnit* unit_ingest_elf1(sElf* pelf, char* path){
   elf_load(pelf,path);
   // seg_dump(&scode); seg_dump(&sdata);
@@ -226,8 +252,8 @@ void unit_lib(sUnit*pu,void* dlhan, U32 num,char*namebuf){
     psym->type = 0;
     psym->ostr = pstr - pu->strings; // get string offset
     U32 hash = string_hash(pstr);
-
-    pkg_add(&pkg,pstr,(U32)(U64)addr,sizeof(buf));
+    //<---
+   pkg_add(&pkg,pstr,(U32)(U64)addr,sizeof(buf));
 	    
     pstr += (strlen(pstr)+1);        // find next string
     *phash++ = hash;

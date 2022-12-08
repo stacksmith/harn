@@ -10,6 +10,7 @@
 #include "seg.h"
 #include "unit.h"
 #include "lib.h"
+#include "pkg.h"
 #include "system.h"
 
 extern sSystem sys;
@@ -92,7 +93,7 @@ sUnit* sys_load_elf(char* path){
   //elf_build_hashlist(pelf);
   //Elf64_Sym* psym = elf_find(pelf,string_hash("puts"));
   //  sym_dump(pelf,psym);
-  
+  printf("sys_load_elf... funcs: %d\n",elf_func_count(pelf));
   free(pelf);
   return pu;
 }

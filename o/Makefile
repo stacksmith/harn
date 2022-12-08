@@ -9,17 +9,16 @@ CC=gcc
 # -fno-stack-protector  do not check stack and call __stack_chk_fail
 CFLAGS=-Wall -Os \
 -D_FORTIFY_SOURCE=0 \
--fvisibility=hidden \
--ffunction-sections \
 -fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables \
 -falign-functions=1 \
 -nostartfiles           \
 -fcf-protection=none    \
 -fno-stack-protector \
 -fno-mudflap \
--aux-info info.txt 
+-aux-info info.txt
 
-
+# -ffunction-sections 
+# -fvisibility=hidden \
 # YYY-symbolic -fno-inline  
 
 all: test2.o twoA.o twoB.o
