@@ -30,6 +30,7 @@ sPkg pkg;
 sPkg* pkgs=0;
 
 typedef U64 (*fptr)(int,int);
+typedef U64 (*fptr)(int,int);
 
 void test(sPkg*pkg,char*elfname,char* funname){
   pkg_load_elf(pkg,elfname);
@@ -51,6 +52,49 @@ void test(sPkg*pkg,char*elfname,char* funname){
   }
 }
 
+void run_void_fun(char* funname){
+  siSymb* symb = pkgs_symb_of_name(funname);
+  if(symb){
+    printf("found %s\n",funname);
+    fptr entry = (fptr)(U64)(symb->data);
+    U64 ret = (*entry)(1,2);
+    printf("returned: %lx\n",ret);
+  } else {
+    printf("%s not found\n",funname);
+  }
+}
+
+void import_elf(){
+  test(pkgs,"o/test.o",0);
+}
+
+char buf[1024];
+void main_loop(){
+  while(1) {
+    printf("> ");
+    fgets(buf,1024,stdin);
+    if(!strncmp("xx",buf,2)){
+      import_elf();
+      continue;
+    }
+    if(!strncmp("sys",buf,3)){
+      printf("SYS...\n");
+      continue;
+    }
+    if(!strncmp("words",buf,4)){
+      pkg_dump(pkgs);
+      continue;
+    }
+    if(!strncmp("bye",buf,3))
+      exit(0);
+    // try to find it
+    size_t len = strlen(buf);
+    *(buf+len-1)=0; // get rid of newline
+    run_void_fun(buf);
+
+  }
+    
+}
 
 int main(int argc, char **argv){
   seg_alloc(&scode,"SCODE",0x10000000,(void*)0x80000000,
@@ -69,7 +113,9 @@ int main(int argc, char **argv){
   test(usrpkg,argv[1],argv[2]);
   //test_data(usrpkg,argv[1]);
   pkgs_list();
-  pkg_dump(pkg);  
+  pkg_dump(pkg);
+
+  main_loop();
   //  testab("o/twoA.o","o/twoB.o");
   //testmult(argc-1,argv+1);
   
