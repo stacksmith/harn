@@ -162,6 +162,13 @@ void main_loop(){
       continue;
     }
 
+    if(!strncmp("list",buf,4)){
+      siSymb* symb = pkgs_symb_of_name(buf+5);
+      if(symb){
+	src_to_file(symb->src,symb->srclen,stdout);
+      }
+      continue;
+    }
     if(!strncmp("bye",buf,3))
       exit(0);
 

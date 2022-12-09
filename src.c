@@ -46,16 +46,20 @@ U32 src_from_body(U32* plen){
     return 0;
   }
 }
-  
-void src_to_body(U32 pos,U32 len){
-  FILE* f = fopen(bodyname,"w");
+void src_to_file(U32 pos,U32 len,FILE*f){
   if(pos){
     fseek(fSources,pos,SEEK_SET);  // seek in sources
     fread(srcbuf,1,len,fSources);  // read source
     fwrite(srcbuf,1,len,f);     // write to body
-  }
+  }  
+}  
+void src_to_body(U32 pos,U32 len){
+  FILE* f = fopen(bodyname,"w");
+  src_to_file(pos,len,f);
   fclose(f);
 }
+
+
 /* aux_proto   for functions, extract the prototype saved on the last line 
                of file the compiler generated with the -aux-info switch.
 */
