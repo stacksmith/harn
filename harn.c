@@ -55,7 +55,8 @@ void test_data(char*name){
   //unit_dump(pu);
   pkg_dump(&pkg);  
   printf("-------------------\n");
-  
+
+
 }
 /*
 void testab(char*name1,char*name2){
@@ -91,6 +92,7 @@ void testmult(U32 cnt,char**paths){
   //hd(0x40000000,8);
 }
 */
+#include "asmutil.h"
 int main(int argc, char **argv){
   //  sys_init();
   pkg_init(&pkg,"test");
@@ -105,7 +107,14 @@ int main(int argc, char **argv){
   
   //  test2(argv[1]);
   test_data(argv[1]);
-  hd((U8*)(U64)0x80000AB0,4);
+
+
+  printf("scode.prel is %p\n",scode.prel);
+  hd(scode.prel,2);
+  printf("sdata.prel is %p\n",sdata.prel);
+  hd(sdata.prel,2);
+
+  
   //   pkg_dump(&pkg);  
   //  testab("o/twoA.o","o/twoB.o");
   //testmult(argc-1,argv+1);
