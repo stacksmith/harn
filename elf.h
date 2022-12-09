@@ -57,4 +57,7 @@ U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup);
 
 void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel);
 U32 elf_func_count(sElf* pelf);
+U32 elf_data_count(sElf* pelf);
 U32 elf_func_find(sElf* pelf);
+U32 elf_data_find(sElf* pelf);
+S32 elf_find_global_symbol(sElf* pelf);

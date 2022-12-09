@@ -121,26 +121,31 @@ printf("Ingesting dll %s, names in %s\n",dllpath,namespath);
 /*****************************************************************************
  
  *****************************************************************************/
+/* pkg_ingest_elf_sec   Ingest data from an elf section into segment
+ */
 U32 pkg_ingest_elf_sec(sPkg*pkg,sElf*pelf,U32 isec,sSeg*pseg){
   Elf64_Shdr* shdr = pelf->shdr + isec;
   U32 size = shdr->sh_size;
-  U8* src =  pelf->buf + shdr->sh_offset;
+  U8* src;
+  switch(shdr->sh_type){
+  case SHT_PROGBITS: src = pelf->buf + shdr->sh_offset; break;
+  case SHT_NOBITS: src = 0; break;
+  default:
+    printf("pkg_ingest_elf_sec: can't ingest section %d\n",isec);
+    exit(1);
+  }
   U8* addr = seg_append(pseg,src,size);
   shdr->sh_addr = (U64)addr;      // let elf know section address
   printf("ingesting %d bytes from %p\n",size,src);
   return (U32)(U64)addr;
 }
 
-U32 pkg_func_from_elf(sPkg* pkg,sElf*pelf){
-  U32 codesec = elf_find_section(pelf,".text");
-  if(!codesec) {
-    printf("ERROR! could not find .text section\n");
-    exit(1);
-  }
+
+U32 pkg_func_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
   seg_align(&scode,8); // our alignment requirement
+  U32 codesec = psym->st_shndx;
   U32 faddr = pkg_ingest_elf_sec(pkg,pelf,codesec,&scode);
-  U32 iefun = elf_func_find(pelf);
-  char* fname = pelf->psym[iefun].st_name + pelf->str_sym;
+  char* fname = psym->st_name + pelf->str_sym;
 
   // there maybe rodata
   U32 strsec = elf_find_section(pelf,".rodata.str1.1");
@@ -153,9 +158,26 @@ U32 pkg_func_from_elf(sPkg* pkg,sElf*pelf){
   pkg_add(pkg,fname,faddr,size);
   
   return codesec;
+  
 }
-// within the elf file, resolve symbols
+/*
+U32 pkg_data_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
+  seg_align(&sdata,8); // our alignment requirement
+  // get data symbol
+  char* name = psym->st_name + pelf->str_sym;
+  U32 isec =  psym->st_shndx;
+  U32 addr = pkg_ingest_elf_sec(pkg,pelf,sec,&sdata);
+  Elf64_Shdr* psec = pelf->shdr + isec;
+  
+  
+  
+  
+  return 0;
+}
+*/
+// within the elf file, resolve actual addresses for symbols
 U32 pkg_elf_resolve(sPkg* pkg,sElf*pelf){
+
   U64 proc(char* name){
     return (pkg_find_name(pkg,name)).data;
   }
@@ -166,20 +188,50 @@ U32 pkg_elf_resolve(sPkg* pkg,sElf*pelf){
   return unresolved;
 }
 
-void pkg_load_elf(sPkg* pkg,char* path){
-  sElf* pelf = elf_new();
-  elf_load(pelf,path);
-  U32 funcs = elf_func_count(pelf);
-  printf("found %d funcs\n",funcs);
-  if(funcs>1) {
-    printf("Only one function is expected.  Found %d\n",funcs);
-    exit(1);
-  }
-  U32 codesec =  pkg_func_from_elf(pkg,pelf);
+void pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
+  // ingest function from ELF; get section 
+  U32 codesec =  pkg_func_from_elf(pkg,pelf,psym);
   // resolve elf symbols
   pkg_elf_resolve(pkg,pelf);
   // resolve relocation section, if codesec+1 is a rel section
   elf_process_rel_section(pelf,(pelf->shdr)+codesec+1); 
+}
+/*
+void pkg_load_elf_data(sPkg* pkg,sElf* pelf){
+  U32 cnt = elf_data_count(pelf);
+  if(cnt>1){
+    printf("Only datum is expected.  Found %d\n",cnt);
+    exit(1);
+  }
+    
+}
+*/
+void pkg_load_elf(sPkg* pkg,char* path){
+  sElf* pelf = elf_new();
+  elf_load(pelf,path);
+  // Find the global symbol; must be only one.
+  S32 i = elf_find_global_symbol(pelf);
+  switch(i){
+  case 0:
+    printf("pkg_load_elf: no global symbols found\n");
+    exit(1);
+  case -1:
+    printf("pkg_load_elf: more than one global symbol\n");
+    exit(1);
+  }
+  // Dispatch to FUNC or OBJECT loader
+  Elf64_Sym* psym = pelf->psym+i;
+  switch(ELF64_ST_TYPE(psym->st_info)){
+  case STT_FUNC:
+    pkg_load_elf_func(pkg,pelf,psym);
+    break;
+  case STT_OBJECT:
+    //    pkg_load_elf_data(pkg,pelf,psym);
+    break;
+  default:
+    printf("pkg_load_elf: global symbol is not FUNC or OBJECT\n");
+    exit(1);
+  }
+    
   free(pelf);
- 
 }

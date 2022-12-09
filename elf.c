@@ -85,13 +85,24 @@ U32 elf_process_symbols(sElf* pelf,pfElfSymProc proc){
 }
 /* 
   Count the number of func-symbols in this ELF
-
+TODO: make more generic searches
  */
 U32 elf_func_count(sElf* pelf){
   U32 cnt = 0;
   U32 proc(Elf64_Sym* psym,U32 i){
-    if( //(STB_GLOBAL == ELF64_ST_BIND(psym->st_info)) &&
+    if( (STB_GLOBAL == ELF64_ST_BIND(psym->st_info)) &&
        (STT_FUNC == ELF64_ST_TYPE(psym->st_info)) ) 
+      cnt++;
+    return 0; // never bounce
+  }
+  elf_process_symbols(pelf,&proc);
+  return cnt;
+}
+U32 elf_data_count(sElf* pelf){
+  U32 cnt = 0;
+  U32 proc(Elf64_Sym* psym,U32 i){
+    if( (STB_GLOBAL == ELF64_ST_BIND(psym->st_info)) &&
+       (STT_OBJECT == ELF64_ST_TYPE(psym->st_info)) ) 
       cnt++;
     return 0; // never bounce
   }
@@ -101,15 +112,35 @@ U32 elf_func_count(sElf* pelf){
 
 U32 elf_func_find(sElf* pelf){;
   U32 proc(Elf64_Sym* psym,U32 i){
-    if( //(STB_GLOBAL == ELF64_ST_BIND(psym->st_info)) &&
+    if( (STB_GLOBAL == ELF64_ST_BIND(psym->st_info)) &&
        (STT_FUNC == ELF64_ST_TYPE(psym->st_info)) )
       return 1;
     return 0;
   }
   return elf_process_symbols(pelf,&proc);
-
 }
 
+U32 elf_data_find(sElf* pelf){;
+  U32 proc(Elf64_Sym* psym,U32 i){
+    if( (STB_GLOBAL == ELF64_ST_BIND(psym->st_info)) &&
+       (STT_OBJECT == ELF64_ST_TYPE(psym->st_info)) )
+      return 1;
+    return 0;
+  }
+  return elf_process_symbols(pelf,&proc);
+}
+
+S32 elf_find_global_symbol(sElf* pelf){
+  S32 ret = 0;
+  U32 proc(Elf64_Sym* psym,U32 i){
+    // if symbol is defined here, and is GLOBAL!
+    if(psym->st_shndx && (STB_GLOBAL == ELF64_ST_BIND(psym->st_info)))
+      ret = ret ? -1 : i ; // first time, set it to i; then, -1
+    return 0; // scan all symbols
+  }
+  elf_process_symbols(pelf,&proc);
+  return ret;
+}
 
 
 U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup){
