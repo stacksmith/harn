@@ -54,6 +54,9 @@ int seg_alloc(sSeg* pseg,char*name,U64 req_size, void* req_addr, U32 prot){
     return 0;
   }
 }
+U32 seg_pos(sSeg* pseg){
+  return (U32)(U64)pseg->base+ pseg->fill;
+}
 /* -------------------------------------------------------------
 seg_append  Append a run of bytes to the segment
             size   number of bytes to append

@@ -162,7 +162,7 @@ U32 pkg_func_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
   }
   // ok, now calculate size and add to package
 
-  U32 size = (U32)(U64)(scode.base + scode.fill) - faddr;
+  U32 size = seg_pos(&scode) - faddr;
   pkg_add(pkg,fname,faddr,size);
   
   return codesec;
@@ -244,7 +244,7 @@ void pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   //  elf_process_rel_section(pelf,(pelf->shdr)+codesec+1);
   elf_apply_rels(pelf,relproc);
   // ok, now calculate size and add to package
-  U32 size = (U32)(U64)(sdata.base + sdata.fill) - addr;
+  U32 size = seg_pos(&sdata) - addr;
   printf("Addr, size %x,%x\n",addr,size);
 
   pkg_add(pkg,name,addr,size);
