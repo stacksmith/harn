@@ -40,8 +40,17 @@ void pkg_dump(sPkg* pkg){
   }
 }
 
-void pkg_init(sPkg* pkg,char* name){
+
+sPkg* pkg_new(){
+  sPkg* pkg = (sPkg*)malloc(sizeof(sPkg));
+  pkg->next = 0;
   pkg->data = 0;
+  pkg->name = 0;
+  return pkg;
+}
+void pkg_set_name(sPkg* pkg,char*name){
+  pkg->name = (char*)malloc(strlen(name)+1);
+  strcpy(pkg->name,name);
 }
 
 void pkg_add(sPkg* pkg,char*name,U32 data,U32 size){
@@ -49,7 +58,7 @@ void pkg_add(sPkg* pkg,char*name,U32 data,U32 size){
   p->next = pkg->data;
   pkg->data = p;
 }
-
+/*
 static sDataSize nullds = {0,0};
 
 sDataSize pkg_find_hash(sPkg* pkg,U32 hash){
@@ -64,7 +73,19 @@ sDataSize pkg_find_hash(sPkg* pkg,U32 hash){
 sDataSize pkg_find_name(sPkg* pkg,char* name){
   return pkg_find_hash(pkg,string_hash(name));
 }
-
+*/
+siSymb* pkg_symb_of_hash(sPkg* pkg,U32 hash){
+  siSymb* p = pkg->data;
+  while(p){
+    if(p->hash == hash)
+      return p;
+    p = p->next;
+  }
+  return p;
+}
+siSymb* pkg_symb_of_name(sPkg* pkg,char* name){
+  return pkg_symb_of_hash(pkg,string_hash(name));
+}
 // compile a library into pkg
 static char* pkg_lib_load_names(char*path,U32*pcnt){
   char* srcbuf;
@@ -110,6 +131,7 @@ printf("Ingesting dll %s, names in %s\n",dllpath,namespath);
 // read the names into strings, get count
   U32 symcnt;
   char* strings = pkg_lib_load_names(namespath,&symcnt);
+  pkg_set_name(pkg,strings+1);
   //  printf("loaded %d names\n",symcnt);
   void* dlhan = dlopen(dllpath,RTLD_NOW);
   if(!dlhan){
@@ -184,9 +206,12 @@ U32 pkg_data_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
 */
 // within the elf file, resolve actual addresses for symbols
 U32 pkg_elf_resolve(sPkg* pkg,sElf*pelf){
-
   U64 proc(char* name){
-    return (pkg_find_name(pkg,name)).data;
+    siSymb* symb = pkgs_symb_of_name(name);
+    if(symb)
+      return symb->data;
+    else
+      return 0;
   }
   U32 unresolved = elf_resolve_symbols(pelf,proc);
   if(unresolved)
@@ -288,4 +313,35 @@ void pkg_load_elf(sPkg* pkg,char* path){
   }
     
   free(pelf);
+}
+
+extern sPkg* pkgs;
+void pkgs_add(sPkg* pkg){
+  if(pkg->next){
+    printf("pkgs_add: pkg is not free!\n");
+    exit(1);
+  }
+  pkg->next = pkgs;
+  pkgs = pkg;
+}
+
+void pkgs_list(){
+  sPkg* p = pkgs;
+  while(p){
+    printf("pkg %s\n",p->name);
+    p=p->next;
+  }
+}
+
+
+siSymb* pkgs_symb_of_name(char* name){
+  sPkg* pkg = pkgs;
+  U32 hash = string_hash(name);
+  while(pkg){
+    siSymb* symb = pkg_symb_of_hash(pkg,hash);
+    if(symb)
+      return symb;
+    pkg=pkg->next;
+  }
+  return 0;
 }

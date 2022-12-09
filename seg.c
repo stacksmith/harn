@@ -69,7 +69,7 @@ void seg_align(sSeg*pseg, U64 align){
   int rem  = pseg->fill % (U32)align;
   if(rem) {
     seg_append(pseg,0,align-rem);
-    printf("Inserted pad of %ld bytes\n",align-rem);
+    //    printf("Inserted pad of %ld bytes\n",align-rem);
   }  
 }
 

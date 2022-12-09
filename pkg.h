@@ -45,14 +45,21 @@ typedef struct siSymb {
 } siSymb;
 
 typedef struct sPkg {
+  struct sPkg* next;
   siSymb* data;
+  char* name;
 } sPkg;
 
 void pkg_dump(sPkg* pkg);
 
-void pkg_init(sPkg* pkg,char* name);
+sPkg* pkg_new();
+void pkg_set_name(sPkg* pkg,char* name);
 void pkg_add(sPkg* pkg,char*name,U32 data,U32 size);
-sDataSize pkg_find_name(sPkg* pkg,char*name);
-sDataSize pkg_find_hash(sPkg* pkg,U32 hash);
+siSymb* pkg_symb_of_hash(sPkg* pkg,U32 hash);
+siSymb* pkg_symb_of_name(sPkg* pkg,char* name);
 void pkg_lib(sPkg* pkg,char*dllpath,char*namespath);
 void pkg_load_elf(sPkg* pkg,char* path);
+
+void pkgs_add(sPkg* pkg);
+void pkgs_list();
+siSymb* pkgs_symb_of_name(char* name);
