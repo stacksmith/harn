@@ -17,7 +17,12 @@ readelf -W -s test10.o
 #include <stdio.h>
 #include <string.h>
 
+
+
+
 #include "headers.h"
 #include "body.c"
+
+
 
 

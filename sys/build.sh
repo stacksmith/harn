@@ -1,5 +1,5 @@
 gcc -Wall -Os \
-    -D_FORTIFY_SOURCE=0 \
+    -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 \
     -fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables \
     -falign-functions=1 \
     -nostartfiles           \
@@ -9,3 +9,5 @@ gcc -Wall -Os \
     -aux-info info.txt \
     -Werror-implicit-function-declaration \
     -c test.c
+
+

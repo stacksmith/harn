@@ -57,14 +57,14 @@ typedef struct sPkg {
 void siSymb_set_src(siSymb* symb,U32 src, U32 srclen);
 void siSymb_src_to_body(siSymb* symb);
 void pkg_dump(sPkg* pkg);
-
+void pkg_words(sPkg* pkg);
 sPkg* pkg_new();
 void pkg_set_name(sPkg* pkg,char* name);
 siSymb* pkg_add(sPkg* pkg,char*name,U32 data,U32 size);
 siSymb* pkg_symb_of_hash(sPkg* pkg,U32 hash);
 siSymb* pkg_symb_of_name(sPkg* pkg,char* name);
 void pkg_lib(sPkg* pkg,char*dllpath,char*namespath);
-void pkg_load_elf(sPkg* pkg,char* path);
+siSymb* pkg_load_elf(sPkg* pkg,char* path);
 void pkg_dump_protos(sPkg* pkg,FILE* f);
 
 void pkgs_add(sPkg* pkg);

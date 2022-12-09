@@ -217,13 +217,17 @@ void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
   case R_X86_64_PLT32: //calls
     U32 fixup = (U32)(s+a-p);
     *((U32*)p) = fixup;
-    (*proc)((U32)p,1); 
+    (*proc)((U32)p,1);
+#ifdef DEBUG
     printf("Fixup: P:%lx A:%ld S:%lx S+A-P: %08x\n",p,a,s,fixup);        
+#endif
     break;
   case R_X86_64_64: //data, pointer
     *((U64*)p) = s + a;
     (*proc)((U32)p,2); 
+#ifdef DEBUG
     printf("Fixup: P:%lx A:%ld S:%lx S+A: %016lx\n",p,a,s,s+a);
+#endif
     break;
   default:
     printf("Unknown relocation type\n");
@@ -236,16 +240,22 @@ void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
 void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc){
   if(SHT_RELA == shrel->sh_type){
     U32 relnum = shrel->sh_size / shrel->sh_entsize;
+#ifdef DEBUG
     printf("elf_process_rel_section %p with %d rels\n",shrel,relnum);
+#endif
     Elf64_Rela* prel = (Elf64_Rela*)(pelf->buf + shrel->sh_offset);
     // applying relocations to this section
     Elf64_Shdr* shto = &pelf->shdr[shrel->sh_info];
+#ifdef DEBUG
     printf("Applying relocations against %lX, %ld\n",shto->sh_addr,shto->sh_size);
+#endif
     for(U32 i=0; i<relnum; i++,prel++){
       elf_process_rel(pelf,prel,shto,proc);
     }
   } else {
+#ifdef DEBUG
     printf("elf_process_rel_section: no relocations\n");
+#endif
   }
 }
 

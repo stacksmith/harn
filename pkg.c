@@ -105,6 +105,17 @@ siSymb* pkg_symb_of_hash(sPkg* pkg,U32 hash){
   }
   return p;
 }
+
+
+void pkg_words(sPkg* pkg){
+  siSymb* p = pkg->data;
+  while(p){
+    printf(" %s",p->name);
+    p = p->next;
+  }
+  puts("");
+}
+
 siSymb* pkg_symb_of_name(sPkg* pkg,char* name){
   return pkg_symb_of_hash(pkg,string_hash(name));
 }
@@ -149,7 +160,9 @@ static void pkg_lib_prim(sPkg* pkg,void* dlhan, U32 num,char*namebuf){
   
 }
 void pkg_lib(sPkg* pkg,char*dllpath,char*namespath){
-printf("Ingesting dll %s, names in %s\n",dllpath,namespath);
+#ifdef DEBUG
+  printf("Ingesting dll %s, names in %s\n",dllpath,namespath);
+#endif
 // read the names into strings, get count
   U32 symcnt;
   char* strings = pkg_lib_load_names(namespath,&symcnt);
@@ -186,7 +199,9 @@ U32 pkg_ingest_elf_sec(sPkg*pkg,sElf*pelf,U32 isec,sSeg*pseg){
   }
   U8* addr = seg_append(pseg,src,size);
   shdr->sh_addr = (U64)addr;      // let elf know section address
+#ifdef DEBUG
   printf("ingesting %d bytes from %p\n",size,src);
+#endif
   return (U32)(U64)addr;
 }
 
@@ -201,7 +216,9 @@ siSymb* pkg_func_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
   // there maybe rodata
   U32 strsec = elf_find_section(pelf,".rodata.str1.1");
   if(strsec) {
+#ifdef DEBUG
     printf("pkg_func_from_elf: found .rodata.str1.1\n");
+#endif
     pkg_ingest_elf_sec(pkg,pelf,strsec,&scode);
   }
   // ok, now calculate size and add to package
@@ -254,7 +271,9 @@ siSymb* pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   pkg_elf_resolve(pkg,pelf);
   // resolve relocation section, if codesec+1 is a rel section
   void relproc(U32 p,U32 kind){
+#ifdef DEBUG
     printf("Code.Reference at: %08X, %d\n",p,kind);
+#endif
     seg_rel_mark(&scode,p,kind);
   }
   elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc);
@@ -275,9 +294,9 @@ siSymb* pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   U32 sec = psym->st_shndx;
   U32 addr = pkg_ingest_elf_sec(pkg,pelf,sec,&sdata);
   char* name = psym->st_name + pelf->str_sym;
-
+#ifdef DEBUG
   printf("pkg_load_elf_data: for %s\n",name);
-
+#endif 
   // Now, walk the symbols and ingest any referenced sections.
   U32 proc(Elf64_Sym* psym,U32 i){
     U32 refsec = psym->st_shndx;
@@ -299,21 +318,24 @@ siSymb* pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   // resolve relocation section, if codesec+1 is a rel section
   //  elf_process_rel_section(pelf,(pelf->shdr)+codesec+1);
   void relproc(U32 p,U32 kind){
+#ifdef DEBUG
     printf("data.Reference at: %08X, %d\n",p,kind);
+#endif
     seg_rel_mark(&sdata,p,kind);
   }
   elf_apply_rels(pelf,relproc);
   // ok, now calculate size and add to package
   U32 size = seg_pos(&sdata) - addr;
+#ifdef DEBUG
   printf("Addr, size %x,%x\n",addr,size);
-
+#endif
   return pkg_add(pkg,name,addr,size);
  
 }
 
 extern FILE* faSources;
 
-void pkg_load_elf(sPkg* pkg,char* path){
+siSymb* pkg_load_elf(sPkg* pkg,char* path){
   sElf* pelf = elf_new();
   elf_load(pelf,path);
   // Find the global symbol; must be only one.
@@ -347,11 +369,11 @@ void pkg_load_elf(sPkg* pkg,char* path){
   siSymb_set_src(symb,pos,len);
     
   free(pelf);
+  return symb;
 }
 /* pkg_dump_protos    Dump all prototypes of this package into a header file 
 
  */
-
 void pkg_dump_protos(sPkg* pkg,FILE* f){
   siSymb* symb = pkg->data;
   while(symb){
@@ -373,11 +395,12 @@ void pkgs_add(sPkg* pkg){
 
 void pkgs_list(){
   sPkg* p = pkgs;
-  printf("Packages:\n");
+  printf("Packages:");
   while(p){
-    printf(" %s\n",p->name);
+    printf(" %s",p->name);
     p=p->next;
   }
+  printf("\n");
 }
 
 

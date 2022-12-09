@@ -35,13 +35,12 @@ FILE* fSources;
 
 typedef U64 (*fptr)(int,int);
 typedef U64 (*fptr)(int,int);
-
+/*
 void test(sPkg*pkg,char*elfname,char* funname){
-  pkg_load_elf(pkg,elfname);
+  siSymb* symb = pkg_load_elf(pkg,elfname);
 
   //  pkg_dump(pkg);
 
-  printf("-------------------\n");
 
   if(funname){
     siSymb* symb = pkgs_symb_of_name(funname);
@@ -55,7 +54,7 @@ void test(sPkg*pkg,char*elfname,char* funname){
     }
   }
 }
-
+*/
 void run_void_fun(char* funname){
   siSymb* symb = pkgs_symb_of_name(funname);
   if(symb){
@@ -69,13 +68,13 @@ void run_void_fun(char* funname){
 }
 
 void import_elf(){
-  test(pkgs,"sys/test.o",0);
+
 }
 
 extern FILE* fSources;
 void edit(char* name){
   printf("Editing [%s]\n",name);
-  siSymb* symb = pkgs_symb_of_name(name);
+  siSymb* symb =  pkgs_symb_of_name(name);
   // write headers for packages in use
   FILE*f = fopen("sys/headers.h","w");
   pkgs_dump_protos(f);
@@ -94,18 +93,24 @@ void main_loop(){
     len--;
     *(buf+len)=0; // get rid of newline
     if(!strncmp("xx",buf,2)){
-      import_elf();
+      //siSymb* symb =
+      pkg_load_elf(pkgs,"sys/test.o");  
       continue;
     }
     if(!strncmp("sys",buf,3)){
-      printf("SYS...\n");
+      seg_dump(&scode);
+      seg_dump(&sdata);
+      pkgs_list();
       continue;
     }
     if(!strncmp("cc",buf,2)){
       int ret = system("cd sys; ./build.sh");
-      printf("--- %d\n",ret);
-      if(!ret)
-	import_elf();
+      if(!ret){
+	siSymb* symb = pkg_load_elf(pkgs,"sys/test.o");
+	printf("%s: %s %d bytes\n",symb->name,symb->proto,symb->size);
+      }
+      else
+	printf("--- %d\n",ret);
       continue;
     }
     if(!strncmp("hh",buf,2)){
@@ -116,7 +121,7 @@ void main_loop(){
     }
 
     if(!strncmp("words",buf,4)){
-      pkgs_dump_protos(stdout);
+      pkg_words(pkgs);
       continue;
     }
 
@@ -156,8 +161,8 @@ int main(int argc, char **argv){
   
   //test(usrpkg,argv[1],argv[2]);
   //test_data(usrpkg,argv[1]);
-  pkgs_list();
-  pkg_dump(pkg);
+  //  pkgs_list();
+  //pkg_dump(pkg);
 
   main_loop();
   //  testab("o/twoA.o","o/twoB.o");
