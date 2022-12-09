@@ -135,11 +135,11 @@ static char* pkg_lib_load_names(char*path,U32*pcnt){
   S64 len = file_map((void**)&srcbuf,path,PROT_READ);
   if(len<0) file_map_error_msg(len,path,1);
   // copy into a buffer
-  char* buf = (char*)malloc(1+len);
+  char* buf = (char*)malloc(2+len);
   char* p = buf;
   *p++ = 0;
+  buf[1+len]=0;
   memcpy(p,srcbuf,len);
-  //
   unmap(srcbuf,len);
   // now, replace crs with 0, and count them
   U32 i = 0;
@@ -148,7 +148,6 @@ static char* pkg_lib_load_names(char*path,U32*pcnt){
     i++;
   }
   *pcnt = i;
-  
   return buf;	 
 }
 
