@@ -109,11 +109,15 @@ void main_loop(){
       int ret = system("cd sys; ./build.sh");
       if(!ret){
 	siSymb* symb = pkg_load_elf(pkgs,"sys/test.o");
-	printf("%s: %s %d bytes\n",symb->name,symb->proto,symb->size);
-	 //TODO: make up your mind! before or after?
-	FILE* f = fopen("sys/headers.h","w");
-	pkgs_dump_protos(f);
-	fclose(f);
+	if(symb){
+	  printf("%s: %s %d bytes\n",symb->name,symb->proto,symb->size);
+	  //TODO: make up your mind! before or after?
+	  FILE* f = fopen("sys/headers.h","w");
+	  pkgs_dump_protos(f);
+	  fclose(f);
+	} else {
+	  printf("Compile abandoned\n");
+	}
       }
       else
 	printf("--- %d\n",ret);

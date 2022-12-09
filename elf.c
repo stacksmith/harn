@@ -154,8 +154,11 @@ U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup){
     } else { //for undefined symbols, find!
       psym->st_value = (*lookup)(pelf->str_sym + psym->st_name);
       // count undefined symbols
-      if(!psym->st_value)
+      if(!psym->st_value) {
 	nUndef++;
+	printf("Unresolved: %s\n",ELF_SYM_NAME(pelf,psym));
+      }
+      
     }
     //          sym_dump(pelf,psym);
     return 0;
@@ -236,7 +239,12 @@ void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
   }
 }
 
+/*----------------------------------------------------------------------------
+  elf_process_rel_section       if the specified section is a RELA, process
+                                relocations.  Also, call provided proc.
+                                
 
+----------------------------------------------------------------------------*/
 void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc){
   if(SHT_RELA == shrel->sh_type){
     U32 relnum = shrel->sh_size / shrel->sh_entsize;

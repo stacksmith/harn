@@ -2,7 +2,8 @@
 
 extern sPt* mypt;
 
-void crap(){
+void bad(){
+  puts("OK");
   printf("mypoint is %d %d\n",mypt->x, mypt->y);
 }
 

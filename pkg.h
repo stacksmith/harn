@@ -53,7 +53,8 @@ typedef struct sPkg {
   siSymb* data;
   char* name;
 } sPkg;
-
+siSymb* siSymb_new(char* name,U32 data,U32 size);
+void siSymb_delete(siSymb* symb);
 void siSymb_set_src(siSymb* symb,U32 src, U32 srclen);
 void siSymb_src_to_body(siSymb* symb);
 void pkg_dump(sPkg* pkg);
