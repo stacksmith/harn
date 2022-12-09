@@ -14,7 +14,6 @@
 
 
 
-
 /* -------------------------------------------------------------
    elf_load   Load an ELF object file (via mapping)
  -------------------------------------------------------------*/
@@ -72,7 +71,8 @@ U32 elf_find_section(sElf*pelf,char*name){
   }
   return 0;
 }
-// Process each symbol by calling proc.  If proc returns
+// Process each symbol by calling proc.  Do not process 0,1.
+// If proc returns
 // non-zero, exit with the index that bounced us.  If all
 // symbols are processed, return 1
 U32 elf_process_symbols(sElf* pelf,pfElfSymProc proc){
@@ -83,10 +83,11 @@ U32 elf_process_symbols(sElf* pelf,pfElfSymProc proc){
   }
   return 0; //fully processed all
 }
+
 /* 
   Count the number of func-symbols in this ELF
 TODO: make more generic searches
- */
+
 U32 elf_func_count(sElf* pelf){
   U32 cnt = 0;
   U32 proc(Elf64_Sym* psym,U32 i){
@@ -129,7 +130,7 @@ U32 elf_data_find(sElf* pelf){;
   }
   return elf_process_symbols(pelf,&proc);
 }
-
+*/
 S32 elf_find_global_symbol(sElf* pelf){
   S32 ret = 0;
   U32 proc(Elf64_Sym* psym,U32 i){
@@ -190,16 +191,22 @@ void process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto){
   Elf64_Sym* psym = &pelf->psym[ELF64_R_SYM(prel->r_info)];
   U64 s = psym->st_value;
   U64 a = prel->r_addend;
+  if(!s) {
+    printf("process_rel: symbol %ld is not initialized!\n",
+	   ELF64_R_SYM(prel->r_info));
+    exit(1);
+  }
+    
   switch(ELF64_R_TYPE(prel->r_info)){
   case R_X86_64_PC32:  //data access
   case R_X86_64_PLT32: //calls
     U32 fixup = (U32)(s+a-p);
     *((U32*)p) = fixup;
-    //printf("Fixup: P:%lx A:%ld S:%lx S+A-P: %08x\n",p,a,s,fixup);        
+    printf("Fixup: P:%lx A:%ld S:%lx S+A-P: %08x\n",p,a,s,fixup);        
     break;
   case R_X86_64_64: //data, pointer
     *((U64*)p) = s + a;
-    //printf("Fixup: P:%lx A:%ld S:%lx S+A: %016lx\n",p,a,s,s+a);
+    printf("Fixup: P:%lx A:%ld S:%lx S+A: %016lx\n",p,a,s,s+a);
     break;
   default:
     printf("Unknown relocation type\n");
@@ -210,9 +217,9 @@ void process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto){
 
 
 void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel){
-  printf("elf_process_rel_section: processing section %p\n",shrel);
   if(SHT_RELA == shrel->sh_type){
     U32 relnum = shrel->sh_size / shrel->sh_entsize;
+    printf("elf_process_rel_section %p with %d rels\n",shrel,relnum);
     Elf64_Rela* prel = (Elf64_Rela*)(pelf->buf + shrel->sh_offset);
     // applying relocations to this section
     Elf64_Shdr* shto = &pelf->shdr[shrel->sh_info];

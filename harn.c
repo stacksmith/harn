@@ -35,7 +35,7 @@ void test2(char*name){
 
   //  sys_dump();
   //unit_dump(pu);
-  // pkg_dump(&pkg);  
+
   printf("-------------------\n");
  
   fptr entry = (fptr)(U64)(pkg_find_name(&pkg,"bar").data);
@@ -45,6 +45,16 @@ void test2(char*name){
     U64 ret = (*entry)(1,2);
     printf("returned: %lx\n",ret);
   }
+  
+}
+void test_data(char*name){
+  pkg_load_elf(&pkg,name);
+  //  unit_dump(puLib);
+
+  //  sys_dump();
+  //unit_dump(pu);
+  // pkg_dump(&pkg);  
+  printf("-------------------\n");
   
 }
 /*
@@ -93,9 +103,9 @@ int main(int argc, char **argv){
   // create bindings for libc
   pkg_lib(&pkg,"libc.so.6","libc.txt");
   
-  test2(argv[1]);
-
-
+  //  test2(argv[1]);
+  test_data(argv[1]);
+   pkg_dump(&pkg);  
   //  testab("o/twoA.o","o/twoB.o");
   //testmult(argc-1,argv+1);
   

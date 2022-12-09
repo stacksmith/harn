@@ -122,6 +122,8 @@ printf("Ingesting dll %s, names in %s\n",dllpath,namespath);
  
  *****************************************************************************/
 /* pkg_ingest_elf_sec   Ingest data from an elf section into segment
+   
+   Also, set the section address in the ELF section header (for resolution)
  */
 U32 pkg_ingest_elf_sec(sPkg*pkg,sElf*pelf,U32 isec,sSeg*pseg){
   Elf64_Shdr* shdr = pelf->shdr + isec;
@@ -154,7 +156,8 @@ U32 pkg_func_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
     pkg_ingest_elf_sec(pkg,pelf,strsec,&scode);
   }
   // ok, now calculate size and add to package
-  U32 size = scode.fill - faddr;
+
+  U32 size = (U32)(U64)(scode.base + scode.fill) - faddr;
   pkg_add(pkg,fname,faddr,size);
   
   return codesec;
@@ -196,21 +199,60 @@ void pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   // resolve relocation section, if codesec+1 is a rel section
   elf_process_rel_section(pelf,(pelf->shdr)+codesec+1); 
 }
-/*
-void pkg_load_elf_data(sPkg* pkg,sElf* pelf){
-  U32 cnt = elf_data_count(pelf);
-  if(cnt>1){
-    printf("Only datum is expected.  Found %d\n",cnt);
-    exit(1);
+/* pkg_load_elf_data
+
+A data object is more complicated, as it may exist in a single .bss section, 
+or span multiple ELF sections.  GCC puts pointer object into a separate 
+section with a rel section; strings go into a .rodata.str.1, etc.  A safe 
+strategy is to first ingest the section with prime data first (we need it to 
+take the base address), then all sections referenced by the symbols, 
+and any associated rel section
+
+ */
+void pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
+  seg_align(&sdata,8); // our alignment requirement
+  U32 sec = psym->st_shndx;
+  U32 addr = pkg_ingest_elf_sec(pkg,pelf,sec,&sdata);
+  char* name = psym->st_name + pelf->str_sym;
+
+  printf("pkg_load_elf_data: for %s\n",name);
+
+  // Now, walk the symbols and ingest any referenced sections.
+  U32 proc(Elf64_Sym* psym,U32 i){
+    U32 refsec = psym->st_shndx;
+    if(refsec && (refsec < 0xFF00)){
+      //      printf("processing symbol %d, refsec %d\n",i, refsec);
+      Elf64_Shdr* psec = pelf->shdr+refsec;
+      if( ! psec->sh_addr) {
+	//	printf("Need section %d!\n",refsec);
+	U32 addr = pkg_ingest_elf_sec(pkg,pelf,refsec,&sdata);
+	psec->sh_addr = addr;
+      }
+    }
+    return 0; //all symbols
   }
-    
+  elf_process_symbols(pelf,proc);
+
+  // resolve elf symbols; should be possible now.
+  pkg_elf_resolve(pkg,pelf);
+  // resolve relocation section, if codesec+1 is a rel section
+  //  elf_process_rel_section(pelf,(pelf->shdr)+codesec+1);
+  elf_apply_rels(pelf);
+  // ok, now calculate size and add to package
+  U32 size = (U32)(U64)(sdata.base + sdata.fill) - addr;
+  printf("Addr, size %x,%x\n",addr,size);
+
+  pkg_add(pkg,name,addr,size);
+ 
 }
-*/
+
+
 void pkg_load_elf(sPkg* pkg,char* path){
   sElf* pelf = elf_new();
   elf_load(pelf,path);
   // Find the global symbol; must be only one.
   S32 i = elf_find_global_symbol(pelf);
+  
   switch(i){
   case 0:
     printf("pkg_load_elf: no global symbols found\n");
@@ -226,7 +268,7 @@ void pkg_load_elf(sPkg* pkg,char* path){
     pkg_load_elf_func(pkg,pelf,psym);
     break;
   case STT_OBJECT:
-    //    pkg_load_elf_data(pkg,pelf,psym);
+    pkg_load_elf_data(pkg,pelf,psym);
     break;
   default:
     printf("pkg_load_elf: global symbol is not FUNC or OBJECT\n");

@@ -12,7 +12,7 @@ typedef struct sElf{
   U32 symnum;
   char* str_sym;           //string for symbols
 
-  //  U32* hashes;  // a table of name hashes matching symbol table
+  // U32* sechashes;  // a table of name hashes matching section names
   S64 map_size; // for unmapping buf
 } sElf;
 
@@ -56,8 +56,5 @@ U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup);
 U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup);
 
 void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel);
-U32 elf_func_count(sElf* pelf);
-U32 elf_data_count(sElf* pelf);
-U32 elf_func_find(sElf* pelf);
-U32 elf_data_find(sElf* pelf);
+
 S32 elf_find_global_symbol(sElf* pelf);
