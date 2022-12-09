@@ -245,6 +245,7 @@ siSymb* pkg_func_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
   siSymb* symb = pkg_add(pkg,fname,faddr,size);
   // attach prototype
   symb->proto = aux_proto("sys/info.txt");
+  printf("....proto: %s\n",symb->proto);
   return symb;
 }
 /*----------------------------------------------------------------------------

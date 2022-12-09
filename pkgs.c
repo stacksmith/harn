@@ -52,10 +52,12 @@ siSymb* pkgs_symb_of_name(char* name){
 }
 
 
-void pkgs_dump_protos(FILE* f){
+void pkgs_dump_protos(){
+  FILE* f = fopen("sys/headers.h","w");
   sPkg* pkg = pkgs;
   while(pkg){
     pkg_dump_protos(pkg,f);
     pkg = pkg->next;
   }
+  fclose(f);
 }

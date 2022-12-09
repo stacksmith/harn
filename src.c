@@ -35,6 +35,7 @@ U32 src_from_body(U32* plen){
   if(f) {
     size_t len = fread(srcbuf,1,srcbuf_size,f);
     fclose(f);
+    srcbuf[len]=0;
     size_t pos = ftell(faSources);
     fputs(srcbuf,faSources);
     fflush(faSources);

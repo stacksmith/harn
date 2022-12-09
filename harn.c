@@ -19,6 +19,7 @@
 //#include "system.h"
 #include "pkg.h"
 #include "src.h"
+#include "pkgs.h"
 
 
 
@@ -57,7 +58,7 @@ void test(sPkg*pkg,char*elfname,char* funname){
 */
 void run_void_fun(char* funname){
   siSymb* symb = pkgs_symb_of_name(funname);
-  if(symb){
+  if(symb && (0x80000000 & symb->data)){
     //    printf("found %s\n",funname);
     fptr entry = (fptr)(U64)(symb->data);
     U64 ret = (*entry)(1,2);
@@ -67,9 +68,6 @@ void run_void_fun(char* funname){
   }
 }
 
-void import_elf(){
-
-}
 
 extern FILE* fSources;
 void edit(char* name){
@@ -85,8 +83,25 @@ void edit(char* name){
 
 }
 
+
+siSymb* compile(){
+  siSymb* symb=0;
+  int ret = system("cd sys; ./build.sh");
+  if(!ret){
+    symb = pkg_load_elf(pkgs,"sys/test.o");
+    if(symb){
+      printf("%s: %s %d bytes\n",symb->name,symb->proto,symb->size);
+    } else {
+      printf("Compile abandoned\n");
+    }
+  }
+  else 
+    printf("--- %d\n",ret);
+  return symb;
+}
 char buf[1024];
 void main_loop(){
+  pkgs_dump_protos();
   while(1) {
     printf("> ");
     fgets(buf,1024,stdin);
@@ -94,33 +109,39 @@ void main_loop(){
     size_t len = strlen(buf);
     len--;
     *(buf+len)=0; // get rid of newline
+
+    // expression to execute?
+    if(*buf=='.'){
+      FILE*f = fopen("sys/body.c","w");\
+      fputs("void command_line(void){\n ",f);
+      fputs(buf+1,f);
+      fputs("\n}\n",f);
+      fclose(f);
+      siSymb* symb = compile();
+      if(symb && (0x80000000 & symb->data)){
+	fptr entry = (fptr)(U64)(symb->data);
+	(*entry)(1,2);
+	pkg_drop_symb(pkgs);
+      }
+      continue;
+    }
+    
     if(!strncmp("xx",buf,2)){
       //siSymb* symb =
       pkg_load_elf(pkgs,"sys/test.o");  
       continue;
     }
+    
     if(!strncmp("sys",buf,3)){
       seg_dump(&scode);
       seg_dump(&sdata);
       pkgs_list();
       continue;
     }
+
     if(!strncmp("cc",buf,2)){
-      int ret = system("cd sys; ./build.sh");
-      if(!ret){
-	siSymb* symb = pkg_load_elf(pkgs,"sys/test.o");
-	if(symb){
-	  printf("%s: %s %d bytes\n",symb->name,symb->proto,symb->size);
-	  //TODO: make up your mind! before or after?
-	  FILE* f = fopen("sys/headers.h","w");
-	  pkgs_dump_protos(f);
-	  fclose(f);
-	} else {
-	  printf("Compile abandoned\n");
-	}
-      }
-      else
-	printf("--- %d\n",ret);
+      compile();
+      pkgs_dump_protos();
       continue;
     }
     if(!strncmp("hh",buf,2)){
@@ -141,8 +162,6 @@ void main_loop(){
       continue;
     }
 
-   
-    
     if(!strncmp("bye",buf,3))
       exit(0);
 
