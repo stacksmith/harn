@@ -46,7 +46,6 @@ void  elf_delete(sElf* pelf);
 U32 elf_find_section(sElf*pelf,char*name);
 
 //void elf_syms(sElf* pelf);
-void elf_apply_rels(sElf* pelf);
 
 // process symbol
 typedef U32 (*pfElfSymProc)(Elf64_Sym*psym,U32 i);
@@ -55,6 +54,8 @@ U32 elf_process_symbols(sElf* pelf, pfElfSymProc proc);
 U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup);
 U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup);
 
-void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel);
+typedef void (*pfRelProc)(U32 addr,U32 type);
+void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc);
+void elf_apply_rels(sElf* pefl,pfRelProc proc);
 
 S32 elf_find_global_symbol(sElf* pelf);

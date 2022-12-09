@@ -105,7 +105,8 @@ int main(int argc, char **argv){
   
   //  test2(argv[1]);
   test_data(argv[1]);
-   pkg_dump(&pkg);  
+  hd((U8*)(U64)0x80000AB0,4);
+  //   pkg_dump(&pkg);  
   //  testab("o/twoA.o","o/twoB.o");
   //testmult(argc-1,argv+1);
   

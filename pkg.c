@@ -121,6 +121,11 @@ printf("Ingesting dll %s, names in %s\n",dllpath,namespath);
 /*****************************************************************************
  
  *****************************************************************************/
+void relproc(U32 p,U32 kind){
+  printf("Reference at: %08X, %d\n",p,kind);
+}
+
+
 /* pkg_ingest_elf_sec   Ingest data from an elf section into segment
    
    Also, set the section address in the ELF section header (for resolution)
@@ -197,7 +202,7 @@ void pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   // resolve elf symbols
   pkg_elf_resolve(pkg,pelf);
   // resolve relocation section, if codesec+1 is a rel section
-  elf_process_rel_section(pelf,(pelf->shdr)+codesec+1); 
+  elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc); 
 }
 /* pkg_load_elf_data
 
@@ -237,7 +242,7 @@ void pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   pkg_elf_resolve(pkg,pelf);
   // resolve relocation section, if codesec+1 is a rel section
   //  elf_process_rel_section(pelf,(pelf->shdr)+codesec+1);
-  elf_apply_rels(pelf);
+  elf_apply_rels(pelf,relproc);
   // ok, now calculate size and add to package
   U32 size = (U32)(U64)(sdata.base + sdata.fill) - addr;
   printf("Addr, size %x,%x\n",addr,size);

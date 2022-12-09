@@ -184,39 +184,56 @@ U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup){
   }
   elf_process_symbols(pelf,proc);
   return nUndef;
-} 
-void process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto){
+}
+/* proces_rel    Apply a relocation to a reference located in section shto,
+                 as described by prel.
+
+Currently handling only two kinds of relocations: 32-bit PC-relative offsets 
+as found in x86-64 code, and 64-bit absolute pointers.
+
+Note: we eliminate GOTs and PLTs, and use direct references.
+
+   
+
+ */
+
+
+void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
+		     pfRelProc proc){
   U64 base = shto->sh_addr; // base address of image being fixed-up
   U64 p = base + prel->r_offset;
   Elf64_Sym* psym = &pelf->psym[ELF64_R_SYM(prel->r_info)];
+  // symbol must be previously resolved.
   U64 s = psym->st_value;
-  U64 a = prel->r_addend;
   if(!s) {
     printf("process_rel: symbol %ld is not initialized!\n",
 	   ELF64_R_SYM(prel->r_info));
     exit(1);
   }
+  U64 a = prel->r_addend;
     
   switch(ELF64_R_TYPE(prel->r_info)){
   case R_X86_64_PC32:  //data access
   case R_X86_64_PLT32: //calls
     U32 fixup = (U32)(s+a-p);
     *((U32*)p) = fixup;
+    (*proc)((U32)p,1); 
     printf("Fixup: P:%lx A:%ld S:%lx S+A-P: %08x\n",p,a,s,fixup);        
     break;
   case R_X86_64_64: //data, pointer
     *((U64*)p) = s + a;
+    (*proc)((U32)p,2); 
     printf("Fixup: P:%lx A:%ld S:%lx S+A: %016lx\n",p,a,s,s+a);
     break;
   default:
     printf("Unknown relocation type\n");
     rel_dump(pelf,prel);
-    break;
+    exit(1);
   }
 }
 
 
-void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel){
+void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc){
   if(SHT_RELA == shrel->sh_type){
     U32 relnum = shrel->sh_size / shrel->sh_entsize;
     printf("elf_process_rel_section %p with %d rels\n",shrel,relnum);
@@ -225,20 +242,20 @@ void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel){
     Elf64_Shdr* shto = &pelf->shdr[shrel->sh_info];
     printf("Applying relocations against %lX, %ld\n",shto->sh_addr,shto->sh_size);
     for(U32 i=0; i<relnum; i++,prel++){
-      process_rel(pelf,prel,shto);
+      elf_process_rel(pelf,prel,shto,proc);
     }
   } else {
     printf("elf_process_rel_section: no relocations\n");
   }
 }
 
-void elf_apply_rels(sElf* pelf){
+void elf_apply_rels(sElf* pelf,pfRelProc proc){
   //  printf("Rel sections:\n");
   Elf64_Shdr* shdr = pelf->shdr;  
   for(U32 i=0; i< pelf->shnum; i++,shdr++){
     if(SHT_RELA == shdr->sh_type){
       //  sechead_dump(pelf,i);
-      elf_process_rel_section(pelf,shdr);
+      elf_process_rel_section(pelf,shdr,proc);
     }
   }
 }  
