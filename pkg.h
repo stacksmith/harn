@@ -55,6 +55,7 @@ typedef struct sPkg {
 } sPkg;
 
 void siSymb_set_src(siSymb* symb,U32 src, U32 srclen);
+void siSymb_src_to_body(siSymb* symb);
 void pkg_dump(sPkg* pkg);
 
 sPkg* pkg_new();

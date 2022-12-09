@@ -11,48 +11,10 @@
 #include "util.h"
 #include "seg.h"
 #include "pkg.h"
+#include "src.h"
 
 extern sSeg scode;
 extern sSeg sdata;
-
-/* aux_proto   for functions, extract the prototype saved on the last line 
-               of file the compiler generated with the -aux-info switch.
-*/
-char* aux_proto(char* fname){
-  FILE* f = fopen(fname,"r");
-  if(!f){
-    fprintf(stderr,"aux_proto: unable to open %s\n",fname);
-    exit(1);
-  }
-  char* buf=(char*)malloc(1024+1);
-  // load the end of the file, tucked to the top of buf
-  fseek(f,0,SEEK_END);
-  long pos = ftell(f);
-  //  char* beg =buf;
-  //  printf("pos: %ld\n",pos);
-  if(pos>=1024){
-    fseek(f,pos-1024,SEEK_SET);
-    fread(buf+1,1,1024,f);
-    *buf = 0;
-    //beg = buf+1;
-  } else {
-    fseek(f,0,SEEK_SET);
-    fread(buf+1+1024-pos,1,pos,f);
-    *(buf+1024-pos) = 0;
-    //beg = buf+1+1024-pos;
-  }
-  // now scan backwards
-  char* start = buf+1024-4; // back up past ' */<cr>'
-  while(*start != '/') start--; 
-  *--start = 0;             // chop off K&R comment
-  while(*start != '/') start--; // back up to end of first comment
-  start+=2;                     // but skip the / and space
-  char* ret = (char*)malloc(1+strlen(start));
-  strcpy(ret,start);
-  free(buf);
-  return ret;
-}
-
 
 siSymb* siSymb_new(char* name,U32 data,U32 size){
   siSymb* p = (siSymb*)malloc(sizeof(siSymb));
@@ -75,6 +37,16 @@ void siSymb_dump(siSymb* p){
 void siSymb_set_src(siSymb* symb,U32 src, U32 srclen){
   symb->src = src;
   symb->srclen = srclen;
+}
+
+void siSymb_src_to_body(siSymb* symb){
+  U32 srcpos=0;
+  U32 srclen=0;
+  if(symb){
+    srcpos = symb->src;
+    srclen = symb->srclen;
+  }
+  src_to_body(srcpos,srclen);
 }
 
 void pkg_dump(sPkg* pkg){
@@ -369,19 +341,10 @@ void pkg_load_elf(sPkg* pkg,char* path){
     printf("pkg_load_elf: global symbol is not FUNC or OBJECT\n");
     exit(1);
   }
-  // read source
-  FILE* f = fopen("sys/body.c","r");
-  if(f) {
-    char* buf = (char*)malloc(0x1000);
-    size_t len = fread(buf,1,0x1000,f);
-    fclose(f);
-    size_t pos = ftell(faSources);
-    fputs(buf,faSources);
-    fflush(faSources);
-    free(buf);
-    siSymb_set_src(symb,pos,len);
-  }
-
+  // read body and append source
+  U32 len;
+  U32 pos = src_from_body(&len);
+  siSymb_set_src(symb,pos,len);
     
   free(pelf);
 }

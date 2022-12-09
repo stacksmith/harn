@@ -18,6 +18,7 @@
 //#include "unit.h"
 //#include "system.h"
 #include "pkg.h"
+#include "src.h"
 
 
 
@@ -80,20 +81,7 @@ void edit(char* name){
   pkgs_dump_protos(f);
   fclose(f);
 
-  f = fopen("sys/body.c","w");
-  if(symb){
-    // get source
-    U32 src = symb->src;
-    U32 srclen = symb->srclen;
-    if(src){
-      char* buf=(char*)(malloc(0x10000));
-      fseek(fSources,src,SEEK_SET);
-      fread(buf,1,srclen,fSources);
-      fwrite(buf,1,srclen,f);
-      free(buf);
-    }
-  }
-  fclose(f);
+  siSymb_src_to_body(symb);
 }
 
 char buf[1024];
@@ -154,8 +142,8 @@ int main(int argc, char **argv){
 	    PROT_READ|PROT_WRITE|PROT_EXEC);
   seg_alloc(&sdata,"SDATA",0x10000000,(void*)0x40000000,
 	    PROT_READ|PROT_WRITE);
-  faSources = fopen("sys/sources.txt","a");
-  fSources = fopen("sys/sources.txt","r");
+  src_init();
+  
 
    // create bindings for libc
   sPkg* pkg = pkg_new(&pkg);

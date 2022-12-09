@@ -1,7 +1,6 @@
 
 int fuck(int a,int b){
-  ass(a,b);
-  shit(b,a);
+  printf("fuck %d %d\n",a,b);
   return a+b;
 }
   
