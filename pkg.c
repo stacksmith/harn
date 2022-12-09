@@ -15,6 +15,43 @@
 extern sSeg scode;
 extern sSeg sdata;
 
+/* aux_proto   for functions, extract the prototype saved on the last line 
+               of file the compiler generated with the -aux-info switch.
+*/
+char* aux_proto(char* fname){
+  FILE* f = fopen(fname,"r");
+  if(!f){
+    fprintf(stderr,"aux_proto: unable to open %s\n",fname);
+    exit(1);
+  }
+  char* buf=(char*)malloc(1024+1);
+  // load the end of the file, tucked to the top of buf
+  fseek(f,0,SEEK_END);
+  long pos = ftell(f);
+  //  char* beg =buf;
+  printf("pos: %ld\n",pos);
+  if(pos>=1024){
+    fseek(f,pos-1024,SEEK_SET);
+    fread(buf+1,1,1024,f);
+    *buf = 0;
+    //beg = buf+1;
+  } else {
+    fseek(f,0,SEEK_SET);
+    fread(buf+1+1024-pos,1,pos,f);
+    *(buf+1024-pos) = 0;
+    //beg = buf+1+1024-pos;
+  }
+  // now scan backwards
+  char* start = buf+1024-4; // back up past ' */<cr>'
+  while(*start != '/') start--; 
+  *--start = 0;             // chop off K&R comment
+  while(*start != '/') start--; // back up to end of first comment
+  start+=2;                     // but skip the / and space
+  char* ret = (char*)malloc(1+strlen(start));
+  strcpy(ret,start);
+  free(buf);
+  return ret;
+}
 
 
 siSymb* siSymb_new(char* name,U32 data,U32 size){
@@ -25,6 +62,7 @@ siSymb* siSymb_new(char* name,U32 data,U32 size){
   p->hash = string_hash(name);
   p->data = data;
   p->size = size;
+  p->proto = 0;
   return p;
 }
 
@@ -53,10 +91,14 @@ void pkg_set_name(sPkg* pkg,char*name){
   strcpy(pkg->name,name);
 }
 
-void pkg_add(sPkg* pkg,char*name,U32 data,U32 size){
+siSymb* pkg_add(sPkg* pkg,char*name,U32 data,U32 size){
   siSymb*p = siSymb_new(name,data,size);
+  // cons it in
   p->next = pkg->data;
   pkg->data = p;
+  
+  return p;
+  
 }
 /*
 static sDataSize nullds = {0,0};
@@ -184,8 +226,10 @@ U32 pkg_func_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
   // ok, now calculate size and add to package
 
   U32 size = seg_pos(&scode) - faddr;
-  pkg_add(pkg,fname,faddr,size);
+  siSymb* symb = pkg_add(pkg,fname,faddr,size);
+
   
+  symb->proto = aux_proto("o/info.txt");
   return codesec;
   
 }
@@ -327,8 +371,9 @@ void pkgs_add(sPkg* pkg){
 
 void pkgs_list(){
   sPkg* p = pkgs;
+  printf("Packages:\n");
   while(p){
-    printf("pkg %s\n",p->name);
+    printf(" %s\n",p->name);
     p=p->next;
   }
 }

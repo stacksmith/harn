@@ -41,7 +41,9 @@ typedef struct siSymb {
       U32 size;
     };
   };
+  char* proto;
   U32 hash;
+  
 } siSymb;
 
 typedef struct sPkg {
@@ -54,7 +56,7 @@ void pkg_dump(sPkg* pkg);
 
 sPkg* pkg_new();
 void pkg_set_name(sPkg* pkg,char* name);
-void pkg_add(sPkg* pkg,char*name,U32 data,U32 size);
+siSymb* pkg_add(sPkg* pkg,char*name,U32 data,U32 size);
 siSymb* pkg_symb_of_hash(sPkg* pkg,U32 hash);
 siSymb* pkg_symb_of_name(sPkg* pkg,char* name);
 void pkg_lib(sPkg* pkg,char*dllpath,char*namespath);
