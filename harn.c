@@ -29,6 +29,9 @@ sPkg pkg;
 
 sPkg* pkgs=0;
 
+FILE* faSources;
+FILE* fSources;
+
 typedef U64 (*fptr)(int,int);
 typedef U64 (*fptr)(int,int);
 
@@ -65,7 +68,32 @@ void run_void_fun(char* funname){
 }
 
 void import_elf(){
-  test(pkgs,"o/test.o",0);
+  test(pkgs,"sys/test.o",0);
+}
+
+extern FILE* fSources;
+void edit(char* name){
+  printf("Editing [%s]\n",name);
+  siSymb* symb = pkgs_symb_of_name(name);
+  // write headers for packages in use
+  FILE*f = fopen("sys/headers.h","w");
+  pkgs_dump_protos(f);
+  fclose(f);
+
+  f = fopen("sys/body.c","w");
+  if(symb){
+    // get source
+    U32 src = symb->src;
+    U32 srclen = symb->srclen;
+    if(src){
+      char* buf=(char*)(malloc(0x10000));
+      fseek(fSources,src,SEEK_SET);
+      fread(buf,1,srclen,fSources);
+      fwrite(buf,1,srclen,f);
+      free(buf);
+    }
+  }
+  fclose(f);
 }
 
 char buf[1024];
@@ -73,6 +101,10 @@ void main_loop(){
   while(1) {
     printf("> ");
     fgets(buf,1024,stdin);
+    // try to find it
+    size_t len = strlen(buf);
+    len--;
+    *(buf+len)=0; // get rid of newline
     if(!strncmp("xx",buf,2)){
       import_elf();
       continue;
@@ -82,14 +114,14 @@ void main_loop(){
       continue;
     }
     if(!strncmp("cc",buf,2)){
-      int ret = system("cd o; ./build.sh");
+      int ret = system("cd sys; ./build.sh");
       printf("--- %d\n",ret);
       if(!ret)
 	import_elf();
       continue;
     }
     if(!strncmp("hh",buf,2)){
-      FILE*f = fopen("o/headers.h","w");
+      FILE*f = fopen("sys/headers.h","w");
       pkgs_dump_protos(f);
       fclose(f);
       continue;
@@ -100,12 +132,17 @@ void main_loop(){
       continue;
     }
 
+    if(!strncmp("edit",buf,4)){
+      edit(buf+5);
+      pkgs_dump_protos(stdout);
+      continue;
+    }
+
+   
     
     if(!strncmp("bye",buf,3))
       exit(0);
-    // try to find it
-    size_t len = strlen(buf);
-    *(buf+len-1)=0; // get rid of newline
+
     run_void_fun(buf);
 
   }
@@ -117,7 +154,10 @@ int main(int argc, char **argv){
 	    PROT_READ|PROT_WRITE|PROT_EXEC);
   seg_alloc(&sdata,"SDATA",0x10000000,(void*)0x40000000,
 	    PROT_READ|PROT_WRITE);
-// create bindings for libc
+  faSources = fopen("sys/sources.txt","a");
+  fSources = fopen("sys/sources.txt","r");
+
+   // create bindings for libc
   sPkg* pkg = pkg_new(&pkg);
   pkg_lib(pkg,"libc.so.6","libc.txt");
   pkgs_add(pkg);
@@ -126,7 +166,7 @@ int main(int argc, char **argv){
   pkg_set_name(usrpkg,"usr");
   pkgs_add(usrpkg);
   
-  test(usrpkg,argv[1],argv[2]);
+  //test(usrpkg,argv[1],argv[2]);
   //test_data(usrpkg,argv[1]);
   pkgs_list();
   pkg_dump(pkg);

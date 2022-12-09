@@ -29,7 +29,7 @@ char* aux_proto(char* fname){
   fseek(f,0,SEEK_END);
   long pos = ftell(f);
   //  char* beg =buf;
-  printf("pos: %ld\n",pos);
+  //  printf("pos: %ld\n",pos);
   if(pos>=1024){
     fseek(f,pos-1024,SEEK_SET);
     fread(buf+1,1,1024,f);
@@ -63,11 +63,18 @@ siSymb* siSymb_new(char* name,U32 data,U32 size){
   p->data = data;
   p->size = size;
   p->proto = 0;
+  p->src = 0;
+  p->srclen = 0;
   return p;
 }
 
 void siSymb_dump(siSymb* p){
   printf("%08X %08x %s\n",p->data, p->size, p->name);
+}
+
+void siSymb_set_src(siSymb* symb,U32 src, U32 srclen){
+  symb->src = src;
+  symb->srclen = srclen;
 }
 
 void pkg_dump(sPkg* pkg){
@@ -90,6 +97,7 @@ void pkg_set_name(sPkg* pkg,char*name){
   pkg->name = (char*)malloc(strlen(name)+1);
   strcpy(pkg->name,name);
 }
+
 
 siSymb* pkg_add(sPkg* pkg,char*name,U32 data,U32 size){
   siSymb*p = siSymb_new(name,data,size);
@@ -211,8 +219,9 @@ U32 pkg_ingest_elf_sec(sPkg*pkg,sElf*pelf,U32 isec,sSeg*pseg){
 }
 
 
-U32 pkg_func_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
+siSymb* pkg_func_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
   seg_align(&scode,8); // our alignment requirement
+
   U32 codesec = psym->st_shndx;
   U32 faddr = pkg_ingest_elf_sec(pkg,pelf,codesec,&scode);
   char* fname = psym->st_name + pelf->str_sym;
@@ -228,9 +237,9 @@ U32 pkg_func_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
   U32 size = seg_pos(&scode) - faddr;
   siSymb* symb = pkg_add(pkg,fname,faddr,size);
 
-  
-  symb->proto = aux_proto("o/info.txt");
-  return codesec;
+  //
+  symb->proto = aux_proto("sys/info.txt");
+  return symb;
   
 }
 /*
@@ -252,6 +261,7 @@ U32 pkg_data_from_elf(sPkg* pkg,sElf*pelf,Elf64_Sym* psym){
 U32 pkg_elf_resolve(sPkg* pkg,sElf*pelf){
   U64 proc(char* name){
     siSymb* symb = pkgs_symb_of_name(name);
+    //    printf("Looking for %s; got %p\n",name,symb);
     if(symb)
       return symb->data;
     else
@@ -264,9 +274,10 @@ U32 pkg_elf_resolve(sPkg* pkg,sElf*pelf){
   return unresolved;
 }
 
-void pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
+siSymb* pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   // ingest function from ELF; get section 
-  U32 codesec =  pkg_func_from_elf(pkg,pelf,psym);
+  U32 codesec = psym->st_shndx;
+  siSymb* ret = pkg_func_from_elf(pkg,pelf,psym);
   // resolve elf symbols
   pkg_elf_resolve(pkg,pelf);
   // resolve relocation section, if codesec+1 is a rel section
@@ -274,7 +285,8 @@ void pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
     printf("Code.Reference at: %08X, %d\n",p,kind);
     seg_rel_mark(&scode,p,kind);
   }
-  elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc); 
+  elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc);
+  return ret;
 }
 /* pkg_load_elf_data
 
@@ -286,7 +298,7 @@ take the base address), then all sections referenced by the symbols,
 and any associated rel section
 
  */
-void pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
+siSymb* pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   seg_align(&sdata,8); // our alignment requirement
   U32 sec = psym->st_shndx;
   U32 addr = pkg_ingest_elf_sec(pkg,pelf,sec,&sdata);
@@ -323,10 +335,11 @@ void pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   U32 size = seg_pos(&sdata) - addr;
   printf("Addr, size %x,%x\n",addr,size);
 
-  pkg_add(pkg,name,addr,size);
+  return pkg_add(pkg,name,addr,size);
  
 }
 
+extern FILE* faSources;
 
 void pkg_load_elf(sPkg* pkg,char* path){
   sElf* pelf = elf_new();
@@ -344,17 +357,31 @@ void pkg_load_elf(sPkg* pkg,char* path){
   }
   // Dispatch to FUNC or OBJECT loader
   Elf64_Sym* psym = pelf->psym+i;
+  siSymb* symb;
   switch(ELF64_ST_TYPE(psym->st_info)){
   case STT_FUNC:
-    pkg_load_elf_func(pkg,pelf,psym);
+    symb = pkg_load_elf_func(pkg,pelf,psym);
     break;
   case STT_OBJECT:
-    pkg_load_elf_data(pkg,pelf,psym);
+    symb = pkg_load_elf_data(pkg,pelf,psym);
     break;
   default:
     printf("pkg_load_elf: global symbol is not FUNC or OBJECT\n");
     exit(1);
   }
+  // read source
+  FILE* f = fopen("sys/body.c","r");
+  if(f) {
+    char* buf = (char*)malloc(0x1000);
+    size_t len = fread(buf,1,0x1000,f);
+    fclose(f);
+    size_t pos = ftell(faSources);
+    fputs(buf,faSources);
+    fflush(faSources);
+    free(buf);
+    siSymb_set_src(symb,pos,len);
+  }
+
     
   free(pelf);
 }
