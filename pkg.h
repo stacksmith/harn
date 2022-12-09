@@ -61,7 +61,9 @@ siSymb* pkg_symb_of_hash(sPkg* pkg,U32 hash);
 siSymb* pkg_symb_of_name(sPkg* pkg,char* name);
 void pkg_lib(sPkg* pkg,char*dllpath,char*namespath);
 void pkg_load_elf(sPkg* pkg,char* path);
+void pkg_dump_protos(sPkg* pkg,FILE* f);
 
 void pkgs_add(sPkg* pkg);
 void pkgs_list();
 siSymb* pkgs_symb_of_name(char* name);
+void pkgs_dump_protos(FILE* f);

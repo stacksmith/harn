@@ -81,10 +81,26 @@ void main_loop(){
       printf("SYS...\n");
       continue;
     }
-    if(!strncmp("words",buf,4)){
-      pkg_dump(pkgs);
+    if(!strncmp("cc",buf,2)){
+      int ret = system("cd o; ./build.sh");
+      printf("--- %d\n",ret);
+      if(!ret)
+	import_elf();
       continue;
     }
+    if(!strncmp("hh",buf,2)){
+      FILE*f = fopen("o/headers.h","w");
+      pkgs_dump_protos(f);
+      fclose(f);
+      continue;
+    }
+
+    if(!strncmp("words",buf,4)){
+      pkgs_dump_protos(stdout);
+      continue;
+    }
+
+    
     if(!strncmp("bye",buf,3))
       exit(0);
     // try to find it

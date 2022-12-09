@@ -358,6 +358,18 @@ void pkg_load_elf(sPkg* pkg,char* path){
     
   free(pelf);
 }
+/* pkg_dump_protos    Dump all prototypes of this package into a header file 
+
+ */
+
+void pkg_dump_protos(sPkg* pkg,FILE* f){
+  siSymb* symb = pkg->data;
+  while(symb){
+    if(symb->proto)
+      fprintf(f,"%s\n",symb->proto);
+    symb = symb->next;
+  }
+}
 
 extern sPkg* pkgs;
 void pkgs_add(sPkg* pkg){
@@ -389,4 +401,13 @@ siSymb* pkgs_symb_of_name(char* name){
     pkg=pkg->next;
   }
   return 0;
+}
+
+
+void pkgs_dump_protos(FILE* f){
+  sPkg* pkg = pkgs;
+  while(pkg){
+    pkg_dump_protos(pkg,f);
+    pkg = pkg->next;
+  }
 }
