@@ -92,11 +92,12 @@ static void pkg_lib_prim(sPkg* pkg,void* dlhan, U32 num,char*namebuf){
   // a 12-byte prototype of an assembly trampoline
   static U8 buf[12]={0x48,0xB8,   // mov rax,?
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //64-bit address
-    0xFF,0xE0}; // jmp rax
+    0xFF,0xE0 }; // jmp rax
 
   char* pstr = namebuf+1; // start at lib name; will skip
   for(U32 i=1; i<num; i++){
     pstr += (strlen(pstr)+1);   // advance to next name
+    seg_align(&scode,8);
     U8* addr = seg_append(&scode,buf,sizeof(buf)); // compile jump
     void* pfun = dlsym(dlhan,pstr);
     *((void**)(addr+2)) = pfun; // fixup to function address
