@@ -62,6 +62,9 @@ int seg_alloc(sSeg* pseg,char*name,U64 req_size, void* req_addr, U32 prot){
 U32 seg_pos(sSeg* pseg){
   return pseg->fill;
 }
+U32 seg_off(sSeg* pseg){
+  return pseg->fill - (U32)(U64)pseg->base;
+}
 
 
 
@@ -106,5 +109,63 @@ void seg_rel_mark(sSeg*pseg,U32 pos,U32 kind){
     exit(1);
   }
   U32 off = pos - (U32)(U64)pseg->base;
+  //  printf("setting bits\n");
   bits_set(pseg->prel, off, kind);
+}
+#include "util.h"
+
+U32 cnt_refs(sSeg*pseg,void*target){
+  seg_align(pseg,8);
+  U8* relbase = pseg->prel;
+  U8* segbase = pseg->base;
+  U32 off = (seg_off(pseg));
+  U32 i=0;
+  U64 result;
+  hd(segbase,16);
+  //  printf("Entering loop %p %d %d\n",relbase,off,off>>3);
+  while((result = bits_next_ref(relbase,off))){
+    //    printf(".1.\n");
+    //    printf("ref %d at $%08X",(U32)(result>>32),(U32)result);
+    off = (U32) result;
+    U8* ref = (segbase+off);  //position of reference
+    void* tgt = (result&3)-1 ? 
+      *(void**)ref :
+      (void*) ((*(S32*)ref) + (ref+4));
+    if(tgt==target)
+      i++;
+    //    printf("at %p, %p\n",ref,tgt);
+
+  }
+  return i;
+}
+U32 seg_reref(sSeg*pseg,U64 old,U64 new){
+  seg_align(pseg,8);
+  U8* relbase = pseg->prel;
+  U8* segbase = pseg->base;
+  U32 off = (seg_off(pseg));
+  U64 diff = new-old;
+  U64 result;
+  U32 i=0;
+  hd(segbase,16);
+  //  printf("Entering loop %p %d %d\n",relbase,off,off>>3);
+  while((result = bits_next_ref(relbase,off))){
+    //    printf(".1.\n");
+    //    printf("ref %d at $%08X",(U32)(result>>32),(U32)result);
+    off = (U32) result;
+    U8* ref = (segbase+off);  //position of reference
+    if((result&3)-1) {
+      if(old == (*(U64*)ref)) {
+	printf("64-bit fixup at %p, by %08lX\n",ref,diff);
+	i++;
+	(*(U64*)ref) += diff;
+      }
+    } else {
+      if(old == ((U64)((*(S32*)ref) + (ref+4)))){
+	printf("32-bit fixup at %p, by %08X\n",ref,(U32)diff);
+	i++;
+	(*(U32*)ref) += (U32)diff;
+      }
+    }
+  }
+  return i;
 }

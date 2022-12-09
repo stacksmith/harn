@@ -40,8 +40,8 @@ typedef struct sPiece {
 #define ELF_SYM_NAME(pelf,psym) ((pelf)->str_sym + (psym)->st_name)
 
 
-S64 elf_load(sElf* pelf, char* path);
 sElf* elf_new();
+sElf* elf_load(char* path);
 void  elf_delete(sElf* pelf);
 U32 elf_find_section(sElf*pelf,char*name);
 
@@ -59,3 +59,4 @@ void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc);
 void elf_apply_rels(sElf* pefl,pfRelProc proc);
 
 S32 elf_find_global_symbol(sElf* pelf);
+Elf64_Sym* elf_unique_global_symbol(sElf* pelf);

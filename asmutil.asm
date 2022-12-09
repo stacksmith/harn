@@ -9,7 +9,8 @@
 	global bit_set2
 	global bits_set
 	global bit_test
-	global bit_cnt
+	global bits_cnt
+	global bits_next_ref	;
 
 bit_set2:
 	bts [rdi],rsi
@@ -35,7 +36,7 @@ bit_test:
 	sbb	eax,eax
 	ret
 	
-bit_cnt:
+bits_cnt:
 	dec	rsi		;previous bit must be 0!
 	bt  	[rdi],rsi
 	sbb	eax,eax		;-1 if set, 0 if clear
@@ -47,6 +48,29 @@ bit_cnt:
 	bt	[rdi],rsi
 	jc	.loop
 .x:	ret
+
+	
+;;; edi = base
+;;; esi = bits
+;;; return: high=cnt low=bits at reference
+bits_next_ref:
+	xor	eax,eax
+	
+.loop:	sub	esi,1
+	jz      .done          	;if offset is 0, exit with 0
+	bt	[rdi],rsi
+	jnc	.loop
+ 
+	;; got a 1!  now count
+.loop1:	inc	eax
+	dec     esi             ; previous bit
+	bt	[rdi],rsi
+	jc	.loop1
+	shl	rax,32		; put count into high dword
+	inc	esi 		;
+	or	rax,rsi		; put offset into low dword;
+.done:
+	ret
 	
 
 

@@ -88,9 +88,23 @@ siSymb* compile(){
   siSymb* symb=0;
   int ret = system("cd sys; ./build.sh");
   if(!ret){
-    symb = pkg_load_elf(pkgs,"sys/test.o");
+    sElf* pelf = elf_load("sys/test.o");
+    Elf64_Sym* psym = elf_unique_global_symbol(pelf);
+    if(!psym)
+      exit(1);
+    // is there a visible symbol with same name?
+    siSymb* oldsymb = pkgs_symb_of_name(ELF_SYM_NAME(pelf,psym));
+    symb = pkg_load_elf(pkgs,pelf,psym);
     if(symb){
       printf("%s: %s %d bytes\n",symb->name,symb->proto,symb->size);
+      if(oldsymb) {
+	printf("old version exists\n");
+	U32 i = seg_reref(&scode,(U64)oldsymb->data,(U64)symb->data);
+	printf("fixed %d references\n",i);
+    }
+    
+    
+
     } else {
       printf("Compile abandoned\n");
     }
@@ -125,13 +139,13 @@ void main_loop(){
       }
       continue;
     }
-    
+    /*
     if(!strncmp("xx",buf,2)){
       //siSymb* symb =
       pkg_load_elf(pkgs,"sys/test.o");  
       continue;
     }
-    
+    */
     if(!strncmp("sys",buf,3)){
       seg_dump(&scode);
       seg_dump(&sdata);
@@ -194,7 +208,8 @@ int main(int argc, char **argv){
   sPkg* usrpkg = pkg_new();
   pkg_set_name(usrpkg,"usr");
   pkgs_add(usrpkg);
-  
+
+
   //test(usrpkg,argv[1],argv[2]);
   //test_data(usrpkg,argv[1]);
   //  pkgs_list();

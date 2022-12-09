@@ -7,6 +7,7 @@
 
 #include "global.h"
 #include "util.h"
+#include "elf.h"
 #include "pkg.h"
 #include "pkgs.h"
 

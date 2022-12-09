@@ -1,2 +1,3 @@
-extern int main (void);
-extern int main (void);
+extern void foo (void);
+extern void bar (void);
+extern void foo (void);

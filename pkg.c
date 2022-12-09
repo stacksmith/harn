@@ -164,6 +164,7 @@ static void pkg_lib_prim(sPkg* pkg,void* dlhan, U32 num,char*namebuf){
     U8* addr = seg_append(&scode,buf,sizeof(buf)); // compile jump
     void* pfun = dlsym(dlhan,pstr);
     *((void**)(addr+2)) = pfun; // fixup to function address
+    seg_rel_mark(&scode,(U32)(U64)addr+2,2);
     pkg_add(pkg,pstr,(U32)(U64)addr,sizeof(buf));
   }
   
@@ -281,16 +282,20 @@ siSymb* pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   // resolve elf symbols
   U32 unresolved =  pkg_elf_resolve(pkg,pelf);
   // should there be unresolved symbols, erase all traces of symb in pkg
+  
   if(unresolved){
     pkg_drop_symb(pkg);  // the last symbol is removed
     return 0;
   }
   // Now that all ELF symbols are resolved, process the relocations.
   // for every reference, mark bits in our rel table.
+
+  
+    
   void relproc(U32 p,U32 kind){
-#ifdef DEBUG
+    #ifdef DEBUG
     printf("Code.Reference at: %08X, %d\n",p,kind);
-#endif
+    #endif
     seg_rel_mark(&scode,p,kind);
   }
   // codesec+1 may be its relocations... If not, no harm done.
@@ -339,10 +344,11 @@ siSymb* pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   pkg_elf_resolve(pkg,pelf);
   // Now, process all relocations, fixing up the references, and setting
   // the bits in the data segment's rel table.
+
   void relproc(U32 p,U32 kind){
-#ifdef DEBUG
+    #ifdef DEBUG
     printf("data.Reference at: %08X, %d\n",p,kind);
-#endif
+    #endif
     seg_rel_mark(&sdata,p,kind);
   }
   elf_apply_rels(pelf,relproc);
@@ -352,26 +358,11 @@ siSymb* pkg_load_elf_data(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
 }
 
 /*----------------------------------------------------------------------------
-pkg_load_elf                load an ELF file, find the global symbols, and
-                            load into appropriate segment.
+pkg_load_elf                load an ELF file with a single unique global
+                            into appropriate segment.
 returns: symb
 ----------------------------------------------------------------------------*/
-siSymb* pkg_load_elf(sPkg* pkg,char* path){
-  sElf* pelf = elf_new();
-  elf_load(pelf,path);
-  // Find the global symbol; must be only one.
-  S32 i = elf_find_global_symbol(pelf);
-  
-  switch(i){
-  case 0:
-    printf("pkg_load_elf: no global symbols found\n");
-    exit(1);
-  case -1:
-    printf("pkg_load_elf: more than one global symbol\n");
-    exit(1);
-  }
-  // Dispatch to FUNC or OBJECT loader
-  Elf64_Sym* psym = pelf->psym+i;
+siSymb* pkg_load_elf(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   siSymb* symb;
   switch(ELF64_ST_TYPE(psym->st_info)){
   case STT_FUNC:

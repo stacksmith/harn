@@ -13,11 +13,16 @@
 #include "elfdump.h"
 
 
-
+sElf* elf_new(){
+  sElf* p = (sElf*)malloc(sizeof(sElf));
+  p->buf = 0;
+  return p;
+}
 /* -------------------------------------------------------------
    elf_load   Load an ELF object file (via mapping)
  -------------------------------------------------------------*/
-S64 elf_load(sElf* pelf,char* path){
+sElf* elf_load(char* path){
+  sElf* pelf = elf_new();
   S64 len = file_map((void**)&pelf->buf,path,PROT_READ|PROT_WRITE);
   if(len<0) file_map_error_msg(len,path,1);
   pelf->map_size = len; // for unmapping
@@ -41,13 +46,9 @@ S64 elf_load(sElf* pelf,char* path){
 
   // build the hashtable
   //  pelf->hashes = 0;//
-  return len;
+  return pelf;
 }
-sElf* elf_new(){
-  sElf* p = (sElf*)malloc(sizeof(sElf));
-  p->buf = 0;
-  return p;
-}
+
 void elf_delete(sElf* pelf){
   if(munmap(pelf->buf,pelf->map_size)){
     fprintf(stderr,"Error unmapping an elf file\n");
@@ -143,6 +144,20 @@ S32 elf_find_global_symbol(sElf* pelf){
   return ret;
 }
 
+
+Elf64_Sym* elf_unique_global_symbol(sElf* pelf){
+  S32 i = elf_find_global_symbol(pelf);
+
+  switch(i){
+  case 0:
+    printf("elf_unique_global_symbol: no global symbols found\n");
+    return 0;
+  case -1:
+    printf("elf_unique_global_symbol: many global symbols\n");
+    return 0;
+  }
+  return pelf->psym+i;  
+}
 
 U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup){
   // resolve ELF symbols to actual addresses
