@@ -58,7 +58,7 @@ void test(sPkg*pkg,char*elfname,char* funname){
 void run_void_fun(char* funname){
   siSymb* symb = pkgs_symb_of_name(funname);
   if(symb){
-    printf("found %s\n",funname);
+    //    printf("found %s\n",funname);
     fptr entry = (fptr)(U64)(symb->data);
     U64 ret = (*entry)(1,2);
     printf("returned: %lx\n",ret);
@@ -81,6 +81,8 @@ void edit(char* name){
   fclose(f);
 
   siSymb_src_to_body(symb);
+ 
+
 }
 
 char buf[1024];
@@ -108,6 +110,10 @@ void main_loop(){
       if(!ret){
 	siSymb* symb = pkg_load_elf(pkgs,"sys/test.o");
 	printf("%s: %s %d bytes\n",symb->name,symb->proto,symb->size);
+	 //TODO: make up your mind! before or after?
+	FILE* f = fopen("sys/headers.h","w");
+	pkgs_dump_protos(f);
+	fclose(f);
       }
       else
 	printf("--- %d\n",ret);
@@ -119,7 +125,7 @@ void main_loop(){
       fclose(f);
       continue;
     }
-
+ 
     if(!strncmp("words",buf,4)){
       pkg_words(pkgs);
       continue;

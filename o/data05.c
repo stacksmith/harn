@@ -18,6 +18,7 @@ readelf -W -s test10.o
 #include <string.h>
 
 static int q = 3;
+
 int* a=&q;
 
 

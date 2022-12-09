@@ -21,6 +21,7 @@ readelf -W -s test10.o
 
 
 #include "headers.h"
+#include "types.h"
 #include "body.c"
 
 

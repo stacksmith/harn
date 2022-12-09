@@ -7,7 +7,7 @@ CC=gcc
 # -fomit-frame-pointer line... do not generate .eh_frame
 # -fcfprotection=none - do not compile bullshit target noop
 # -fno-stack-protector  do not check stack and call __stack_chk_fail
-CFLAGS=-Wall -Os \
+CFLAGS=-Wall -Os  \
 -D_FORTIFY_SOURCE=0 \
 -fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables \
 -falign-functions=1 \
@@ -15,7 +15,7 @@ CFLAGS=-Wall -Os \
 -fcf-protection=none    \
 -fno-stack-protector \
 -fno-mudflap \
--aux-info info.txt
+-aux-info info.txt 
 
 # -ffunction-sections 
 # -fvisibility=hidden \
@@ -30,7 +30,7 @@ test3.o: test3.c
 	$(CC) -c $^ $(CFLAGS) 
 
 test4.o: test4.c
-	$(CC) -c $^ $(CFLAGS) 
+	$(CC) -c $^ $(CFLAGS)  
 
 test10.o: test10.c
 	$(CC) -c $@ $^ $(CFLAGS) -I$(TOPSRC)
