@@ -49,14 +49,15 @@ int seg_alloc(sSeg* pseg,char*name,U64 req_size, void* req_addr, U32 prot){
   } else {
     memcpy(pseg->name,name,7);
     pseg->name[7]=0;
-    pseg->fill = 0;
-    pseg->end = (U32)req_size;
+    pseg->fill = (U32)(U64)pseg->base;
+    pseg->end =  pseg->fill + (U32)req_size;
     return 0;
   }
 }
 U32 seg_pos(sSeg* pseg){
-  return (U32)(U64)pseg->base+ pseg->fill;
+  return pseg->fill;
 }
+
 /* -------------------------------------------------------------
 seg_append  Append a run of bytes to the segment
             size   number of bytes to append
@@ -65,7 +66,7 @@ seg_append  Append a run of bytes to the segment
 ---------------------------------------------------------------*/
 U8* seg_append(sSeg* pseg,U8* start,U64 size){
   U32 end = pseg->fill + size;
-  U8* dest = pseg->base + pseg->fill;
+  U8* dest = (U8*)(U64)pseg->fill;
   if(end >= pseg->end) {
     seg_dump(pseg);
     fprintf(stderr,"seg_append failed: out of space\n");

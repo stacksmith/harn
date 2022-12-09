@@ -53,7 +53,7 @@ void test_data(char*name){
 
   //  sys_dump();
   //unit_dump(pu);
-  // pkg_dump(&pkg);  
+  pkg_dump(&pkg);  
   printf("-------------------\n");
   
 }
