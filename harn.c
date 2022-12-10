@@ -99,12 +99,12 @@ siSymb* compile(){
       printf("%s: %s %d bytes\n",symb->name,symb->proto,symb->size);
       if(oldsymb) {
 	printf("old version exists\n");
-	U32 i = seg_reref(&scode,(U64)oldsymb->data,(U64)symb->data);
-	printf("fixed %d references\n",i);
-    }
-    
-    
-
+	//	U32 i = seg_reref(&scode,(U64)oldsymb->data,(U64)symb->data);	printf("fixed %d references\n",i);
+	seg_reref1(&scode,oldsymb->data,symb->data);
+      }
+      
+      
+      
     } else {
       printf("Compile abandoned\n");
     }

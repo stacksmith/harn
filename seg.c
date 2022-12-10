@@ -30,7 +30,8 @@ A fillable area for code or data
 } sSeg;
 */
 void seg_dump(sSeg* pseg){
-  printf("Segment %s: %p %08x\n",pseg->name, pseg->base, pseg->fill);
+  printf("Segment %s: %p %08x %p\n",pseg->name, pseg->base, pseg->fill,
+	 pseg->prel);
 }
 /* -------------------------------------------------------------
    seg_alloc
@@ -46,8 +47,9 @@ int seg_alloc(sSeg* pseg,char*name,U64 req_size, void* req_addr, U32 prot){
     exit(1);
   }
   // allocate rel area
-  pseg->prel =mmap(NULL, req_size/8, PROT_READ | PROT_WRITE,
-		   0x20 | MAP_SHARED,    //MAP_ANONYMOUS
+  pseg->prel =mmap((void*)(((U64)req_addr)/8), req_size/8,
+		   PROT_READ | PROT_WRITE,
+		   0x20 | MAP_SHARED | MAP_FIXED ,    //MAP_ANONYMOUS
 		   0,0);
   if(MAP_FAILED == pseg->base){
     fprintf(stderr,"Error allocating rel table of %s seg: %d\n",name,errno);
@@ -99,7 +101,7 @@ U8* seg_append(sSeg* pseg,U8* start,U64 size){
   return dest;
 }
 
-void seg_rel_mark(sSeg*pseg,U32 pos,U32 kind){
+void seg_rel_mark(sSeg* pseg,U32 pos,U32 kind){
   if( (pos<(U32)(U64)pseg->base) || (pos >= pseg->fill)){
     printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
     exit(1);
@@ -108,26 +110,25 @@ void seg_rel_mark(sSeg*pseg,U32 pos,U32 kind){
     printf("seg_rel_mark: kind %d is out of bounds\n",kind);
     exit(1);
   }
-  U32 off = pos - (U32)(U64)pseg->base;
   //  printf("setting bits\n");
-  bits_set(pseg->prel, off, kind);
+  bits_set(pos, kind);
 }
 #include "util.h"
 
 U32 cnt_refs(sSeg*pseg,void*target){
   seg_align(pseg,8);
-  U8* relbase = pseg->prel;
-  U8* segbase = pseg->base;
-  U32 off = (seg_off(pseg));
+  //  U8* relbase = pseg->prel;
+  U32 bottom = (U32)(U64)(pseg->prel);
+  U32 off = seg_off(pseg);
   U32 i=0;
   U64 result;
-  hd(segbase,16);
+  hd(pseg->base,16);
   //  printf("Entering loop %p %d %d\n",relbase,off,off>>3);
-  while((result = bits_next_ref(relbase,off))){
+  while((result = bits_next_ref(off,bottom))){
     //    printf(".1.\n");
     //    printf("ref %d at $%08X",(U32)(result>>32),(U32)result);
     off = (U32) result;
-    U8* ref = (segbase+off);  //position of reference
+    U8* ref = (U8*)(U64)off;  //position of reference
     void* tgt = (result&3)-1 ? 
       *(void**)ref :
       (void*) ((*(S32*)ref) + (ref+4));
@@ -138,21 +139,24 @@ U32 cnt_refs(sSeg*pseg,void*target){
   }
   return i;
 }
+
 U32 seg_reref(sSeg*pseg,U64 old,U64 new){
   seg_align(pseg,8);
-  U8* relbase = pseg->prel;
+  //  U8* relbase = pseg->prel;
   U8* segbase = pseg->base;
-  U32 off = (seg_off(pseg));
+  U32 off = (seg_pos(pseg));
+  U32 bottom = (U32)(U64)(pseg->base);
   U64 diff = new-old;
   U64 result;
   U32 i=0;
   hd(segbase,16);
-  //  printf("Entering loop %p %d %d\n",relbase,off,off>>3);
-  while((result = bits_next_ref(relbase,off))){
-    //    printf(".1.\n");
-    //    printf("ref %d at $%08X",(U32)(result>>32),(U32)result);
+  hd(pseg->prel,16);
+  //  printf("Entering loop %x %x\n",off,bottom);
+  while((result = bits_next_ref(off,bottom))){
+    //printf(".1. %016lx\n",result);
+    //printf("ref %d at $%08X\n",(U32)(result>>32),(U32)result);
     off = (U32) result;
-    U8* ref = (segbase+off);  //position of reference
+    U8* ref = (U8*)(U64)off;  //position of reference
     if((result&3)-1) {
       if(old == (*(U64*)ref)) {
 	printf("64-bit fixup at %p, by %08lX\n",ref,diff);
@@ -169,3 +173,10 @@ U32 seg_reref(sSeg*pseg,U64 old,U64 new){
   }
   return i;
 }
+
+void seg_reref1(sSeg*pseg,U32 old,U32 new){
+  bits_reref(seg_pos(pseg),
+	     (U32)(U64)pseg->base,
+	     old,new);
+}
+  

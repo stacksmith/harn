@@ -19,10 +19,11 @@ U32  seg_off(sSeg* pseg);
 void seg_align(sSeg*pseg, U64 align);
 U8*  seg_append(sSeg* pseg,U8* start,U64 size);
 
-void seg_rel_mark(sSeg* pseg,U32 pos,U32 kind);
+void seg_rel_mark(sSeg*pseg,U32 pos,U32 kind);
 
 U32 cnt_refs(sSeg*pseg,void* target);
-U32 seg_reref(sSeg*pseg,U64 old,U64 new);
+//U32 seg_reref(sSeg*pseg,U64 old,U64 new);
+void seg_reref1(sSeg*pseg,U32 old,U32 new);
 /* ==============================================================
 
 A unit represents a compilation unit brought into the system.
