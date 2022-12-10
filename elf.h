@@ -41,7 +41,7 @@ typedef struct sPiece {
 
 
 sElf* elf_new();
-sElf* elf_load(char* path);
+sElf* elf_load(char* path);            // calls elf_new!
 void  elf_delete(sElf* pelf);
 U32 elf_find_section(sElf*pelf,char*name);
 

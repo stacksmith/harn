@@ -14,15 +14,12 @@ readelf -W -s test10.o
  */
 
 // as simple as it gets
-#include <stdio.h>
-#include <string.h>
+#include <stdio.h>   // headers for stdlib..
+#include <string.h>  // add more if you want.
 
-
-
-
-#include "headers.h"
-#include "types.h"
-#include "body.c"
+#include "types.h"   // include your favorite types.  Edit this.
+#include "headers.h" // include automatically-generated headers.  Do not edit!
+#include "body.c"    // the system will insert the body here.  Do not edit.
 
 
 

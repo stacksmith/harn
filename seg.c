@@ -139,7 +139,7 @@ U32 cnt_refs(sSeg*pseg,void*target){
   }
   return i;
 }
-
+/*
 U32 seg_reref(sSeg*pseg,U64 old,U64 new){
   seg_align(pseg,8);
   //  U8* relbase = pseg->prel;
@@ -173,8 +173,8 @@ U32 seg_reref(sSeg*pseg,U64 old,U64 new){
   }
   return i;
 }
-
-void seg_reref1(sSeg*pseg,U32 old,U32 new){
+*/
+void seg_reref(sSeg*pseg,U32 old,U32 new){
   bits_reref(seg_pos(pseg),
 	     (U32)(U64)pseg->base,
 	     old,new);

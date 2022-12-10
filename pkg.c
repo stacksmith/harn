@@ -272,6 +272,7 @@ U32 pkg_elf_resolve(sPkg* pkg,sElf*pelf){
                           if not resolvable, remove all traces.
 
  return: symb of the ingested function.
+         0 on failure.  This means unresolved elf symbols.
 ----------------------------------------------------------------------------*/
 
 siSymb* pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
@@ -289,9 +290,6 @@ siSymb* pkg_load_elf_func(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
   }
   // Now that all ELF symbols are resolved, process the relocations.
   // for every reference, mark bits in our rel table.
-
-  
-    
   void relproc(U32 p,U32 kind){
     #ifdef DEBUG
     printf("Code.Reference at: %08X, %d\n",p,kind);
@@ -363,7 +361,7 @@ pkg_load_elf                load an ELF file with a single unique global
 returns: symb
 ----------------------------------------------------------------------------*/
 siSymb* pkg_load_elf(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
-  siSymb* symb;
+  siSymb* symb=0;
   switch(ELF64_ST_TYPE(psym->st_info)){
   case STT_FUNC:
     symb = pkg_load_elf_func(pkg,pelf,psym);
@@ -373,10 +371,8 @@ siSymb* pkg_load_elf(sPkg* pkg,sElf* pelf,Elf64_Sym* psym){
     break;
   default:
     printf("pkg_load_elf: global symbol is not FUNC or OBJECT\n");
-    exit(1);
   }
   // done with the elf file!
-  free(pelf);
   // symb may be 0 if there are unresolved references!
   // if it's good, load source.
   if(symb){

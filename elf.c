@@ -20,6 +20,8 @@ sElf* elf_new(){
 }
 /* -------------------------------------------------------------
    elf_load   Load an ELF object file (via mapping)
+
+returns: sElf*.  Cannot fail
  -------------------------------------------------------------*/
 sElf* elf_load(char* path){
   sElf* pelf = elf_new();
@@ -50,6 +52,7 @@ sElf* elf_load(char* path){
 }
 
 void elf_delete(sElf* pelf){
+  //  printf("Unmapping %p; buf %p, size %ld\n",pelf,pelf->buf,pelf->map_size);
   if(munmap(pelf->buf,pelf->map_size)){
     fprintf(stderr,"Error unmapping an elf file\n");
     exit(1);
