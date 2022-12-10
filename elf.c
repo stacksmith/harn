@@ -50,7 +50,10 @@ sElf* elf_load(char* path){
   //  pelf->hashes = 0;//
   return pelf;
 }
+/*-------------------------------------------------------------
+   elf_delete    Free allocated memory
 
+ -------------------------------------------------------------*/
 void elf_delete(sElf* pelf){
   //  printf("Unmapping %p; buf %p, size %ld\n",pelf,pelf->buf,pelf->map_size);
   if(munmap(pelf->buf,pelf->map_size)){
@@ -63,7 +66,11 @@ void elf_delete(sElf* pelf){
   
   free(pelf);
 }
+/*-------------------------------------------------------------
+ elf_find_section             find a names ELF section
 
+Regurns: index of the section or 0
+  -------------------------------------------------------------*/
 U32 elf_find_section(sElf*pelf,char*name){
   char* strtab = pelf->buf + (ELF_SHSTRTAB(pelf))->sh_offset;
   U32 i;
@@ -75,10 +82,13 @@ U32 elf_find_section(sElf*pelf,char*name){
   }
   return 0;
 }
-// Process each symbol by calling proc.  Do not process 0,1.
-// If proc returns
-// non-zero, exit with the index that bounced us.  If all
-// symbols are processed, return 1
+/*-------------------------------------------------------------
+  elf_process_symbols     Call a proc on each symbol.
+
+  Starting with the last symbol, go down to 2.
+  If proc returns non-zero, exit with the index that bounced us.
+  If all symbols are processed, return 0.
+  -------------------------------------------------------------*/
 U32 elf_process_symbols(sElf* pelf,pfElfSymProc proc){
   Elf64_Sym* psym = pelf->psym + pelf->symnum-1;
   for(U32 i=pelf->symnum-1;i>1;i--,psym--){
@@ -135,6 +145,11 @@ U32 elf_data_find(sElf* pelf){;
   return elf_process_symbols(pelf,&proc);
 }
 */
+/*-------------------------------------------------------------
+elf_find_global_symbol           Scan all symbols for STB_GLOBAL
+
+return: 0 for no globals; 1 for 1 global; -1 for many globals.
+ -------------------------------------------------------------*/
 S32 elf_find_global_symbol(sElf* pelf){
   S32 ret = 0;
   U32 proc(Elf64_Sym* psym,U32 i){
@@ -146,7 +161,11 @@ S32 elf_find_global_symbol(sElf* pelf){
   elf_process_symbols(pelf,&proc);
   return ret;
 }
+/*-------------------------------------------------------------
+elf_unique_global_symbol      Locate the hopefully 1 global
 
+return elf symbol, or 0 if not exactly one.
+=-------------------------------------------------------------*/
 
 Elf64_Sym* elf_unique_global_symbol(sElf* pelf){
   S32 i = elf_find_global_symbol(pelf);
@@ -161,29 +180,35 @@ Elf64_Sym* elf_unique_global_symbol(sElf* pelf){
   }
   return pelf->psym+i;  
 }
+/*-------------------------------------------------------------
+  elf_resolve_symbols           walk elf symbols and set addr.
 
+return: number of unresolved symbols or 0 on success
+-------------------------------------------------------------*/
 U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup){
   // resolve ELF symbols to actual addresses
   U32 nUndef = 0;
+  // For every symbol call this proc, which, for local symbols,
+  // updates the ELF st_value to point at our segs, and for
+  // external references, looks up harn symbols.:
   U32 proc(Elf64_Sym* psym,U32 i){
     U32 shi = psym->st_shndx; // get section we are referring to
     if(shi){ //for defined symbols, add section base
       psym->st_value += pelf->shdr[shi].sh_addr;
     } else { //for undefined symbols, find!
       psym->st_value = (*lookup)(pelf->str_sym + psym->st_name);
-      // count undefined symbols
       if(!psym->st_value) {
-	nUndef++;
+	nUndef++; // keep a count of undefined symbols
 	printf("Unresolved: %s\n",ELF_SYM_NAME(pelf,psym));
       }
-      
     }
-    //          sym_dump(pelf,psym);
-    return 0;
+    return 0; // process all symbols
   }
   elf_process_symbols(pelf,proc);
-  return nUndef;
+  return nUndef; // return count of undefined symbols!
 }
+/* not currently used
+
 // after initial resolution, if there are unresolved symbols,
 // try to resolve them against other elf files here...
 U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup){
@@ -206,6 +231,8 @@ U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup){
   elf_process_symbols(pelf,proc);
   return nUndef;
 }
+*/
+
 /* proces_rel    Apply a relocation to a reference located in section shto,
                  as described by prel.
 
@@ -218,7 +245,10 @@ Note: we eliminate GOTs and PLTs, and use direct references.
 
  */
 
-
+/*-------------------------------------------------------------
+elf_process_rel      process a single ELF relocation, fixing up
+                     data in segs and calling the proc.
+-------------------------------------------------------------*/
 void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
 		     pfRelProc proc){
   U64 base = shto->sh_addr; // base address of image being fixed-up
@@ -259,12 +289,11 @@ void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
 
 /*----------------------------------------------------------------------------
   elf_process_rel_section       if the specified section is a RELA, process
-                                relocations.  Also, call provided proc.
+                                each relocation (see above).
                                 
-
 ----------------------------------------------------------------------------*/
 void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc){
-  if(SHT_RELA == shrel->sh_type){
+  if(SHT_RELA == shrel->sh_type){ // redundant, but pkg does not check!
     U32 relnum = shrel->sh_size / shrel->sh_entsize;
 #ifdef DEBUG
     printf("elf_process_rel_section %p with %d rels\n",shrel,relnum);
@@ -284,13 +313,14 @@ void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc){
 #endif
   }
 }
-
+/*----------------------------------------------------------------------------
+elf_apply_rels                   process each rel section in the file.
+----------------------------------------------------------------------------*/
 void elf_apply_rels(sElf* pelf,pfRelProc proc){
   //  printf("Rel sections:\n");
   Elf64_Shdr* shdr = pelf->shdr;  
   for(U32 i=0; i< pelf->shnum; i++,shdr++){
-    if(SHT_RELA == shdr->sh_type){
-      //  sechead_dump(pelf,i);
+    if(SHT_RELA == shdr->sh_type){ 
       elf_process_rel_section(pelf,shdr,proc);
     }
   }
