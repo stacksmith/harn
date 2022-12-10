@@ -1,1 +1,0 @@
-extern void fun (void);

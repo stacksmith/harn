@@ -185,7 +185,9 @@ void main_loop(){
     
     if(!strncmp("edit",buf,4)){
       edit(buf+5);
-      pkgs_dump_protos(stdout);
+      system("vim sys/body.c");
+      compile();
+      pkgs_dump_protos();
       continue;
     }
     
@@ -198,6 +200,20 @@ void main_loop(){
     }
     if(!strncmp("bye",buf,3))
       exit(0);
+
+    if(!strncmp("help",buf,4)){
+      printf("commands:\n sys  words  bye  edit <name>  list <name>\n");
+      printf(".<expr><cr> to execute an expression.  For instance:\n");
+      printf(".puts(\"Hello, world\");<cr>\n\n");
+	     
+      siSymb* symb = pkgs_symb_of_name(buf+5);
+      if(symb){
+	src_to_file(symb->src,symb->srclen,stdout);
+      }
+      continue;
+    }
+
+    
     // user typed in the name of a function to run as void
     siSymb* symb = pkgs_symb_of_name(buf);
     if(symb){
