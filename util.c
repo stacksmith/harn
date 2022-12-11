@@ -95,3 +95,28 @@ void file_map_error_msg(S64 id,char*extra,U32 exitcode){
   
   //    printf(
   //    printf(
+/* -------------------------------------------------------------
+   file_load into a malloc'ed buffer
+ -------------------------------------------------------------*/
+char* filebuf_malloc(char* path){
+  FILE* f = fopen(path,"r");
+  if(!f) return 0;
+  fseek(f, 0, SEEK_END);
+  size_t len = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  char* buf = (char*)malloc(len+1);
+  size_t r = fread(buf,1,len,f);
+  if(r!=len) {
+    fclose(f);
+    free(buf);
+    return 0;
+  }
+  fclose(f);
+  buf[len]=0;
+  return buf;
+  
+}
+
+void filebuf_free(char* buf){
+  free(buf);
+}

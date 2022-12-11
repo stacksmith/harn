@@ -17,17 +17,18 @@
 #include "seg.h"
 //#include "unit.h"
 //#include "system.h"
-#include "pkg.h"
+//#include "pkg.h"
 #include "src.h"
-#include "pkgs.h"
-
+//#include "pkgs.h"
+#include "sym.h"
 
 
 sSeg scode;
 sSeg sdata;
+sSeg smeta;
 
-sPkg* pkgs=0;
-
+//sPkg* pkgs=0;
+sSym* srch_list;
 FILE* faSources;
 FILE* fSources;
 
@@ -50,28 +51,78 @@ void test(sPkg*pkg,char*elfname,char* funname){
     }
   }
 }
+C0000000 - D0000000    meta
+                              90000000 - A0000000    meta
+80000000 - 90000000    code
+40000000 - 50000000    data
+18000000   1A000000    meta rel
+                                   12000000 - 14000000    meta rel
+10000000 - 12000000    code rel
+08000000 - 0A000000    data rel
 */
 
 void repl_loop();
 
+
+sSym* ing_elf(sElf* pelf);
+
 int main(int argc, char **argv){
+
   seg_alloc(&scode,"SCODE",0x10000000,(void*)0x80000000,
 	    PROT_READ|PROT_WRITE|PROT_EXEC);
   seg_alloc(&sdata,"SDATA",0x10000000,(void*)0x40000000,
 	    PROT_READ|PROT_WRITE);
+  seg_alloc(&smeta,"SMETA",0x10000000,(void*)SMETA_BASE, //0xC0000000
+	    PROT_READ|PROT_WRITE);
+
+
+  
+  
   // bits_reref will break with an empty segment...
   seg_append(&sdata,0,8); 
   src_init();
   
-
+  
    // create bindings for libc
-  sPkg* pkg = pkg_new(&pkg);
-  pkg_lib(pkg,"libc.so.6","libc.txt");
-  pkgs_add(pkg);
+  //  sPkg* pkg = pkg_new(&pkg);
+  //pkg_lib(pkg,"libc.so.6","libc.txt");
+  //pkgs_add(pkg);
 
-  sPkg* usrpkg = pkg_new();
-  pkg_set_name(usrpkg,"usr");
-  pkgs_add(usrpkg);
+
+  sSym* pk = pk_from_libtxt("libc","libc.txt");
+  pk_rebind(pk,"libc.so.6");
+  srch_list_push(pk);
+  
+  sSym* pku = pk_new("user");
+  srch_list_push(pku);
+  
+
+  //sElf* pelf = elf_load("sys/test.o"); 
+  ///sSym* sy = ing_elf(pelf);
+  //printf("ingested... %p\n",sy);
+  //typedef U64 (*fpvoidfun)();
+  //fpvoidfun fun = (fpvoidfun)(U64)sy->data;
+  //(*fun)();
+  //  printf("%lx \n",pks_find_global("printf"));
+  /*
+  
+  {
+    sSym* pk = pk_new("libc.so");
+    siSymb* ps = pkg->data;
+    while(ps){
+      sSym* s = sym_from_siSymb((void*)ps);
+      pk_add_sym(pk,s);
+      ps = ps->next;
+    }
+    //    sym_dump1(pk_find_name(pk,"printf"));
+    pk_dump(pk);
+
+
+  }
+  */
+  //  sPkg* usrpkg = pkg_new();
+  //pkg_set_name(usrpkg,"usr");
+  //pkgs_add(usrpkg);
 
 
   //test(usrpkg,argv[1],argv[2]);

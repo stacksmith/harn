@@ -6,34 +6,36 @@
 #include "util.h"
 #include "elf.h"
 #include "seg.h"
-#include "pkg.h"
-#include "pkgs.h"
+//#include "pkg.h"
+//#include "pkgs.h"
 #include "src.h"
+#include "sym.h"
 
 extern sSeg scode;
 extern sSeg sdata;
+extern sSeg smeta;
 
-extern sPkg* pkgs;
+//extern sPkg* pkgs;
 
-
+extern sSym* srch_list;
 typedef void (*fpreplfun)(char*p);
 typedef U64 (*fpvoidfun)();
 
-void exec_repl_symb(siSymb* symb,char*p){
-  U32 addr = symb->data;
+void exec_repl_sym(sSym* sym,char*p){
+  U32 addr = sym->data;
   if(IN_CODE_SEG(addr)){
     //    printf("found %s\n",funname);
     fpreplfun entry = (fpreplfun)(U64)(addr);
     (*entry)(p);
   } else {
-    printf("can't run data %s\n",symb->name);
+    printf("can't run data %s\n",SYM_NAME(sym));
   }
 }
 
 void run_repl_fun(U32 hash,char*p){
-  siSymb* symb = pkgs_symb_of_hash(hash);
-  if(symb){  // symb is known to be a symb
-    exec_repl_symb(symb,p);
+  sSym* sym = pks_find_hash(srch_list,hash);
+  if(sym){  //
+    exec_repl_sym(sym,p);
   } else {
     printf("can't find it\n");
   }
@@ -45,16 +47,58 @@ void run_repl_fun(U32 hash,char*p){
 
 void edit(char* name){
   printf("Editing [%s].. type 'cc' to compile when done...\n",name);
+  /*
   siSymb* symb =  pkgs_symb_of_name(name);
   // write headers for packages in use
   pkgs_dump_protos();
 
   siSymb_src_to_body(symb);
+  */
 }
 
 
 
-siSymb* compile(void){
+sSym* ing_elf(sElf* pelf);
+sSym* compile(void){
+  sSym* sym=0;
+  int ret = system("cd sys; ./build.sh");
+  if(!ret){ // build shell-out successful:
+    // create an elf object
+    sElf* pelf = elf_load("sys/test.o");
+    // load the entire ELF trainwreck
+    sym = ing_elf(pelf); 
+    if(sym){ // OK, this means we are done with ingestion.
+      printf("Ingested %s: %s %d bytes\n",
+	     SYM_NAME(sym),sym_proto(sym),sym->size);
+      // do we already have a symbol with same name?  Hold onto it.
+      sSym* oldsym = pks_find_name(srch_list,SYM_NAME(sym));
+      
+      // Now that the new object is in our segment, is there an 
+      if(oldsym) { // older version we are replacing?
+	printf("old version exists\n");
+	// first, make ssure it's in the same seg.
+	if( (SEG_BITS(oldsym->data)) == (SEG_BITS(sym->data))){
+	  // yes, both are in the same seg.  Fix old refs
+	  seg_reref(&scode,oldsym->data,sym->data); // in code seg
+	  seg_reref(&sdata,oldsym->data,sym->data); // in data seg
+	} else { // No, different segs.  Nothing good can come of it.
+	  fprintf(stderr,"New one is in a different seg! Abandoning!\n");
+	  //	    sym = pkg_drop_symb(pkgs); // drop new object from topmost pkg
+	}
+      } // else a new symbol, no problem
+    } else {
+      printf("ELF not ingested due to unresolved ELF symbols.\n");
+    }
+    elf_delete(pelf);
+  }else { 
+    printf("OS shellout to compiler failed! Build Error %d\n",ret);
+  }
+  pk_push_sym(srch_list, sym);
+  pks_dump_protos();
+  return sym;
+}
+/*
+siSymb* compile1(void){
   siSymb* symb=0;
   int ret = system("cd sys; ./build.sh");
   if(!ret){ // build shell-out successful:
@@ -85,7 +129,7 @@ siSymb* compile(void){
       } else {
 	printf("ELF not ingested due to unresolved ELF symbols.\n");
       }
-      pkgs_dump_protos();
+      pks_dump_protos();
     } else {
       printf("One and only one ELF global symbol must exist.  Abandoning\n");
     }
@@ -96,7 +140,9 @@ siSymb* compile(void){
   }
   return symb;
 }
-siSymb* repl_compile(char*p){
+*/
+
+sSym* repl_compile(char*p){
   return compile();
 }
 
@@ -131,19 +177,20 @@ char* cmd_ws(char*p){
 void repl_sys(char* p){
   seg_dump(&scode);
   seg_dump(&sdata);
-  pkgs_list();
+  seg_dump(&smeta);
+  //pkgs_list();
 }
 
 void repl_list(char* p){
   U32 hash = cmd_hash(&p);
-  siSymb* symb = pkgs_symb_of_hash(hash);
-  if(symb){
-    src_to_file(symb->src,symb->srclen,stdout);
+  sSym* sym = pks_find_hash(srch_list,hash);
+  if(sym){
+    src_to_file(sym->src,100,stdout); //todo: src length...
   }
 }
 
 void repl_words(char* p){
-  pkg_words(pkgs);
+  pk_dump(srch_list);
 }
 
 void repl_help(char*p){
@@ -159,10 +206,10 @@ void repl_expr(char*p){
   fputs(p,f);
   fputs("\n}\n",f);
   fclose(f);
-  siSymb* symb = compile();
-  if(symb) {
-    exec_repl_symb(symb,p);
-    pkg_drop_symb(pkgs);
+  sSym* sym = compile();
+  if(sym) {
+    exec_repl_sym(sym,p);
+    pk_wipe_last_sym(srch_list);
   }
 }
 
@@ -172,7 +219,7 @@ void repl_expr(char*p){
 ----------------------------------------------------------------------------*/
 
 void repl_loop(){
-  pkgs_dump_protos();
+  pks_dump_protos();
 
   while(1) {
     printf("> ");

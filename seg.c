@@ -78,6 +78,7 @@ void seg_align(sSeg*pseg, U64 align){
   }  
 }
 
+
 /* -------------------------------------------------------------
 seg_append  Append a run of bytes to the segment
             size   number of bytes to append
@@ -106,7 +107,7 @@ void seg_rel_mark(sSeg* pseg,U32 pos,U32 kind){
     printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
     exit(1);
   }
-  if(kind>2){
+  if(kind>3){
     printf("seg_rel_mark: kind %d is out of bounds\n",kind);
     exit(1);
   }
