@@ -6,12 +6,16 @@ typedef struct sElf{
     Elf64_Ehdr* ehdr;
   };
   Elf64_Shdr* shdr;        // array of section headers
-  U32 shnum;               // number of sections
+  U32         shnum;               // number of sections
   Elf64_Shdr* sh_symtab;
-  Elf64_Sym* psym;
-  U32 symnum;
-  char* str_sym;           //string for symbols
+  Elf64_Sym*  psym;
+  U32         symnum;
+  char*       str_sym;           //string for symbols
 
+  // for this application, a unique global symbol, 
+  Elf64_Sym*  unique;            
+  
+  
   // U32* sechashes;  // a table of name hashes matching section names
   S64 map_size; // for unmapping buf
 } sElf;

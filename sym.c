@@ -194,7 +194,7 @@ sSym* pk_from_libtxt(char* name,char*path){
     seg_align(&scode,8);
     U32 addr = (U32)(U64)seg_append(&scode,ljump,sizeof(ljump));
     sSym* sy = sym_new(pc,addr,sizeof(ljump),0,0);
-    pk_push_sym(pk,sy);
+    pk_push_sym(pk,sy) ;
     pc = next;
   }
   filebuf_free(buf);

@@ -111,18 +111,21 @@ U8* seg_append(sSeg* pseg,U8* start,U64 size){
 
 ----------------------------------------------------------------------------*/
 
+extern U32 rel_flag;
 /* ------------------------------------------------------------- */
 void seg_rel_mark(sSeg* pseg,U32 pos,U32 kind){
-  if( (pos<(U32)(U64)pseg->base) || (pos >= pseg->fill)){
-    printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
-    exit(1);
+  if(rel_flag){
+    if( (pos<(U32)(U64)pseg->base) || (pos >= pseg->fill)){
+      printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
+      exit(1);
+    }
+    if(kind>3){
+      printf("seg_rel_mark: kind %d is out of bounds\n",kind);
+      exit(1);
+    }
+    //  printf("setting bits\n");
+    bits_set(pos, kind);
   }
-  if(kind>3){
-    printf("seg_rel_mark: kind %d is out of bounds\n",kind);
-    exit(1);
-  }
-  //  printf("setting bits\n");
-  bits_set(pos, kind);
 }
 #include "util.h"
 

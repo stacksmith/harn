@@ -46,8 +46,8 @@ sElf* elf_load(char* path){
   // string table associated with symbols
   pelf->str_sym = pelf->buf + pelf->shdr[pelf->sh_symtab->sh_link].sh_offset;
 
-  // build the hashtable
-  //  pelf->hashes = 0;//
+  // for this application, find the unique symbol
+  pelf->unique = elf_unique_global_symbol(pelf);
   return pelf;
 }
 /*-------------------------------------------------------------

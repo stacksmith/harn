@@ -32,6 +32,7 @@ sSym* srch_list;
 FILE* faSources;
 FILE* fSources;
 
+U32 rel_flag = 1; //relocation engine is on
 /*
 void test(sPkg*pkg,char*elfname,char* funname){
   siSymb* symb = pkg_load_elf(pkg,elfname);

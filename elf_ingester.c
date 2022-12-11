@@ -52,7 +52,8 @@ U32 ing_elf_sec(sElf*pelf,U32 isec,sSeg*pseg){
                        get prototype via auxinfo
  return: symb
 -----------------------------------------------------------------------------*/
-U64 ing_elf_func(sElf*pelf,Elf64_Sym* psym){
+U64 ing_elf_func(sElf*pelf){
+  Elf64_Sym* psym = pelf->unique;
   seg_align(&scode,8); // our alignment requirement
   U32 codesec = psym->st_shndx;
   U32 addr = ing_elf_sec(pelf,codesec,&scode);
@@ -95,7 +96,8 @@ and any associated rel section
 
 return: symb of the ingested data.
 ----------------------------------------------------------------------------*/
-U64 ing_elf_data(sElf* pelf,Elf64_Sym* psym){
+U64 ing_elf_data(sElf* pelf){
+  Elf64_Sym* psym = pelf->unique;
   seg_align(&sdata,8); // align data seg for new data object
   // First, ingest the main data object and keep its address.
   U32 sec = psym->st_shndx;
@@ -139,21 +141,16 @@ U64 ing_elf_data(sElf* pelf,Elf64_Sym* psym){
 }
 
 
-U64 ing_elf_raw(sElf* pelf,Elf64_Sym* psym){
-  switch(ELF64_ST_TYPE(psym->st_info)){
-  case STT_FUNC:   return ing_elf_func(pelf,psym);
-  case STT_OBJECT: return ing_elf_data(pelf,psym);
+U64 ing_elf_raw(sElf* pelf){
+  switch(ELF64_ST_TYPE(pelf->unique->st_info)){
+  case STT_FUNC:   return ing_elf_func(pelf);
+  case STT_OBJECT: return ing_elf_data(pelf);
   default: return 0;
   }
 }
 
-sSym* ing_elf(sElf* pelf){
-  Elf64_Sym* psym = elf_unique_global_symbol(pelf);
-  if(!psym){
-    printf("ing_elf: no unique global symbol\n");
-    return 0;
-  }
-  U64 bounds = ing_elf_raw(pelf,psym);
+sSym* ing_elf_sym(sElf* pelf,U64 bounds){
+  Elf64_Sym* psym=pelf->unique;
   char* name = psym->st_name + pelf->str_sym;
   U32 len;
   U32   src = src_from_body(&len);
@@ -164,5 +161,16 @@ sSym* ing_elf(sElf* pelf){
   sSym* ret = sym_new(name, bounds&0xFFFFFFFF, bounds>>32, src, proto);
   free(proto);
   return ret;
+}
+
+sSym* ing_elf(sElf* pelf){
+  if(!pelf->unique){
+    printf("ing_elf: no unique global symbol\n");
+    return 0;
+  }
+  U64 bounds = ing_elf_raw(pelf);
+  if(bounds)
+    return ing_elf_sym(pelf,bounds);
+  else return 0;
 
 }

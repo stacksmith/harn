@@ -11,10 +11,13 @@
 #include "src.h"
 #include "sym.h"
 
+sSym* ing_elf(sElf* pelf);
+U64 ing_elf_func(sElf* pelf);
+
 extern sSeg scode;
 extern sSeg sdata;
 extern sSeg smeta;
-
+extern U32 rel_flag;
 //extern sPkg* pkgs;
 
 extern sSym* srch_list;
@@ -56,91 +59,66 @@ void edit(char* name){
   */
 }
 
+sElf* rebuild(char* name,U32 need_function){
+  pks_dump_protos();
+  char buf[256];
+  sprintf(buf,"cd sys; ./build.sh %s",name);
+  puts(buf);
+  int ret = system(buf);
+  if(ret){
+    printf("OS shellout to compiler failed! Build Error %d\n",ret);
+    return 0;
+  }
+  sprintf(buf,"sys/%s.o",name);
+  sElf* pelf = elf_load(buf);
+  if(!pelf->unique){
+    printf("ing_elf: no unique global symbol\n");
+    elf_delete(pelf);
+    return 0;
+  }
+  if(need_function && (ELF64_ST_TYPE(pelf->unique->st_info) != STT_FUNC)){
+    printf("repl_expr: must be a functional expression\n");
+    elf_delete(pelf);
+    return 0;
+  }
+  return pelf;
+}
 
-
-sSym* ing_elf(sElf* pelf);
 sSym* compile(void){
   sSym* sym=0;
-  int ret = system("cd sys; ./build.sh");
-  if(!ret){ // build shell-out successful:
-    // create an elf object
-    sElf* pelf = elf_load("sys/test.o");
-    // load the entire ELF trainwreck
-    sym = ing_elf(pelf); 
-    if(sym){ // OK, this means we are done with ingestion.
-      printf("Ingested %s: %s %d bytes\n",
-	     SYM_NAME(sym),sym_proto(sym),sym->size);
-      // do we already have a symbol with same name?  Hold onto it.
-      sSym* oldsym = pks_find_name(srch_list,SYM_NAME(sym));
-      
-      // Now that the new object is in our segment, is there an 
-      if(oldsym) { // older version we are replacing?
-	printf("old version exists\n");
-	// first, make ssure it's in the same seg.
-	if( (SEG_BITS(oldsym->data)) == (SEG_BITS(sym->data))){
-	  // yes, both are in the same seg.  Fix old refs
-	  seg_reref(&scode,oldsym->data,sym->data); // in code seg
-	  seg_reref(&sdata,oldsym->data,sym->data); // in data seg
-	} else { // No, different segs.  Nothing good can come of it.
-	  fprintf(stderr,"New one is in a different seg! Abandoning!\n");
-	  //	    sym = pkg_drop_symb(pkgs); // drop new object from topmost pkg
-	}
-      } // else a new symbol, no problem
-    } else {
-      printf("ELF not ingested due to unresolved ELF symbols.\n");
-    }
-    elf_delete(pelf);
+  sElf* pelf = rebuild("unit",0);
+  // load the entire ELF trainwreck
+  sym = ing_elf(pelf); 
+  if(sym){ // OK, this means we are done with ingestion.
+    printf("Ingested %s: %s %d bytes\n",
+	   SYM_NAME(sym),sym_proto(sym),sym->size);
+    // do we already have a symbol with same name?  Hold onto it.
+    sSym* oldsym = pks_find_name(srch_list,SYM_NAME(sym));
+    
+    // Now that the new object is in our segment, is there an 
+    if(oldsym) { // older version we are replacing?
+      printf("old version exists\n");
+      // first, make ssure it's in the same seg.
+      if( (SEG_BITS(oldsym->data)) == (SEG_BITS(sym->data))){
+	// yes, both are in the same seg.  Fix old refs
+	seg_reref(&scode,oldsym->data,sym->data); // in code seg
+	seg_reref(&sdata,oldsym->data,sym->data); // in data seg
+      } else { // No, different segs.  Nothing good can come of it.
+	fprintf(stderr,"New one is in a different seg! Abandoning!\n");
+	
+	//	    sym = pkg_drop_symb(pkgs); // drop new object from topmost pkg
+      }
+    } // else a new symbol, no problem
     pk_push_sym(srch_list, sym);
-    pks_dump_protos();
-  }else { 
-    printf("OS shellout to compiler failed! Build Error %d\n",ret);
+  } else {
+    printf("ELF not ingested due to unresolved ELF symbols.\n");
   }
+  elf_delete(pelf);
+  
+
+
   return sym;
 }
-/*
-siSymb* compile1(void){
-  siSymb* symb=0;
-  int ret = system("cd sys; ./build.sh");
-  if(!ret){ // build shell-out successful:
-    // create an elf object
-    sElf* pelf = elf_load("sys/test.o"); 
-    Elf64_Sym* psym = elf_unique_global_symbol(pelf);
-    if(psym){ // We identified the global symbol in the ELF file.
-      // do we already have a symbol with same name?  Hold onto it.
-      siSymb* oldsymb = pkgs_symb_of_name(ELF_SYM_NAME(pelf,psym));
-      // load the entire ELF trainwreck, and add symb to our
-      symb = pkg_load_elf(pkgs,pelf,psym); // topmost pkg
-      if(symb){ // OK, this means we are done with ingestion.
-	printf("Ingested %s: %s %d bytes\n",
-	       symb->name,symb->proto,symb->size);
-	// Now that the new object is in our segment, is there an 
-	if(oldsymb) { // older version we are replacing?
-	  printf("old version exists\n");
-	  // first, make ssure it's in the same seg.
-	  if( (SEG_BITS(oldsymb->data)) == (SEG_BITS(symb->data))){
-	    // yes, both are in the same seg.  Fix old refs
-	    seg_reref(&scode,oldsymb->data,symb->data); // in code seg
-	    seg_reref(&sdata,oldsymb->data,symb->data); // in data seg
-	  } else { // No, different segs.  Nothing good can come of it.
-	    fprintf(stderr,"New one is in a different seg! Abandoning!\n");
-	    symb = pkg_drop_symb(pkgs); // drop new object from topmost pkg
-	  }
-	} // else a new symbol, no problem
-      } else {
-	printf("ELF not ingested due to unresolved ELF symbols.\n");
-      }
-      pks_dump_protos();
-    } else {
-      printf("One and only one ELF global symbol must exist.  Abandoning\n");
-    }
-    // finally, delete the elf data
-    elf_delete(pelf);
-  }else { 
-    printf("OS shellout to compiler failed! Build Error %d\n",ret);
-  }
-  return symb;
-}
-*/
 
 sSym* repl_compile(char*p){
   return compile();
@@ -201,15 +179,27 @@ void repl_help(char*p){
 }
 
 void repl_expr(char*p){
-  FILE*f = fopen("sys/body.c","w");		\
+  FILE*f = fopen("sys/cmdbody.c","w");		
   fputs("void command_line(void){\n ",f);
   fputs(p,f);
   fputs("\n}\n",f);
   fclose(f);
-  sSym* sym = compile();
-  if(sym) {
-    exec_repl_sym(sym,p);
-    pk_wipe_last_sym(srch_list);
+
+  sElf* pelf = rebuild("commandline",1);
+  if(!pelf)
+    return;
+
+  rel_flag = 0;
+  U32 addr = (U32)ing_elf_func(pelf);
+  rel_flag = 1;
+  
+  elf_delete(pelf);
+  
+  if(addr){
+    fpreplfun entry = (fpreplfun)(U64)(addr);
+    (*entry)(p);
+    memset(entry,0,seg_pos(&scode)-addr);
+    scode.fill = addr;
   }
 }
 

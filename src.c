@@ -11,7 +11,7 @@ U32 srcbuf_size=0x10000;
 
 extern FILE* faSources; // append-only
 extern FILE* fSources;  // random-access
-char* srcname =  "sys/sources.txt";
+char* srcname =  "image/sources.txt";
 char* bodyname = "sys/body.c";
 char* auxname =  "sys/info.txt";
 
