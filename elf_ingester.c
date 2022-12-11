@@ -53,7 +53,7 @@ U32 ing_elf_sec(sElf*pelf,U32 isec,sSeg*pseg){
  return: symb
 -----------------------------------------------------------------------------*/
 sSym* ing_elf_func(sElf*pelf,Elf64_Sym* psym){
-   //  seg_align(&scode,8); // our alignment requirement
+  seg_align(&scode,8); // our alignment requirement
   U32 codesec = psym->st_shndx;
   U32 faddr = ing_elf_sec(pelf,codesec,&scode);
 
@@ -100,12 +100,11 @@ and any associated rel section
 
 return: symb of the ingested data.
 ----------------------------------------------------------------------------*/
-/*siSymb* ing_elf_data(sElf* pelf,Elf64_Sym* psym){
+sSym* ing_elf_data(sElf* pelf,Elf64_Sym* psym){
   seg_align(&sdata,8); // align data seg for new data object
   // First, ingest the main data object and keep its address.
   U32 sec = psym->st_shndx;
   U32 addr = ing_elf_sec(pelf,sec,&sdata);
-  char* name = psym->st_name + pelf->str_sym;
 #ifdef DEBUG
   printf("ing_elf_data: for %s\n",name);
 #endif 
@@ -126,10 +125,12 @@ return: symb of the ingested data.
   }
   elf_process_symbols(pelf,proc);
   // Now, resolve elf symbols; should be possible now.
-  pkg_elf_resolve(pkg,pelf);
+  U32 unresolved = elf_resolve_symbols(pelf,find_global);
+  if(unresolved)
+    return 0;
+  U32 size = seg_pos(&sdata) - addr; 
   // Now, process all relocations, fixing up the references, and setting
   // the bits in the data segment's rel table.
-
   void relproc(U32 p,U32 kind){
     #ifdef DEBUG
     printf("data.Reference at: %08X, %d\n",p,kind);
@@ -137,11 +138,14 @@ return: symb of the ingested data.
     seg_rel_mark(&sdata,p,kind);
   }
   elf_apply_rels(pelf,relproc);
-  // ok, now calculate size and add to package
-  U32 size = seg_pos(&sdata) - addr;
-  return pkg_add(pkg,name,addr,size);
+ 
+  char* name = psym->st_name + pelf->str_sym;
+  U32 len;
+  U32   src =     src_from_body(&len);
+  sSym* ret = sym_new(name, addr, size, src, 0);
+  return ret;
 }
-*/
+
 sSym* ing_elf(sElf* pelf){
   Elf64_Sym* psym = elf_unique_global_symbol(pelf);
   if(!psym){
@@ -153,9 +157,7 @@ sSym* ing_elf(sElf* pelf){
   case STT_FUNC:
     return ing_elf_func(pelf,psym);
   case STT_OBJECT:
-    //    symb = pkg_load_elf_data(pkg,pelf,psym);
-    printf("data load not implemented\n");
-    return 0;
+    return ing_elf_data(pelf,psym);
     break;
   default:
     printf("ing_elf: global symbol is not FUNC or OBJECT\n");

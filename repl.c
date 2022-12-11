@@ -90,11 +90,11 @@ sSym* compile(void){
       printf("ELF not ingested due to unresolved ELF symbols.\n");
     }
     elf_delete(pelf);
+    pk_push_sym(srch_list, sym);
+    pks_dump_protos();
   }else { 
     printf("OS shellout to compiler failed! Build Error %d\n",ret);
   }
-  pk_push_sym(srch_list, sym);
-  pks_dump_protos();
   return sym;
 }
 /*
