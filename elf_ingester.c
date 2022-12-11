@@ -52,10 +52,10 @@ U32 ing_elf_sec(sElf*pelf,U32 isec,sSeg*pseg){
                        get prototype via auxinfo
  return: symb
 -----------------------------------------------------------------------------*/
-sSym* ing_elf_func(sElf*pelf,Elf64_Sym* psym){
+U64 ing_elf_func(sElf*pelf,Elf64_Sym* psym){
   seg_align(&scode,8); // our alignment requirement
   U32 codesec = psym->st_shndx;
-  U32 faddr = ing_elf_sec(pelf,codesec,&scode);
+  U32 addr = ing_elf_sec(pelf,codesec,&scode);
 
   // there maybe rodata
   U32 strsec = elf_find_section(pelf,".rodata.str1.1");
@@ -65,7 +65,7 @@ sSym* ing_elf_func(sElf*pelf,Elf64_Sym* psym){
 #endif
     ing_elf_sec(pelf,strsec,&scode);
   }
-  U32 fsize = seg_pos(&scode) - faddr;
+  U32 size = seg_pos(&scode) - addr;
   //return (size << 32) | faddr;
   U32 unresolved = elf_resolve_symbols(pelf,find_global);
   if(unresolved)
@@ -80,13 +80,8 @@ sSym* ing_elf_func(sElf*pelf,Elf64_Sym* psym){
   }
   // codesec+1 may be its relocations... If not, no harm done.
   elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc);
-
-  char* name = psym->st_name + pelf->str_sym;
-  char* proto = aux_proto("sys/info.txt");
-  U32 len;
-  U32   src =     src_from_body(&len);
-  sSym* ret = sym_new(name, faddr, fsize, src, proto);
-  return ret;
+  return (((U64)size)<<32) | addr;
+  
 }
 /*----------------------------------------------------------------------------
  pkg_load_elf_data                Load a data object into package
@@ -100,7 +95,7 @@ and any associated rel section
 
 return: symb of the ingested data.
 ----------------------------------------------------------------------------*/
-sSym* ing_elf_data(sElf* pelf,Elf64_Sym* psym){
+U64 ing_elf_data(sElf* pelf,Elf64_Sym* psym){
   seg_align(&sdata,8); // align data seg for new data object
   // First, ingest the main data object and keep its address.
   U32 sec = psym->st_shndx;
@@ -138,12 +133,18 @@ sSym* ing_elf_data(sElf* pelf,Elf64_Sym* psym){
     seg_rel_mark(&sdata,p,kind);
   }
   elf_apply_rels(pelf,relproc);
- 
-  char* name = psym->st_name + pelf->str_sym;
-  U32 len;
-  U32   src =     src_from_body(&len);
-  sSym* ret = sym_new(name, addr, size, src, 0);
-  return ret;
+
+  return (((U64)size)<<32) | addr;
+
+}
+
+
+U64 ing_elf_raw(sElf* pelf,Elf64_Sym* psym){
+  switch(ELF64_ST_TYPE(psym->st_info)){
+  case STT_FUNC:   return ing_elf_func(pelf,psym);
+  case STT_OBJECT: return ing_elf_data(pelf,psym);
+  default: return 0;
+  }
 }
 
 sSym* ing_elf(sElf* pelf){
@@ -152,18 +153,16 @@ sSym* ing_elf(sElf* pelf){
     printf("ing_elf: no unique global symbol\n");
     return 0;
   }
-
-  switch(ELF64_ST_TYPE(psym->st_info)){
-  case STT_FUNC:
-    return ing_elf_func(pelf,psym);
-  case STT_OBJECT:
-    return ing_elf_data(pelf,psym);
-    break;
-  default:
-    printf("ing_elf: global symbol is not FUNC or OBJECT\n");
-    return 0;
+  U64 bounds = ing_elf_raw(pelf,psym);
+  char* name = psym->st_name + pelf->str_sym;
+  U32 len;
+  U32   src = src_from_body(&len);
+  char* proto = 0;
+  if(ELF64_ST_TYPE(psym->st_info) == STT_FUNC){
+    proto = aux_proto();
   }
-  // done with the elf file!
-  // symb may be 0 if there are unresolved references!
-  // if it's good, load source.
+  sSym* ret = sym_new(name, bounds&0xFFFFFFFF, bounds>>32, src, proto);
+  free(proto);
+  return ret;
+
 }
