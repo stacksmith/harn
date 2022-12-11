@@ -29,7 +29,7 @@ The symbols are optimized for fast searches, and are stored in 3 separate
 struct siSymb;
 typedef struct siSymb {
   struct siSymb* next;
-  char* name;
+  char* name;                 // malloc'ed
   union {
     sDataSize ds;
     struct {
@@ -37,8 +37,8 @@ typedef struct siSymb {
       U32 size;
     };
   };
-  char* proto;
-  U32 src;
+  char* proto;                // malloc'ed
+  U32 src;                    // file
   U32 srclen;
   U32 hash;
   
@@ -58,7 +58,7 @@ void pkg_words(sPkg* pkg);
 sPkg* pkg_new();
 void pkg_set_name(sPkg* pkg,char* name);
 siSymb* pkg_add(sPkg* pkg,char*name,U32 data,U32 size);
-siSymb* pkg_drop_symb(sPkg* pkg);
+siSymb pkg_drop_symb(sPkg* pkg);
 siSymb* pkg_symb_of_hash(sPkg* pkg,U32 hash);
 siSymb* pkg_symb_of_name(sPkg* pkg,char* name);
 void pkg_lib(sPkg* pkg,char*dllpath,char*namespath);

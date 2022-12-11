@@ -190,18 +190,26 @@ void repl_loop(){
     { size_t len = strlen(linebuf);
       *(linebuf+len-1)=0;
     }
-    /*
-      if(!strncmp("xx",linebuf,2)){
-      //siSymb* symb =
-      pkg_load_elf(pkgs,"sys/test.o");  
-      continue;
-      }
-    */
+
     if(!strncmp("sys",linebuf,3)) { repl_sys(p);    continue; }
     // ox56299123
     if(!strncmp("cc",linebuf,2))  { repl_compile(p);continue; }
     // 5CB7AA8A,
     if(!strncmp("words",linebuf,4)){ repl_words(p); continue; }
+    
+    if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
+
+    if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }
+
+    // user typed in the name of a function to run as void
+    // 0x71F39F63
+    if(!strncmp("bye",linebuf,3)) exit(0);
+
+    // try to run it as a repl function
+    run_repl_fun(hash,p);
+ 
+  }
+}
     /*
     if(!strncmp("edit",linebuf,4)){
       edit(linebuf+5);
@@ -211,17 +219,3 @@ void repl_loop(){
       continue;
     }
     */
-    
-    if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
-    // 0x71F39F63
-    if(!strncmp("bye",linebuf,3))
-      exit(0);
-
-    if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }
-
-    // user typed in the name of a function to run as void
-
-    run_repl_fun(hash,p);
- 
-  }
-}
