@@ -91,7 +91,7 @@ siSymb* pkg_add(sPkg* pkg,char*name,U32 data,U32 size){
 pkg_drop_symb         destroy the last symbol, clean up
 
 -----------------------------------------------------------------------*/
-void pkg_drop_symb(sPkg* pkg){
+siSymb* pkg_drop_symb(sPkg* pkg){
   siSymb*symb = pkg->data;
   // clean up and return 0
   pkg->data = symb->next; //unlink the bad symbol
@@ -104,6 +104,7 @@ void pkg_drop_symb(sPkg* pkg){
   }
   memset((U8*)(U64)addr,0,size); // clear it
   siSymb_delete(symb);
+  return 0;
 }
 
 siSymb* pkg_symb_of_hash(sPkg* pkg,U32 hash){

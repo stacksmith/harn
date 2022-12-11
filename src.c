@@ -33,6 +33,7 @@ U32 src_from_body(U32* plen){
   FILE* f = fopen(bodyname,"r");
   // if body 
   if(f) {
+    src_timestamp();
     size_t len = fread(srcbuf,1,srcbuf_size,f);
     fclose(f);
     srcbuf[len]=0;
@@ -104,7 +105,7 @@ void src_timestamp(){
     time_t my_time = time(NULL);
     if( (my_time - srcLastStamp) > 60 ) {
       fprintf(faSources,"/// %s\n", ctime(&my_time));
-      fflush(faSources);
+      // fflush(faSources);
       srcLastStamp = my_time;
     }
 }

@@ -40,9 +40,9 @@ void pkgs_list(){
 }
 
 
-siSymb* pkgs_symb_of_name(char* name){
+
+siSymb* pkgs_symb_of_hash(U32 hash){
   sPkg* pkg = pkgs;
-  U32 hash = string_hash(name);
   while(pkg){
     siSymb* symb = pkg_symb_of_hash(pkg,hash);
     if(symb)
@@ -50,6 +50,10 @@ siSymb* pkgs_symb_of_name(char* name){
     pkg=pkg->next;
   }
   return 0;
+}
+
+siSymb* pkgs_symb_of_name(char* name){
+  return pkgs_symb_of_hash(string_hash(name));
 }
 
 

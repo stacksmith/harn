@@ -25,10 +25,6 @@ The symbols are optimized for fast searches, and are stored in 3 separate
 
 // a primitive way to keep symbols
 
-typedef struct sDataSize {
-  U32 data;
-  U32 size;
-} sDataSize;
 
 struct siSymb;
 typedef struct siSymb {
@@ -62,7 +58,7 @@ void pkg_words(sPkg* pkg);
 sPkg* pkg_new();
 void pkg_set_name(sPkg* pkg,char* name);
 siSymb* pkg_add(sPkg* pkg,char*name,U32 data,U32 size);
-void pkg_drop_symb(sPkg* pkg);
+siSymb* pkg_drop_symb(sPkg* pkg);
 siSymb* pkg_symb_of_hash(sPkg* pkg,U32 hash);
 siSymb* pkg_symb_of_name(sPkg* pkg,char* name);
 void pkg_lib(sPkg* pkg,char*dllpath,char*namespath);
