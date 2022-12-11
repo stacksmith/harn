@@ -164,10 +164,6 @@ sSym* ing_elf_sym(sElf* pelf,U64 bounds){
 }
 
 sSym* ing_elf(sElf* pelf){
-  if(!pelf->unique){
-    printf("ing_elf: no unique global symbol\n");
-    return 0;
-  }
   U64 bounds = ing_elf_raw(pelf);
   if(bounds)
     return ing_elf_sym(pelf,bounds);
