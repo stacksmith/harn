@@ -25,9 +25,6 @@
 
 sSeg scode;
 sSeg sdata;
-//sSystem sys;
-
-sPkg pkg;
 
 sPkg* pkgs=0;
 
@@ -249,7 +246,7 @@ int main(int argc, char **argv){
   //test_data(usrpkg,argv[1]);
   //  pkgs_list();
   //pkg_dump(pkg);
-
+  src_timestamp();
   main_loop();
   //  testab("o/twoA.o","o/twoB.o");
   //testmult(argc-1,argv+1);

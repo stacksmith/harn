@@ -18,7 +18,7 @@ char* auxname =  "sys/info.txt";
 void src_init(){
   srcbuf =  (char*)malloc(srcbuf_size);
   faSources = fopen(srcname,"a");
-  fSources = fopen(srcname,"r");
+  fSources = fopen(srcname,"a+");
   if(!(faSources && fSources)){
     fprintf(stderr,"src_init: unable to open source file %s\n",srcname);
     exit(1);
@@ -95,4 +95,16 @@ char* aux_proto(){
   char* ret = (char*)malloc(1+strlen(start));
   strcpy(ret,start);
   return ret;
+}
+#include "time.h"
+
+
+time_t srcLastStamp = 0L;
+void src_timestamp(){
+    time_t my_time = time(NULL);
+    if( (my_time - srcLastStamp) > 60 ) {
+      fprintf(faSources,"/// %s\n", ctime(&my_time));
+      fflush(faSources);
+      srcLastStamp = my_time;
+    }
 }
