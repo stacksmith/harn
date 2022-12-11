@@ -34,7 +34,6 @@ sSg* psMeta;
 FILE* faSources;
 FILE* fSources;
 
-U32 rel_flag = 1; //relocation engine is on
 /*
 void test(sPkg*pkg,char*elfname,char* funname){
   siSymb* symb = pkg_load_elf(pkg,elfname);
@@ -76,25 +75,24 @@ int main(int argc, char **argv){
   psData = sg_alloc(0x10000000,(void*)0x40000000,PROT_READ|PROT_WRITE);
   psMeta = sg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
 
-  psMeta->fill+=8;
+  src_init();      // open source files and setup buffers
   
-  src_init();
-  
-  
-   // create bindings for libc
-  //  sPkg* pkg = pkg_new(&pkg);
-  //pkg_lib(pkg,"libc.so.6","libc.txt");
-  //pkgs_add(pkg);
+  {
+    sg_reset(psCode);
+    sg_reset(psData);
+    sg_reset(psMeta);
+    SRCH_LIST = 0;
+    psMeta->fill+=8; // SRCH_LIST at +8, 4 bytes
+    REL_FLAG = 1;    // REL_FLAG  at +C, 4 bytes
 
-
-  sSym* pk = pk_from_libtxt("libc","libc.txt");
-  pk_rebind(pk,"libc.so.6");
-  srch_list_push(pk);
-  
-  sSym* pku = pk_new("user");
-  srch_list_push(pku);
-  
-
+    sSym* pk = pk_from_libtxt("libc","libc.txt");
+    pk_rebind(pk,"libc.so.6");
+    srch_list_push(pk);
+    
+    sSym* pku = pk_new("user");
+    srch_list_push(pku);
+    
+  }
   //sElf* pelf = elf_load("sys/test.o"); 
   ///sSym* sy = ing_elf(pelf);
   //printf("ingested... %p\n",sy);

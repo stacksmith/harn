@@ -54,11 +54,33 @@ sSg* sg_alloc(U64 req_size, void* req_addr, U32 prot){
     fprintf(stderr,"Error allocating rel table of %p seg: %d\n",req_addr,errno);
     exit(1);
   }
-  psg->fill = (U32)(U64)psg + 8;
-  psg->end =  psg->fill + (U32)req_size;
+  psg->end =  (U32)(U64)psg + (U32)req_size;  
   return psg;
 }
+void sg_reset(sSg* psg){
+  psg->fill = (U32)(U64)psg + 8;
+}
 
+void sg_serialize(sSg* psg,FILE* f){
+  // save data area
+  sg_align(psg,8);
+  U32 size = psg->fill - (U32)(U64)(psg);  // byte size of segment data
+  size_t wr1 = fwrite(psg,1,size,f);
+  U8* prel = (U8*)(((U64)psg)>>3);
+ 
+  size_t wr2 = fwrite(prel,1,size>>3,f);
+  printf("wrote: %lx and %lx\n",wr1,wr2);
+}
+
+void sg_deserialize(sSg* psg,FILE*f){
+  fread(psg,1,8,f);
+  U32 size = psg->fill - (U32)(U64)psg;
+  printf("size %x\n",size);
+  size_t rd1 = fread(psg+1,1,size-8,f);
+  U8* prel = (U8*)(((U64)psg)>>3);
+  size_t rd2 = fread (prel,1,size>>3,f);
+  printf("read: %lx %lx\n",rd1+8,rd2);
+}
 U32 sg_pos(sSg* psg){
   return psg->fill;
 }
@@ -104,10 +126,10 @@ U8* sg_append(sSg* psg,U8* start,U64 size){
 
 ----------------------------------------------------------------------------*/
 
-extern U32 rel_flag;
+
 /* ------------------------------------------------------------- */
 void sg_rel_mark(sSg* psg,U32 pos,U32 kind){
-  if(rel_flag){
+  if(REL_FLAG){
     if( (pos<(U32)(U64)psg) || (pos >= psg->fill)){
       printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
       exit(1);

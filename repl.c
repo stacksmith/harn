@@ -18,9 +18,6 @@ extern sSg* psCode;
 extern sSg* psData;
 extern sSg* psMeta;
 
-extern U32 rel_flag;
-//extern sPkg* pkgs;
-
 
 typedef void (*fpreplfun)(char*p);
 typedef U64 (*fpvoidfun)();
@@ -190,9 +187,9 @@ void repl_expr(char*p){
   if(!pelf)
     return;
 
-  rel_flag = 0;
+  REL_FLAG = 0;
   U32 addr = (U32)ing_elf_func(pelf);
-  rel_flag = 1;
+  REL_FLAG = 1;
   
   elf_delete(pelf);
   
@@ -209,6 +206,24 @@ void repl_dump(char*p){
   if(addr<0xFFFFFFFF){
     hd((void*)addr,4);
   }
+}
+void repl_save(char*p){
+  FILE* f = fopen("image/image.dat","w");
+  sg_serialize(psData,f);
+  sg_serialize(psCode,f);
+  sg_serialize(psMeta,f);
+  fclose(f);
+}
+
+void repl_load(char*p){
+  FILE* f = fopen("image/image.dat","r");
+  sg_deserialize(psData,f);
+  sg_deserialize(psCode,f);
+  sg_deserialize(psMeta,f);
+  fclose(f);
+  //TODO: automate search for libraries to rebind upon load
+  pk_rebind( (sSym*)(U64)(((sSym*)(U64)SRCH_LIST)->data),"libc.so.6");
+  //pk_rebind( ((sSym*)(U64)SRCH_LIST),"libc.so.6");
 }
 /*----------------------------------------------------------------------------
 
@@ -244,6 +259,8 @@ void repl_loop(){
 
     if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }
     if(!strncmp("dump",linebuf,4)){ repl_dump(p); continue; }
+    if(!strncmp("save",linebuf,4)){ repl_save(p); continue; }
+    if(!strncmp("load",linebuf,4)){ repl_load(p); continue; }
 
     // user typed in the name of a function to run as void
     // 0x71F39F63
