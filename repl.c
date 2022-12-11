@@ -185,7 +185,7 @@ void repl_list(char* p){
   U32 hash = cmd_hash(&p);
   sSym* sym = pks_find_hash(srch_list,hash);
   if(sym){
-    src_to_file(sym->src,100,stdout); //todo: src length...
+    src_to_file(sym->src,stdout); //todo: src length...
   }
 }
 

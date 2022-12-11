@@ -7,7 +7,7 @@
 #include "src.h"
 
 char* srcbuf;
-U32 srcbuf_size=0x1000;
+U32 srcbuf_size=0x10000;
 
 extern FILE* faSources; // append-only
 extern FILE* fSources;  // random-access
@@ -38,6 +38,7 @@ U32 src_from_body(U32* plen){
     fclose(f);
     srcbuf[len]=0;
     size_t pos = ftell(faSources);
+    fprintf(faSources,"/// %05X\n",(U32)len); // 10 characters at +4
     fputs(srcbuf,faSources);
     fflush(faSources);
     *plen = (U32)len;
@@ -47,16 +48,23 @@ U32 src_from_body(U32* plen){
     return 0;
   }
 }
-void src_to_file(U32 pos,U32 len,FILE*f){
+void src_to_file(U32 pos,FILE*f){
   if(pos){
     fseek(fSources,pos,SEEK_SET);  // seek in sources
-    fread(srcbuf,1,len,fSources);  // read source
-    fwrite(srcbuf,1,len,f);     // write to body
+    fread(srcbuf,1,4096,fSources);  // read source
+    U64 len = strtol(srcbuf+4,0,16);
+    if(len>srcbuf_size) {
+      printf("len is messed up!\n");
+      return;
+    }
+    if(len>4096) 
+      fread(srcbuf+4096,1,len-4096,fSources);
+    fwrite(srcbuf+10,1,len,f);     // write to body
   }  
 }  
 void src_to_body(U32 pos,U32 len){
   FILE* f = fopen(bodyname,"w");
-  src_to_file(pos,len,f);
+  src_to_file(pos,f);
   fclose(f);
 }
 
@@ -104,7 +112,7 @@ time_t srcLastStamp = 0L;
 void src_timestamp(){
     time_t my_time = time(NULL);
     if( (my_time - srcLastStamp) > 60 ) {
-      fprintf(faSources,"/// %s\n", ctime(&my_time));
+      fprintf(faSources,"/// %s", ctime(&my_time));
       // fflush(faSources);
       srcLastStamp = my_time;
     }
