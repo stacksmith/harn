@@ -101,7 +101,17 @@ U8* seg_append(sSeg* pseg,U8* start,U64 size){
   } 
   return dest;
 }
+/*----------------------------------------------------------------------------
+ RELOCATIONS
 
+ We observe that:
+ * code segment may have Off32 or Abs64 references;
+ * data segment may have Abs64 refs or Abs32 refs (not for C);
+ * meta segment only has Abs32 refs.
+
+----------------------------------------------------------------------------*/
+
+/* ------------------------------------------------------------- */
 void seg_rel_mark(sSeg* pseg,U32 pos,U32 kind){
   if( (pos<(U32)(U64)pseg->base) || (pos >= pseg->fill)){
     printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
@@ -180,7 +190,7 @@ void seg_reref(sSeg*pseg,U32 old,U32 new){
 	 seg_pos(pseg),
 	 (U32)(U64)pseg->base,
 	 old,new);
-  bits_reref(seg_pos(pseg),
+  bits_reref1(seg_pos(pseg),
 	     (U32)(U64)pseg->base,
 	     old,new);
   printf("returned\n");

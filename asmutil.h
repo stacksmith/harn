@@ -7,3 +7,4 @@ extern U32 bits_cnt(U64 bit);
 // each call returns high=bitcnt  low = offset of ref
 extern U64 bits_next_ref(U32 top,U32 bottom);
 extern void bits_reref(U32 top,U32 bottom,U32 old,U32 new);
+extern void bits_reref1(U32 top,U32 bottom,U32 old,U32 new);

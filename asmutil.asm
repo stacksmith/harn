@@ -12,6 +12,7 @@
 	global bits_cnt
 	global bits_next_ref	;
 	global bits_reref
+	global bits_reref1	
 ;;; edi=addr
 bit_set2:	
 	xor	eax,eax
@@ -123,3 +124,48 @@ bits_reref:
 
 
 	
+bits_reref1:
+	sub	rcx,rdx         ;compute fixup difference, S64
+	inc     edi	
+.loop0:	xor	eax,eax		;eax = base(0);
+.loop1:	dec     edi			;
+.loop:	dec	edi		;scan bits down, until
+	cmp	edi,esi        	;the very bottom
+	je      .done          	;if offset is 0, exit with 0
+	bt	[rax],rdi       ;testing bits
+	jnc	.loop           ;skipping 0 bits
+
+ 	;; got a 0-1 transition. !  now count
+	dec     edi
+	bt	[rax],rdi
+	jc	.notone
+	;a single bit was set.  Off32.
+.one:	inc    	edi		;point at first 1 bit again
+	mov	eax,[rdi]	;load 32-bit offset
+	lea	eax,[rax+rdi+4] ;convert to abs32
+	cmp	eax,edx
+	jne	.loop0		;go back to loop; skip this 1 and prev 0
+	add	[rdi],ecx	;fixup
+	dec	edi            	;
+	jmp	.loop0
+.done:	ret
+	
+.notone: dec	edi
+	bt	[rax],rdi	
+	jc      .three
+	
+.two:	;; 64-bit relocation; edi = address  edx = old
+	inc	edi
+	cmp	[rdi],rdx       ;pointing at old?
+	jne	.loop1		;no match, go back to loop (rax is 0);
+	add	[rdi],rcx       ;fixup
+	jmp	.loop1
+
+	
+.three:;; 32-bit absolute; assuming next bit is 0; pointing at it.
+	cmp	[rdi],edx
+	jne	.loop1
+	add	[rdi],ecx
+	jmp	.loop1
+
+

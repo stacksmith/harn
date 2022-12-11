@@ -165,7 +165,7 @@ void pks_dump_protos(){
 U64 find_global(char*name){
   sSym* sym = pks_find_name(srch_list,name);
   if(sym)
-    return sym->bounds;
+    return sym->data;
   else
     return 0;
 }

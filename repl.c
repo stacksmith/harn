@@ -213,7 +213,12 @@ void repl_expr(char*p){
   }
 }
 
-
+void repl_dump(char*p){
+  U64 addr = strtol(p,0,16);
+  if(addr<0xFFFFFFFF){
+    hd((void*)addr,4);
+  }
+}
 /*----------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------*/
@@ -247,6 +252,7 @@ void repl_loop(){
     if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
 
     if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }
+    if(!strncmp("dump",linebuf,4)){ repl_dump(p); continue; }
 
     // user typed in the name of a function to run as void
     // 0x71F39F63
