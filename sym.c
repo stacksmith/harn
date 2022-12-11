@@ -12,7 +12,7 @@ extern sSg* psData;
 extern sSg* psMeta;
 
 
-extern sSym* srch_list;
+
 
 struct siSymb;
 typedef struct siSymb {
@@ -156,7 +156,7 @@ sSym* pks_find_name(sSym*pk, char*name){
 
 void pks_dump_protos(){
   FILE* f = fopen("sys/headers.h","w");
-  sSym* pk = srch_list;
+  sSym* pk = (sSym*)(U64)SRCH_LIST;
   do {
     pk_dump_protos(pk,f);
   } while ((pk = U32_SYM(pk->data)));
@@ -165,7 +165,7 @@ void pks_dump_protos(){
 
 
 U64 find_global(char*name){
-  sSym* sym = pks_find_name(srch_list,name);
+  sSym* sym = pks_find_name((sSym*)(U64)SRCH_LIST,name);
   if(sym)
     return sym->data;
   else
@@ -221,6 +221,6 @@ void pk_rebind(sSym* pk,char*dllpath){
 }
 
 void srch_list_push(sSym* pk){
-  pk->data = (U32)(U64)srch_list;  // we point at whatever srch_list did
-  srch_list = pk;
+  pk->data = SRCH_LIST;  // we point at whatever srch_list did
+  SRCH_LIST = (U32)(U64)pk;
 }

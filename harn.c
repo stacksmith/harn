@@ -29,7 +29,8 @@ sSg* psMeta;
 
 
 //sPkg* pkgs=0;
-sSym* srch_list;
+
+
 FILE* faSources;
 FILE* fSources;
 
@@ -75,6 +76,8 @@ int main(int argc, char **argv){
   psData = sg_alloc(0x10000000,(void*)0x40000000,PROT_READ|PROT_WRITE);
   psMeta = sg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
 
+  psMeta->fill+=8;
+  
   src_init();
   
   
