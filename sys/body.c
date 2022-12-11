@@ -1,3 +1,3 @@
-void fuck(){
-  printf("hello");
+void duck(){
+  printf("bye");
 }
