@@ -1,11 +1,25 @@
 # HARN
 `harn` is a fine-grained interactive linker (toy) for a (subset of) C.
 
-Unlike normal linkers and loaders, which drop the ball upon creating an executable image, `harn` is a dynamic environment, complete with managed code and data segments, symbol tables, function prototypes, sources, and a relocation engine for moving code and data objects around while maintaining referential integrity.
+`harn` is an attempt to create a REPL-like environment for editing, recompiling, and relinking and executing individual functions and manipulating data objects, from inside a running process.  
 
-`harn` provides REPL-like environment allowing editing, recompiling, and relinking individual functions and data objects, one at a time.  Objects are linked into an image, complete with the sources and function prototypes.  Tools may be constructed interactively to manipulate and reason about the components.
+The system aims to enable interactive C code development à la Lisp or Forth, blending the coding, debugging, and testing into a single environment.
 
-The system supports packages, which are groups of symbols and associated code and data, which may be combined as needed into a searchable namespace.
+`harn` maintains the bookkeeping data and manages the `coding-time` referential integrity and garbage collection, keeping all code hot and functions individually accessible. 
 
-C is not an ideal language for this kind of interaction, and some hard issues are being resolved.  In particular, the compiler allows for reasonably clean extraction of functions and their prototypes.  Data object, however are opaque and dangerous.  Currently, data types must be managed manually by attaching appropriate headers to packages; changes in global data declarations and types require a clear understanding of dependencies.  I am looking into a few different ways of automating dependency tracking.
+The approach tried here is to keep linked and relocated code in an image-like environment complete with sources and allow incremental re-compilation of functions by harnessing gcc.  The system maintains enough individual state (prototypes, headers, etc) to concoct function-level compilation units and raids the resultant ELF object file.
+
+## Technical Limitations
+
+C is not an ideal language for this kind of interaction, and some hard issues are being resolved.  It is a goal of this project to use a reasonable subset of C and an unmodified gcc to produce the artifacts.
+
+The system allows editing and recompilation of sub-file units, namely code fragments containing a single global object such as a function or a variable.  The resulting artifact is stored, along with source and other metadata.
+
+Each artifact must be either functional, with a single global function (and possibly additional local functions and read-only data, or a global data object.
+
+Functions are fully described by the headers automatically-extracted during compilation and made available to the rest of the system.  Data objects are potentially much more complicated, both in terms of access (unlike functions with a single entry point and generally-trivial callsites, data objects may be accessed in many unanticipated ways), structure, and pervasiveness in multiple functions - potentially requiring recompilation of many artifacts upon change...
+
+Current handling of data is largely manual, requiring careful usage of headers for declaring types and global variables.
+
+
 

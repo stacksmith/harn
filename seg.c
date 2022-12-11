@@ -175,8 +175,14 @@ U32 seg_reref(sSeg*pseg,U64 old,U64 new){
 }
 */
 void seg_reref(sSeg*pseg,U32 old,U32 new){
+  printf("%08X %08X %08X %08X \n",
+	 seg_pos(pseg),
+	 (U32)(U64)pseg->base,
+	 old,new);
   bits_reref(seg_pos(pseg),
 	     (U32)(U64)pseg->base,
 	     old,new);
+  printf("returned\n");
+	 
 }
   

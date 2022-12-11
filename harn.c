@@ -230,6 +230,8 @@ int main(int argc, char **argv){
 	    PROT_READ|PROT_WRITE|PROT_EXEC);
   seg_alloc(&sdata,"SDATA",0x10000000,(void*)0x40000000,
 	    PROT_READ|PROT_WRITE);
+  // bits_reref will break with an empty segment...
+  seg_append(&sdata,0,8); 
   src_init();
   
 

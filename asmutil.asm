@@ -85,6 +85,7 @@ bits_next_ref:
 ;;; ecx = new
 ;;; return: high=cnt low=bits at reference
 bits_reref:
+
 	push	rbx
 	sub	rcx,rdx         ;compute fixup difference, S64
 .loop0:	xor	eax,eax		;eax = bit counter
@@ -94,6 +95,7 @@ bits_reref:
 	je      .done          	;if offset is 0, exit with 0
 	bt	[rbx],rdi       ;testing bits
 	jnc	.loop           ;skipping 0 bits
+
  	;; got a 1!  now count
 .loop1:	inc	eax
 	dec     edi             ; previous bit
