@@ -5,7 +5,7 @@
 #include "global.h"
 #include "util.h"
 #include "elf.h"
-#include "seg.h"
+#include "sg.h"
 //#include "pkg.h"
 //#include "pkgs.h"
 #include "src.h"
@@ -14,9 +14,10 @@
 sSym* ing_elf(sElf* pelf);
 U64 ing_elf_func(sElf* pelf);
 
-extern sSeg scode;
-extern sSeg sdata;
-extern sSeg smeta;
+extern sSg* psCode;
+extern sSg* psData;
+extern sSg* psMeta;
+
 extern U32 rel_flag;
 //extern sPkg* pkgs;
 
@@ -101,8 +102,8 @@ sSym* compile(void){
       // first, make ssure it's in the same seg.
       if( (SEG_BITS(oldsym->data)) == (SEG_BITS(sym->data))){
 	// yes, both are in the same seg.  Fix old refs
-	seg_reref(&scode,oldsym->data,sym->data); // in code seg
-	seg_reref(&sdata,oldsym->data,sym->data); // in data seg
+	sg_reref(psCode,oldsym->data,sym->data); // in code seg
+	sg_reref(psData,oldsym->data,sym->data); // in data seg
       } else { // No, different segs.  Nothing good can come of it.
 	fprintf(stderr,"New one is in a different seg! Abandoning!\n");
 	
@@ -153,9 +154,9 @@ char* cmd_ws(char*p){
 }
 //if(0xC3589F16 == hash){
 void repl_sys(char* p){
-  seg_dump(&scode);
-  seg_dump(&sdata);
-  seg_dump(&smeta);
+  sg_dump(psCode);
+  sg_dump(psData);
+  sg_dump(psMeta);
   //pkgs_list();
 }
 
@@ -198,8 +199,8 @@ void repl_expr(char*p){
   if(addr){
     fpreplfun entry = (fpreplfun)(U64)(addr);
     (*entry)(p);
-    memset(entry,0,seg_pos(&scode)-addr);
-    scode.fill = addr;
+    memset(entry,0,sg_pos(psCode)-addr);
+    psCode->fill = addr;
   }
 }
 

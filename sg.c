@@ -15,7 +15,7 @@
 
 #include "global.h"
 #include "asmutil.h"
-#include "seg.h"
+#include "sg.h"
 
 /* ==============================================================
 
@@ -29,51 +29,44 @@ A fillable area for code or data
   char name[8];
 } sSeg;
 */
-void seg_dump(sSeg* pseg){
-  printf("Segment %s: %p %08x %p\n",pseg->name, pseg->base, pseg->fill,
-	 pseg->prel);
+void sg_dump(sSg* psg){
+  printf("Segment %p %08x\n",psg, psg->fill);
 }
 /* -------------------------------------------------------------
    seg_alloc
 
 ---------------------------------------------------------------*/
-int seg_alloc(sSeg* pseg,char*name,U64 req_size, void* req_addr, U32 prot){
+sSg* sg_alloc(U64 req_size, void* req_addr, U32 prot){
   // allocate data area
-  pseg->base =mmap(req_addr, req_size, prot,
-		  0x20 | MAP_SHARED | MAP_FIXED,    //MAP_ANONYMOUS
-		  0,0);
-  if(MAP_FAILED == pseg->base){
-    fprintf(stderr,"Error allocating %s seg: %d\n",name,errno);
+  sSg* psg = (sSg*)mmap(req_addr, req_size, prot,
+			0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
+			0,0);
+  if(MAP_FAILED == psg){
+    fprintf(stderr,"Error allocating %p seg: %d\n",req_addr,errno);
     exit(1);
   }
   // allocate rel area
-  pseg->prel =mmap((void*)(((U64)req_addr)/8), req_size/8,
-		   PROT_READ | PROT_WRITE,
-		   0x20 | MAP_SHARED | MAP_FIXED ,    //MAP_ANONYMOUS
-		   0,0);
-  if(MAP_FAILED == pseg->base){
-    fprintf(stderr,"Error allocating rel table of %s seg: %d\n",name,errno);
+  U8* prel =(U8*)mmap((void*)(((U64)req_addr)/8), req_size/8,
+		      PROT_READ | PROT_WRITE,
+		      0x20 | MAP_SHARED | MAP_FIXED ,    //MAP_ANONYMOUS
+		      0,0);
+  if(MAP_FAILED == prel){
+    fprintf(stderr,"Error allocating rel table of %p seg: %d\n",req_addr,errno);
     exit(1);
   }
-  memcpy(pseg->name,name,7);
-  pseg->name[7]=0;
-  pseg->fill = (U32)(U64)pseg->base;
-  pseg->end =  pseg->fill + (U32)req_size;
-  return 0;
-}
-U32 seg_pos(sSeg* pseg){
-  return pseg->fill;
-}
-U32 seg_off(sSeg* pseg){
-  return pseg->fill - (U32)(U64)pseg->base;
+  psg->fill = (U32)(U64)psg + 8;
+  psg->end =  psg->fill + (U32)req_size;
+  return psg;
 }
 
+U32 sg_pos(sSg* psg){
+  return psg->fill;
+}
 
-
-void seg_align(sSeg*pseg, U64 align){
-  int rem  = pseg->fill % (U32)align;
+void sg_align(sSg*psg, U64 align){
+  int rem  = psg->fill % (U32)align;
   if(rem) {
-    seg_append(pseg,0,align-rem);
+    sg_append(psg,0,align-rem);
     //    printf("Inserted pad of %ld bytes\n",align-rem);
   }  
 }
@@ -85,15 +78,15 @@ seg_append  Append a run of bytes to the segment
             start  address from which to copy.  
                    if 0, fill with 0 bytes.
 ---------------------------------------------------------------*/
-U8* seg_append(sSeg* pseg,U8* start,U64 size){
-  U32 end = pseg->fill + size;
-  U8* dest = (U8*)(U64)pseg->fill;
-  if(end >= pseg->end) {
-    seg_dump(pseg);
+U8* sg_append(sSg* psg,U8* start,U64 size){
+  U32 end = psg->fill + size;
+  U8* dest = (U8*)(U64)psg->fill;
+  if(end >= psg->end) {
+    sg_dump(psg);
     fprintf(stderr,"seg_append failed: out of space\n");
     exit(1);
   } else {
-    pseg->fill = end;
+    psg->fill = end;
     if(start)
       memcpy(dest,start,size);
     else
@@ -113,9 +106,9 @@ U8* seg_append(sSeg* pseg,U8* start,U64 size){
 
 extern U32 rel_flag;
 /* ------------------------------------------------------------- */
-void seg_rel_mark(sSeg* pseg,U32 pos,U32 kind){
+void sg_rel_mark(sSg* psg,U32 pos,U32 kind){
   if(rel_flag){
-    if( (pos<(U32)(U64)pseg->base) || (pos >= pseg->fill)){
+    if( (pos<(U32)(U64)psg) || (pos >= psg->fill)){
       printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
       exit(1);
     }
@@ -128,7 +121,7 @@ void seg_rel_mark(sSeg* pseg,U32 pos,U32 kind){
   }
 }
 #include "util.h"
-
+/*
 U32 cnt_refs(sSeg*pseg,void*target){
   seg_align(pseg,8);
   //  U8* relbase = pseg->prel;
@@ -153,6 +146,7 @@ U32 cnt_refs(sSeg*pseg,void*target){
   }
   return i;
 }
+*/
 /*
 U32 seg_reref(sSeg*pseg,U64 old,U64 new){
   seg_align(pseg,8);
@@ -188,13 +182,13 @@ U32 seg_reref(sSeg*pseg,U64 old,U64 new){
   return i;
 }
 */
-void seg_reref(sSeg*pseg,U32 old,U32 new){
+void sg_reref(sSg*psg,U32 old,U32 new){
   printf("%08X %08X %08X %08X \n",
-	 seg_pos(pseg),
-	 (U32)(U64)pseg->base,
+	 sg_pos(psg),
+	 (U32)(U64)psg,
 	 old,new);
-  bits_reref1(seg_pos(pseg),
-	     (U32)(U64)pseg->base,
+  bits_reref1(sg_pos(psg),
+	     (U32)(U64)psg,
 	     old,new);
   printf("returned\n");
 	 

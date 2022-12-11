@@ -6,12 +6,11 @@
 #include "elf.h"
 #include "elfdump.h"
 #include "util.h"
-#include "seg.h"
+#include "sg.h"
 #include "src.h"
 #include "sym.h"
-
-extern sSeg scode;
-extern sSeg sdata;
+extern sSg* psCode;
+extern sSg* psData;
 
 U32 ing_elf_resolve(sElf*pelf){
     U32 unresolved = elf_resolve_symbols(pelf,find_global);
@@ -24,7 +23,7 @@ U32 ing_elf_resolve(sElf*pelf){
    Also, set the section address in the ELF section header (for resolution)
    return: section address in segment.
 -----------------------------------------------------------------------------*/
-U32 ing_elf_sec(sElf*pelf,U32 isec,sSeg*pseg){
+U32 ing_elf_sec(sElf*pelf,U32 isec,sSg*pseg){
   Elf64_Shdr* shdr = pelf->shdr + isec;
   U32 size = shdr->sh_size;
   U8* src;
@@ -38,7 +37,7 @@ U32 ing_elf_sec(sElf*pelf,U32 isec,sSeg*pseg){
     exit(1);
   }
   // actually put it into the specified segment
-  U8* addr = seg_append(pseg,src,size);
+  U8* addr = sg_append(pseg,src,size);
   // set section address in ELF section image, for resolution
   shdr->sh_addr = (U64)addr;   
 #ifdef DEBUG
@@ -54,9 +53,9 @@ U32 ing_elf_sec(sElf*pelf,U32 isec,sSeg*pseg){
 -----------------------------------------------------------------------------*/
 U64 ing_elf_func(sElf*pelf){
   Elf64_Sym* psym = pelf->unique;
-  seg_align(&scode,8); // our alignment requirement
+  sg_align(psCode,8); // our alignment requirement
   U32 codesec = psym->st_shndx;
-  U32 addr = ing_elf_sec(pelf,codesec,&scode);
+  U32 addr = ing_elf_sec(pelf,codesec,psCode);
 
   // there maybe rodata
   U32 strsec = elf_find_section(pelf,".rodata.str1.1");
@@ -64,9 +63,9 @@ U64 ing_elf_func(sElf*pelf){
 #ifdef DEBUG
     printf("pkg_func_from_elf: found .rodata.str1.1\n");
 #endif
-    ing_elf_sec(pelf,strsec,&scode);
+    ing_elf_sec(pelf,strsec,psCode);
   }
-  U32 size = seg_pos(&scode) - addr;
+  U32 size = sg_pos(psCode) - addr;
   //return (size << 32) | faddr;
   U32 unresolved = elf_resolve_symbols(pelf,find_global);
   if(unresolved)
@@ -77,7 +76,7 @@ U64 ing_elf_func(sElf*pelf){
     #ifdef DEBUG
     printf("Code.Reference at: %08X, %d\n",p,kind);
     #endif
-    seg_rel_mark(&scode,p,kind);
+    sg_rel_mark(psCode,p,kind);
   }
   // codesec+1 may be its relocations... If not, no harm done.
   elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc);
@@ -98,10 +97,10 @@ return: symb of the ingested data.
 ----------------------------------------------------------------------------*/
 U64 ing_elf_data(sElf* pelf){
   Elf64_Sym* psym = pelf->unique;
-  seg_align(&sdata,8); // align data seg for new data object
+  sg_align(psData,8); // align data seg for new data object
   // First, ingest the main data object and keep its address.
   U32 sec = psym->st_shndx;
-  U32 addr = ing_elf_sec(pelf,sec,&sdata);
+  U32 addr = ing_elf_sec(pelf,sec,psData);
 #ifdef DEBUG
   printf("ing_elf_data: for %s\n",name);
 #endif 
@@ -114,7 +113,7 @@ U64 ing_elf_data(sElf* pelf){
       Elf64_Shdr* psec = pelf->shdr+refsec;
       if( ! psec->sh_addr) {
 	//	printf("Need section %d!\n",refsec);
-	U32 addr = ing_elf_sec(pelf,refsec,&sdata);
+	U32 addr = ing_elf_sec(pelf,refsec,psData);
 	psec->sh_addr = addr;
       }
     }
@@ -125,14 +124,14 @@ U64 ing_elf_data(sElf* pelf){
   U32 unresolved = elf_resolve_symbols(pelf,find_global);
   if(unresolved)
     return 0;
-  U32 size = seg_pos(&sdata) - addr; 
+  U32 size = sg_pos(psData) - addr; 
   // Now, process all relocations, fixing up the references, and setting
   // the bits in the data segment's rel table.
   void relproc(U32 p,U32 kind){
     #ifdef DEBUG
     printf("data.Reference at: %08X, %d\n",p,kind);
     #endif
-    seg_rel_mark(&sdata,p,kind);
+    sg_rel_mark(psData,p,kind);
   }
   elf_apply_rels(pelf,relproc);
 

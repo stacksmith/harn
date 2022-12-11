@@ -4,12 +4,14 @@
 #include <dlfcn.h>
 #include "global.h"
 #include "util.h"
-#include "seg.h"
+#include "sg.h"
 #include "sym.h"
 
-extern sSeg smeta;
-extern sSeg scode;
-extern sSeg sdata;
+extern sSg* psCode;
+extern sSg* psData;
+extern sSg* psMeta;
+
+
 extern sSym* srch_list;
 
 struct siSymb;
@@ -34,14 +36,14 @@ sSym* sym_new(char* name, U32 data, U32 size, U32 src,char* proto){
   U32 namelen = strlen(name);
   U32 protolen = proto ? strlen(proto) : 0;
   U32 octs = (SYM_NAME_OFF + namelen + protolen + 2 + 7) >> 3;
-  U8* bptr = seg_append(&smeta,0,octs*8);
+  U8* bptr = sg_append(psMeta,0,octs*8);
   U32 uptr = (U32)(U64)bptr;
   sSym* p = (sSym*)bptr;
   
-  seg_rel_mark(&smeta,uptr+0,3); // next pointer is a 32-bit pointer
-  seg_rel_mark(&smeta,uptr+8,3); // data pointer is a 32-bit pointer
+  sg_rel_mark(psMeta,uptr+0,3); // next pointer is a 32-bit pointer
+  sg_rel_mark(psMeta,uptr+8,3); // data pointer is a 32-bit pointer
 
-  seg_align(&smeta,8);
+  sg_align(psMeta,8);
   p->hash = string_hash(name);
   p->data = data;
   p->size = size;
@@ -53,7 +55,7 @@ sSym* sym_new(char* name, U32 data, U32 size, U32 src,char* proto){
   if(proto){
     strcpy(bptr+SYM_NAME_OFF+1+namelen, proto);
   }
-  seg_align(&smeta,8);
+  sg_align(psMeta,8);
   return p;
 }
 
@@ -62,16 +64,16 @@ void sym_wipe_last(sSym* sym){
   U32 addr = sym->data;
   U32 size = sym->size;
   if(IN_CODE_SEG(addr)){
-    scode.fill = addr; // drop the code segment, eliminate code
+    psCode->fill = addr; // drop the code segment, eliminate code
   } else {
-    sdata.fill = addr;
+    psData->fill = addr;
   }
   memset((U8*)(U64)addr,0,size); // clear it
   memset((U8*)(U64)(addr/8),0,(size+7)/8); // clear rel
 
-  smeta.fill = (U32)(U64)sym;  
+  psMeta->fill = (U32)(U64)sym;  
   memset(sym,0,bytes);
-  memset((U8*)(U64)(smeta.fill/8),0,sym->octs); // clear rel
+  memset((U8*)(U64)(psMeta->fill/8),0,sym->octs); // clear rel
 }
 
 char* sym_name(sSym* sym){
@@ -191,8 +193,8 @@ sSym* pk_from_libtxt(char* name,char*path){
   char* pc = buf;
   char* next;
   while((next = next_line(pc))){
-    seg_align(&scode,8);
-    U32 addr = (U32)(U64)seg_append(&scode,ljump,sizeof(ljump));
+    sg_align(psCode,8);
+    U32 addr = (U32)(U64)sg_append(psCode,ljump,sizeof(ljump));
     sSym* sy = sym_new(pc,addr,sizeof(ljump),0,0);
     pk_push_sym(pk,sy) ;
     pc = next;
