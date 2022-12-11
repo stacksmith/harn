@@ -9,6 +9,8 @@ harn - an interactive C environment.  (c) 2022 StackSmith
 ```
 Edit and compile functions (or data objects), one at a time; execute your own or any libc function from the command line...
 
+Status: early proof of concept; allows for command-line execution of functions; adding functions to the symbol table by editing and compiling; recompiling existing functions replaces older versions and relinks all references; save and load image...
+
 `harn` is an attempt to create a REPL-like environment for editing, recompiling, and relinking and executing individual functions and manipulating data objects, from inside a running process.  
 
 The system aims to enable interactive C code development à la Lisp or Forth, blending the coding, debugging, and testing into a single environment.
