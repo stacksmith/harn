@@ -4,12 +4,12 @@
 #include <dlfcn.h>
 #include "global.h"
 #include "util.h"
-#include "sg.h"
+#include "seg.h"
 #include "sym.h"
 
-extern sSg* psCode;
-extern sSg* psData;
-extern sSg* psMeta;
+extern sSeg* psCode;
+extern sSeg* psData;
+extern sSeg* psMeta;
 
 
 
@@ -36,14 +36,14 @@ sSym* sym_new(char* name, U32 data, U32 size, U32 src,char* proto){
   U32 namelen = strlen(name);
   U32 protolen = proto ? strlen(proto) : 0;
   U32 octs = (SYM_NAME_OFF + namelen + protolen + 2 + 7) >> 3;
-  U8* bptr = sg_append(psMeta,0,octs*8);
+  U8* bptr = seg_append(psMeta,0,octs*8);
   U32 uptr = (U32)(U64)bptr;
   sSym* p = (sSym*)bptr;
   
-  sg_rel_mark(psMeta,uptr+0,3); // next pointer is a 32-bit pointer
-  sg_rel_mark(psMeta,uptr+8,3); // data pointer is a 32-bit pointer
+  seg_rel_mark(psMeta,uptr+0,3); // next pointer is a 32-bit pointer
+  seg_rel_mark(psMeta,uptr+8,3); // data pointer is a 32-bit pointer
 
-  sg_align(psMeta,8);
+  seg_align(psMeta,8);
   p->hash = string_hash(name);
   p->data = data;
   p->size = size;
@@ -55,7 +55,7 @@ sSym* sym_new(char* name, U32 data, U32 size, U32 src,char* proto){
   if(proto){
     strcpy(bptr+SYM_NAME_OFF+1+namelen, proto);
   }
-  sg_align(psMeta,8);
+  seg_align(psMeta,8);
   return p;
 }
 
@@ -193,8 +193,8 @@ sSym* pk_from_libtxt(char* name,char*path){
   char* pc = buf;
   char* next;
   while((next = next_line(pc))){
-    sg_align(psCode,8);
-    U32 addr = (U32)(U64)sg_append(psCode,ljump,sizeof(ljump));
+    seg_align(psCode,8);
+    U32 addr = (U32)(U64)seg_append(psCode,ljump,sizeof(ljump));
     sSym* sy = sym_new(pc,addr,sizeof(ljump),0,0);
     pk_push_sym(pk,sy) ;
     pc = next;

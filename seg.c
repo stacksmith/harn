@@ -15,7 +15,7 @@
 
 #include "global.h"
 #include "asmutil.h"
-#include "sg.h"
+#include "seg.h"
 
 /* ==============================================================
 
@@ -29,16 +29,16 @@ A fillable area for code or data
   char name[8];
 } sSeg;
 */
-void sg_dump(sSg* psg){
+void seg_dump(sSeg* psg){
   printf("Segment %p %08x\n",psg, psg->fill);
 }
 /* -------------------------------------------------------------
    seg_alloc
 
 ---------------------------------------------------------------*/
-sSg* sg_alloc(U64 req_size, void* req_addr, U32 prot){
+sSeg* seg_alloc(U64 req_size, void* req_addr, U32 prot){
   // allocate data area
-  sSg* psg = (sSg*)mmap(req_addr, req_size, prot,
+  sSeg* psg = (sSeg*)mmap(req_addr, req_size, prot,
 			0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
 			0,0);
   if(MAP_FAILED == psg){
@@ -57,13 +57,13 @@ sSg* sg_alloc(U64 req_size, void* req_addr, U32 prot){
   psg->end =  (U32)(U64)psg + (U32)req_size;  
   return psg;
 }
-void sg_reset(sSg* psg){
+void seg_reset(sSeg* psg){
   psg->fill = (U32)(U64)psg + 8;
 }
 
-void sg_serialize(sSg* psg,FILE* f){
+void seg_serialize(sSeg* psg,FILE* f){
   // save data area
-  sg_align(psg,8);
+  seg_align(psg,8);
   U32 size = psg->fill - (U32)(U64)(psg);  // byte size of segment data
   size_t wr1 = fwrite(psg,1,size,f);
   U8* prel = (U8*)(((U64)psg)>>3);
@@ -72,7 +72,7 @@ void sg_serialize(sSg* psg,FILE* f){
   printf("wrote: %lx and %lx\n",wr1,wr2);
 }
 
-void sg_deserialize(sSg* psg,FILE*f){
+void seg_deserialize(sSeg* psg,FILE*f){
   fread(psg,1,8,f);
   U32 size = psg->fill - (U32)(U64)psg;
   printf("size %x\n",size);
@@ -81,14 +81,14 @@ void sg_deserialize(sSg* psg,FILE*f){
   size_t rd2 = fread (prel,1,size>>3,f);
   printf("read: %lx %lx\n",rd1+8,rd2);
 }
-U32 sg_pos(sSg* psg){
+U32 seg_pos(sSeg* psg){
   return psg->fill;
 }
 
-void sg_align(sSg*psg, U64 align){
+void seg_align(sSeg*psg, U64 align){
   int rem  = psg->fill % (U32)align;
   if(rem) {
-    sg_append(psg,0,align-rem);
+    seg_append(psg,0,align-rem);
     //    printf("Inserted pad of %ld bytes\n",align-rem);
   }  
 }
@@ -100,11 +100,11 @@ seg_append  Append a run of bytes to the segment
             start  address from which to copy.  
                    if 0, fill with 0 bytes.
 ---------------------------------------------------------------*/
-U8* sg_append(sSg* psg,U8* start,U64 size){
+U8* seg_append(sSeg* psg,U8* start,U64 size){
   U32 end = psg->fill + size;
   U8* dest = (U8*)(U64)psg->fill;
   if(end >= psg->end) {
-    sg_dump(psg);
+    seg_dump(psg);
     fprintf(stderr,"seg_append failed: out of space\n");
     exit(1);
   } else {
@@ -128,7 +128,7 @@ U8* sg_append(sSg* psg,U8* start,U64 size){
 
 
 /* ------------------------------------------------------------- */
-void sg_rel_mark(sSg* psg,U32 pos,U32 kind){
+void seg_rel_mark(sSeg* psg,U32 pos,U32 kind){
   if(REL_FLAG){
     if( (pos<(U32)(U64)psg) || (pos >= psg->fill)){
       printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
@@ -204,12 +204,12 @@ U32 seg_reref(sSeg*pseg,U64 old,U64 new){
   return i;
 }
 */
-void sg_reref(sSg*psg,U32 old,U32 new){
+void seg_reref(sSeg*psg,U32 old,U32 new){
   printf("%08X %08X %08X %08X \n",
-	 sg_pos(psg),
+	 seg_pos(psg),
 	 (U32)(U64)psg,
 	 old,new);
-  bits_reref1(sg_pos(psg),
+  bits_reref1(seg_pos(psg),
 	     (U32)(U64)psg,
 	     old,new);
   printf("returned\n");

@@ -14,7 +14,7 @@
 #include "util.h"
 #include "elf.h"
 #include "elfdump.h" 
-#include "sg.h"
+#include "seg.h"
 //#include "unit.h"
 //#include "system.h"
 //#include "pkg.h"
@@ -23,9 +23,9 @@
 #include "sym.h"
 
 
-sSg* psCode;
-sSg* psData;
-sSg* psMeta;
+sSeg* psCode;
+sSeg* psData;
+sSeg* psMeta;
 
 
 //sPkg* pkgs=0;
@@ -70,17 +70,17 @@ sSym* ing_elf(sElf* pelf);
 
 int main(int argc, char **argv){
 
-  psCode = sg_alloc(0x10000000,(void*)0x80000000,
+  psCode = seg_alloc(0x10000000,(void*)0x80000000,
 		    PROT_READ|PROT_WRITE|PROT_EXEC);
-  psData = sg_alloc(0x10000000,(void*)0x40000000,PROT_READ|PROT_WRITE);
-  psMeta = sg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
+  psData = seg_alloc(0x10000000,(void*)0x40000000,PROT_READ|PROT_WRITE);
+  psMeta = seg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
 
   src_init();      // open source files and setup buffers
   
   {
-    sg_reset(psCode);
-    sg_reset(psData);
-    sg_reset(psMeta);
+    seg_reset(psCode);
+    seg_reset(psData);
+    seg_reset(psMeta);
     SRCH_LIST = 0;
     psMeta->fill+=8; // SRCH_LIST at +8, 4 bytes
     REL_FLAG = 1;    // REL_FLAG  at +C, 4 bytes

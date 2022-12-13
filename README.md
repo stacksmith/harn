@@ -11,16 +11,22 @@ Edit and compile functions (or data objects), one at a time; execute your own or
 
 Status: early proof of concept; allows for command-line execution of functions; adding functions to the symbol table by editing and compiling; recompiling existing functions replaces older versions and relinks all references; save and load image...
 
+### Project goals:
 `harn` is an attempt to create a REPL-like environment for editing, recompiling, and relinking and executing individual functions and manipulating data objects, from inside a running process.  
 
 The system aims to enable interactive C code development à la Lisp or Forth, blending the coding, debugging, and testing into a single environment.
+
+It is a non-goal to create a full-scale real linker, preserve C semantics, or comply with any standards or acceptable norms. `harn` is built to operate on a subset of C compiled in a very specific way.
+
+### Approach:
 
 `harn` maintains the bookkeeping data and manages the `coding-time` referential integrity and garbage collection, keeping all code hot and functions individually accessible. 
 
 The approach tried here is to keep linked and relocated code in an image-like environment complete with sources and allow incremental re-compilation of functions by harnessing gcc.  The system maintains enough individual state (prototypes, headers, etc) to concoct function-level compilation units and raids the resultant ELF object file.
 
+The system futher maintains relocation metadata of the ingested artifacts, allowing it to move artifacts around, replace artifacts on demand, and delete unreferenced artifacts.  The metadata allows us to further reason about artifacts and their interaction with each other.
 
-## Technical Limitations
+### Technical Limitations
 
 C is not an ideal language for this kind of interaction, and some hard issues are being resolved.  It is a goal of this project to use a reasonable subset of C and an unmodified gcc to produce the artifacts.
 

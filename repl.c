@@ -5,7 +5,7 @@
 #include "global.h"
 #include "util.h"
 #include "elf.h"
-#include "sg.h"
+#include "seg.h"
 //#include "pkg.h"
 //#include "pkgs.h"
 #include "src.h"
@@ -14,9 +14,9 @@
 sSym* ing_elf(sElf* pelf);
 U64 ing_elf_func(sElf* pelf);
 
-extern sSg* psCode;
-extern sSg* psData;
-extern sSg* psMeta;
+extern sSeg* psCode;
+extern sSeg* psData;
+extern sSeg* psMeta;
 
 
 typedef void (*fpreplfun)(char*p);
@@ -99,8 +99,8 @@ sSym* compile(void){
       // first, make ssure it's in the same seg.
       if( (SEG_BITS(oldsym->data)) == (SEG_BITS(sym->data))){
 	// yes, both are in the same seg.  Fix old refs
-	sg_reref(psCode,oldsym->data,sym->data); // in code seg
-	sg_reref(psData,oldsym->data,sym->data); // in data seg
+	seg_reref(psCode,oldsym->data,sym->data); // in code seg
+	seg_reref(psData,oldsym->data,sym->data); // in data seg
       } else { // No, different segs.  Nothing good can come of it.
 	fprintf(stderr,"New one is in a different seg! Abandoning!\n");
 	
@@ -151,9 +151,9 @@ char* cmd_ws(char*p){
 }
 //if(0xC3589F16 == hash){
 void repl_sys(char* p){
-  sg_dump(psCode);
-  sg_dump(psData);
-  sg_dump(psMeta);
+  seg_dump(psCode);
+  seg_dump(psData);
+  seg_dump(psMeta);
   //pkgs_list();
 }
 
@@ -225,7 +225,7 @@ void repl_expr(char*p){
   if(addr){
     fpreplfun entry = (fpreplfun)(U64)(addr);
     (*entry)(p);
-    memset(entry,0,sg_pos(psCode)-addr);
+    memset(entry,0,seg_pos(psCode)-addr);
     psCode->fill = addr;
   }
 }
@@ -238,17 +238,17 @@ void repl_dump(char*p){
 }
 void repl_save(char*p){
   FILE* f = fopen("image/image.dat","w");
-  sg_serialize(psData,f);
-  sg_serialize(psCode,f);
-  sg_serialize(psMeta,f);
+  seg_serialize(psData,f);
+  seg_serialize(psCode,f);
+  seg_serialize(psMeta,f);
   fclose(f);
 }
 
 void repl_load(char*p){
   FILE* f = fopen("image/image.dat","r");
-  sg_deserialize(psData,f);
-  sg_deserialize(psCode,f);
-  sg_deserialize(psMeta,f);
+  seg_deserialize(psData,f);
+  seg_deserialize(psCode,f);
+  seg_deserialize(psMeta,f);
   fclose(f);
   //TODO: automate search for libraries to rebind upon load
   pk_rebind( (sSym*)(U64)(((sSym*)(U64)SRCH_LIST)->data),"libc.so.6");
