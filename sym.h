@@ -22,6 +22,7 @@ typedef struct sSym {
 #define SYM_NAME_OFF 22
 #define SYM_NAME(sym)  (((char*)(sym))+SYM_NAME_OFF)
 #define U32_SYM(usym) ((sSym*)(U64)(usym))
+#define PTR_U32(it) ((U32)(U64)(it))
 // name
 // 0
 // prototype
@@ -33,3 +34,5 @@ sSym* sym_new(char* name, U32 data, U32 size, U32 src,char* proto);
 char* sym_proto(sSym* sym);
 void sym_dump1(sSym* sym);
 sSym* sym_from_siSymb(void* symb);
+
+U32 sym_delete(sSym* sym);

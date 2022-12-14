@@ -6,7 +6,7 @@
 #include "util.h"
 #include "seg.h"
 #include "sym.h"
-
+#include "asmutil.h"
 extern sSeg* psCode;
 extern sSeg* psData;
 extern sSeg* psMeta;
@@ -56,6 +56,33 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   return p;
 }
 
+U32 sym_delete(sSym* prev){ 
+  printf("2. prev: %p, next %08x\n",prev,prev->next);
+  sSym* sym = U32_SYM(prev->next);  //symbol we are actually deleting
+  printf("3. prev: %p, next %08x\n",prev,prev->next);
+
+  prev->next = sym->next; //unlink
+
+  U32 size = sym->octs << 3; //size of the hole!
+  U32 end = PTR_U32(sym)+size;
+
+  printf("size %08x; end %08x\n",size,end);
+
+  printf("sym_delete(%08x,%08x,%08x,%08x)\n",
+	 PTR_U32(sym), end, 0, psMeta->fill-end);
+  
+  U32 ret = bits_hole( PTR_U32(sym), end, 0, psMeta->fill - end);
+  printf("sym_delete got %08X\n",ret);
+  //  psMeta->fill -= ret;
+  
+  printf("bits_fixdown(%08x,%08x,%08x,%08x)\n"
+	 , psMeta->fill,PTR_U32(psMeta), PTR_U32(sym),size);
+  
+  ret = bits_fixdown(psMeta->fill,PTR_U32(psMeta), PTR_U32(sym),size);
+  printf("bits_fixdown on meta got %08X\n",ret);
+  hd( U32_SYM(0xc0001d28),4);
+  return size;
+}
 
 /*
 void sym_wipe_last(sSym* sym){

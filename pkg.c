@@ -39,13 +39,11 @@ void pk_push_sym(sSym* pk, sSym* sym){
   pk->next = (U32)(U64)sym;
 }
 
-sSym* pk_find_prev(sSym* pk, U32 hash){
+sSym* pk_find_prev_hash(sSym* pk, U32 hash){
   sSym* prev = pk;
   sSym* s    = U32_SYM(pk->next);
   while(s){
     if(hash == s->hash) {
-      prev->next = s->next;
-      s->next = 0;    // clear sym's next
       return prev;
     }
     prev = s;
@@ -89,6 +87,21 @@ sSym* pks_find_hash(sSym*pk, U32 hash,sSym**in){
       return ret;
     }
   } while ((pk = U32_SYM(pk->art)));
+  if(in)
+    *in = 0;
+  return 0;
+}
+
+sSym* pks_find_prev_hash(sSym*pk, U32 hash,sSym**in){
+  sSym* ret;
+  do {
+    if((ret = pk_find_prev_hash(pk,hash))){
+      if(in)
+	*in = pk;
+      return ret;
+    }
+  } while ((pk = U32_SYM(pk->art)));
+  
   if(in)
     *in = 0;
   return 0;

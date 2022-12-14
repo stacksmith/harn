@@ -13,7 +13,7 @@
 	global bits_next_ref	;
 	global bits_reref	; replace old ref to new ref
 	global bits_fixdown     ; replace refs above hole down by ecx
-
+	global bits_hole	; delete a piece of a segment and rel
 ;;; edi=addr
 bit_set2:	
 	xor	eax,eax
@@ -186,39 +186,51 @@ bits_reref:
 ;;; edi = addr of top+1,   	;work pointer
 ;;; esi = addr of bottom        ;limit 
 ;;; edx = hole
-;;; ecx = size	 
+;;; ecx = size	 (fixup amout)
 bits_fixdown:
 	 push	rbx             ;ebx = count of fixups
-	 xor	ebx,ebx
+	xor	ebx,ebx
 	inc     edi		;we will immediately decrement twice...
 .loop0:	xor	eax,eax		;eax = base(0);
 .loop1:	dec     edi				
 .loop:	dec	edi		;scan bits down, until
 	cmp	edi,esi        	;the very bottom
-	je      .done          	;if offset is 0, exit with 0
+	jb      .done          	;if offset is 0, exit with 0
 	bt	[rax],rdi       ;testing bits
 	jnc	.loop           ;skipping 0 bits
 
  	;; got a 0-1 transition. !  now count
-	dec     edi
+	dec     edi             ;second bit below top 1
 	bt	[rax],rdi
 	jc	.notone
-	;a single bit was set.  Off32.
+;;; Relative 32-bit offset is tricky: we need to check if the reference
+;;; crosses the hole.  Refs that are local to either side of the hole are
+;;; unchanged..
 .one:	inc    	edi		;point at first 1 bit again
+	cmp     edi,edx         ;is the reference site below or above?
 	mov	eax,[rdi]	;load 32-bit offset
 	lea	eax,[rax+rdi+4] ;convert to abs32
-	cmp	eax,edx
-	jb	.loop0		;< hole? skip fixup
-	sub	[rdi],ecx	;fixup
+	jb      .below
+.above:				;reference site is above...
+	cmp	eax,edx		;is target below?
+	jae	.loop0		;no, it's above, so no fixup here.
+	add	[rdi],ecx	;fixup: make neg offset less negative!
 	dec	edi            	;
-	 inc	ebx
+ 	inc	ebx
+	jmp	.loop0
+.below:				;reference site is below hole;
+	cmp	eax,edx         ;is target above?
+	jb	.loop0		;no, it's below too, so no fixup.
+	sub	[rdi],ecx	;fixup: make pos offset less positive.
+	dec	edi            	;
+ 	inc	ebx
 	jmp	.loop0
 .done:
 	mov	eax,ebx 	;return number of fixes
 	pop	rbx
 	ret
 	
-.notone: dec	edi
+.notone: dec	edi             ;point at third-down bit
 	bt	[rax],rdi	
 	jc      .three
 	
@@ -227,14 +239,56 @@ bits_fixdown:
 	cmp	[rdi],rdx       ;pointing above hole?
 	jb	.loop1		;below hole, skip fixup
 	sub	[rdi],rcx       ;fixup
-	 inc	 ebx
+ 	inc	 ebx		;
 	jmp	.loop1
 	
-.three:;; 32-bit absolute; assuming next bit is 0; pointing at it.
+.three:;; 32-bit absolute       ;pointing at third 1 bit,
+	;;  	dec ebx			;
+	;; 	jnz .q
+	;; 	mov eax,	edi
+	;; 	pop rbx
+	;; 	ret
+	;;  	.q
+	
 	cmp	[rdi],edx
-	jb	.loop1
-	cmp	[rdi],ecx
-	 inc    ebx
-	jmp	.loop1
+	jc	.loop0          ;below hole, skip fixup
+	sub     [rdi],ecx
+	inc    ebx
+	jmp	.loop0 
 
 
+;;; edi = start of hole
+;;; esi = end of hole
+;;; edx = ?
+;;; ecx = byte count from end of hole to top of segment
+bits_hole:	
+	push	rdi
+	push	rsi
+	push	rcx
+
+	rep 	movsb		;edi points to new top; esi, old top
+	mov	ecx,esi
+	sub	ecx,edi	        ;ecx = size of hole
+	mov     edx,ecx         ;edx = size of hole, keep it around 
+	xor	eax,eax         ;fill top with 0s
+	rep     stosb
+;;; Now, process rel
+	pop	rcx
+	pop	rsi
+	pop	rdi
+
+	shr	edi,3
+	shr	esi,3
+	shr	ecx,3
+
+
+	rep 	movsb		;edi points at new reltop, esi, old
+
+
+	mov	ecx,edx         ;hole size
+	shr	ecx,3      
+	xor	eax,eax         ;fill top with 0s
+	rep     stosb
+.x:
+	mov	eax,edx         ;return hole size
+	ret

@@ -70,11 +70,12 @@ void repl_loop();
 sSym* ing_elf(sElf* pelf);
 
 int main(int argc, char **argv){
-
+  //meta must be first, otherwise REL_FLAG will crap out
+  psMeta = seg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
   psCode = seg_alloc(0x10000000,(void*)0x80000000,
 		    PROT_READ|PROT_WRITE|PROT_EXEC);
   psData = seg_alloc(0x10000000,(void*)0x40000000,PROT_READ|PROT_WRITE);
-  psMeta = seg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
+
 
   src_init();      // open source files and setup buffers
   
@@ -82,9 +83,12 @@ int main(int argc, char **argv){
     seg_reset(psCode);
     seg_reset(psData);
     seg_reset(psMeta);
-    SRCH_LIST = 0;
     psMeta->fill+=8; // SRCH_LIST at +8, 4 bytes
     REL_FLAG = 1;    // REL_FLAG  at +C, 4 bytes
+    seg_rel_mark(psMeta, psMeta->fill-16 ,3); // mark the fill 
+    SRCH_LIST = 0;
+    seg_rel_mark(psMeta, psMeta->fill-8 ,3); // mark srch_list
+
 
     sSym* pk = pk_from_libtxt("libc","libc.txt");
     pk_rebind(pk,"libc.so.6");
@@ -92,7 +96,6 @@ int main(int argc, char **argv){
     
     sSym* pku = pk_new("user");
     srch_list_push(pku);
-    
   }
   //sElf* pelf = elf_load("sys/test.o"); 
   ///sSym* sy = ing_elf(pelf);

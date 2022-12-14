@@ -54,11 +54,14 @@ sSeg* seg_alloc(U64 req_size, void* req_addr, U32 prot){
     fprintf(stderr,"Error allocating rel table of %p seg: %d\n",req_addr,errno);
     exit(1);
   }
-  psg->end =  (U32)(U64)psg + (U32)req_size;  
+  psg->end =  (U32)(U64)psg + (U32)req_size;
+
+
   return psg;
 }
 void seg_reset(sSeg* psg){
   psg->fill = (U32)(U64)psg + 8;
+  seg_rel_mark(psg, (U32)(U64)psg ,3); // mark the fill as a 32-bit ptr
 }
 
 void seg_serialize(sSeg* psg,FILE* f){
@@ -139,7 +142,7 @@ void seg_rel_mark(sSeg* psg,U32 pos,U32 kind){
       printf("seg_rel_mark: kind %d is out of bounds\n",kind);
       exit(1);
     }
-    //  printf("setting bits\n");
+
     bits_set(pos, kind);
   }
 }

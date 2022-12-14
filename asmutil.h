@@ -9,3 +9,4 @@ extern U64 bits_next_ref(U32 top,U32 bottom);
 
 extern U32 bits_reref(U32 top,U32 bottom,U32 old,U32 new);
 extern U32 bits_fixdown(U32 top,U32 bottom,U32 hole,U32 size);
+extern U32 bits_hole(U32 start,U32 end,U32 unused,U32 top);

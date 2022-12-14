@@ -25,11 +25,11 @@ segs_reref          replace all references to 'from' with 'to'.
 extern sSeg* psCode;
 extern sSeg* psData;
 extern sSeg* psMeta;
-
+// Reref data and code segments.  Leave the metadata alone.
 U32 segs_reref(U32 old, U32 new){
   U32 ret = 0;
   ret += seg_reref(psCode, old, new); // in code seg
   ret += seg_reref(psData, old, new); // in data seg
-  ret += seg_reref(psMeta, old, new); // in meta seg
+  //  ret += seg_reref(psMeta, old, new); // in meta seg
   return ret;
 }

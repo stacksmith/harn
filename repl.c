@@ -91,35 +91,59 @@ to the pkg).
 * remove old artifact from its segment. fixup code and data.
 ----------------------------------------------------------------------------*/
 
-void replace_old_symbol(sSym* old, sSym* new){
-  
-  U32 fixes = segs_reref(old->art, new->art);
-  printf("%d fixups\n",fixes);
+void new_symbol(sSym* new){
+      // do we already have a symbol with same name?  Hold onto it.
+  sSym* pkg;
+  sSym* prev = pks_find_prev_hash((sSym*)(U64)SRCH_LIST,new->hash,&pkg);
+  if(prev)
+    printf("new_symbol: prev is %p\n",prev);
+  // Now that the new object is in our segment, is there an 
+  if(prev) { // older version we are replacing?
+    printf("old version exists\n");
+    sSym* old = (sSym*)(U64)prev->next;
+    printf("prev: %p, old: %p\n",prev,old);
+    // first, make ssure it's in the same seg.
+    if( (SEG_BITS(old->art)) == (SEG_BITS(new->art))){
+      //	// yes, both are in the same seg.  Fix old refs
+      if(pkg == (sSym*)(U64)SRCH_LIST){
+	// rereference data and code segments
+	U32 fixes = segs_reref(old->art, new->art);
+	printf("%d fixups\n",fixes);
+	// now remove the symbol in metadata
+	printf("1. prev: %p, next %08x\n",prev,prev->next);
+	U32 holesize = sym_delete(prev);
+	// shit is different places now!
+	new = U32_SYM( PTR_U32(new) - holesize);
+	pk_push_sym(U32_SYM(SRCH_LIST),new);
+      } else {
+	printf("Old version is in %s, new in %s; abandoning\n",
+	       SYM_NAME(pkg), SYM_NAME((sSym*)(U64)SRCH_LIST));
+	//TODO: kill segment!
+      }
+    } else { // No, different segs.  Nothing good can come of it.
+      fprintf(stderr,"New one is in a different seg! Abandoning!\n");
+      //	    sym = pkg_drop_symb(pkgs); // drop new object from topmost pkg
+    }
+  } else {// else a new symbol, no problem
+    printf("pushing symbol\n");
+    pk_push_sym((sSym*)(U64)SRCH_LIST,new);
+  }
 }
+
 sSym* compile(void){
   sSym* sym=0;
   sElf* pelf = rebuild("unit",0);
+  if(!pelf){
+    printf("build aborted\n");
+    return 0;
+  }
   // load the entire ELF trainwreck
   sym = ing_elf(pelf); 
   if(sym){ // OK, this means we are done with ingestion.
     printf("Ingested %s: %s %d bytes\n",
 	   SYM_NAME(sym),sym_proto(sym),sym->size);
-    // do we already have a symbol with same name?  Hold onto it.
-    sSym* oldsym = pks_find_name((sSym*)(U64)SRCH_LIST,SYM_NAME(sym),0);
-    
-    // Now that the new object is in our segment, is there an 
-    if(oldsym) { // older version we are replacing?
-      printf("old version exists\n");
-      // first, make ssure it's in the same seg.
-      if( (SEG_BITS(oldsym->art)) == (SEG_BITS(sym->art))){
-	//	// yes, both are in the same seg.  Fix old refs
-	replace_old_symbol(oldsym,sym);
-      } else { // No, different segs.  Nothing good can come of it.
-	fprintf(stderr,"New one is in a different seg! Abandoning!\n");
-	//	    sym = pkg_drop_symb(pkgs); // drop new object from topmost pkg
-      }
-    } // else a new symbol, no problem
-    pk_push_sym((sSym*)(U64)SRCH_LIST, sym);
+    new_symbol(sym);
+
   } else {
     printf("ELF not ingested due to unresolved ELF symbols.\n");
   }
