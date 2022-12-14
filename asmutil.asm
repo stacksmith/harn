@@ -12,7 +12,7 @@
 	global bits_cnt
 	global bits_next_ref	;
 	global bits_reref
-	global bits_reref1	
+
 ;;; edi=addr
 bit_set2:	
 	xor	eax,eax
@@ -84,7 +84,8 @@ bits_next_ref:
 ;;; esi = addr of bottom
 ;;; edx = old
 ;;; ecx = new
-;;; return: high=cnt low=bits at reference
+;;;
+%if 0
 bits_reref:
 
 	push	rbx
@@ -120,15 +121,20 @@ bits_reref:
 
 .done:	pop	rbx
 	ret
+%endif
 
 
-
-	
-bits_reref1:
+;;; edi = addr of top+1,   	;work pointer
+;;; esi = addr of bottom        ;limit 
+;;; edx = old
+;;; ecx = new	 
+bits_reref:
+	 push	rbx             ;ebx = count of fixups
+	 xor	ebx,ebx
 	sub	rcx,rdx         ;compute fixup difference, S64
-	inc     edi	
+	inc     edi		;we will immediately decrement twice...
 .loop0:	xor	eax,eax		;eax = base(0);
-.loop1:	dec     edi			;
+.loop1:	dec     edi				
 .loop:	dec	edi		;scan bits down, until
 	cmp	edi,esi        	;the very bottom
 	je      .done          	;if offset is 0, exit with 0
@@ -147,8 +153,12 @@ bits_reref1:
 	jne	.loop0		;go back to loop; skip this 1 and prev 0
 	add	[rdi],ecx	;fixup
 	dec	edi            	;
+	 inc	ebx
 	jmp	.loop0
-.done:	ret
+.done:
+	mov	eax,ebx 	;return number of fixes
+	pop	rbx
+	ret
 	
 .notone: dec	edi
 	bt	[rax],rdi	
@@ -159,13 +169,14 @@ bits_reref1:
 	cmp	[rdi],rdx       ;pointing at old?
 	jne	.loop1		;no match, go back to loop (rax is 0);
 	add	[rdi],rcx       ;fixup
+	 inc	 ebx
 	jmp	.loop1
-
 	
 .three:;; 32-bit absolute; assuming next bit is 0; pointing at it.
 	cmp	[rdi],edx
 	jne	.loop1
 	add	[rdi],ecx
+	 inc    ebx
 	jmp	.loop1
 
 

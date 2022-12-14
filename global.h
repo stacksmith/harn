@@ -17,6 +17,8 @@ typedef struct sDataSize {
 // a resolver function to lookup symbol addresses
 typedef U64 (*pfresolver)(char* name);
 
+#define PTR(type,val) ( (type)(U64)(val) )
+#define X32(val) ( (U32)(U64)(val) )
 /*----------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------*/

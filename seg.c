@@ -71,7 +71,8 @@ void seg_serialize(sSeg* psg,FILE* f){
   size_t wr2 = fwrite(prel,1,size>>3,f);
   printf("wrote: %lx and %lx\n",wr1,wr2);
 }
-
+// TODO: should wipe rel first; otherwise, deserializing a shorter segment
+// than current will leave old garbage.
 void seg_deserialize(sSeg* psg,FILE*f){
   fread(psg,1,8,f);
   U32 size = psg->fill - (U32)(U64)psg;
@@ -204,15 +205,21 @@ U32 seg_reref(sSeg*pseg,U64 old,U64 new){
   return i;
 }
 */
-void seg_reref(sSeg*psg,U32 old,U32 new){
+U32 seg_reref(sSeg*psg,U32 old,U32 new){
   printf("%08X %08X %08X %08X \n",
 	 seg_pos(psg),
-	 (U32)(U64)psg,
+	 X32(psg),
 	 old,new);
-  bits_reref1(seg_pos(psg),
-	     (U32)(U64)psg,
-	     old,new);
-  printf("returned\n");
-	 
+  //                top           bottom 
+  return bits_reref(seg_pos(psg), X32(psg), old, new);	 
+}
+/*----------------------------------------------------------------------------
+seg_del             Delete a portion of a segment
+----------------------------------------------------------------------------*/
+
+void seg_del(sSeg*psg,U32 start,U32 end){
+  U32 bytes = psg->end - end;
+  memmove(PTR(void*,start), PTR(void*,end), bytes);
+  memmove(PTR(void*,start>>3), PTR(void*,end>>3), bytes>>3); 
 }
   

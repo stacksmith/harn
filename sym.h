@@ -37,7 +37,7 @@ sSym* sym_from_siSymb(void* symb);
 void pk_dump(sSym* pk);
 sSym* pk_new(char*name);
 void pk_push_sym(sSym* pkg, sSym* sym);
-void pk_wipe_last_sym(sSym* pkg);
+//void pk_wipe_last_sym(sSym* pkg);
 sSym* pk_find_hash(sSym* pk,U32 hash);
 sSym* pk_find_name(sSym*pk, char*name);
 

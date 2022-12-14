@@ -6,6 +6,7 @@
 #include "util.h"
 #include "elf.h"
 #include "seg.h"
+#include "segs.h"
 //#include "pkg.h"
 //#include "pkgs.h"
 #include "src.h"
@@ -81,7 +82,19 @@ sElf* rebuild(char* name,U32 need_function){
   }
   return pelf;
 }
+/*----------------------------------------------------------------------------
+replace-old-symbol
 
+We just compiled something and generated a new symbol (but haven't attached it
+to the pkg).
+* Remove old sym from meta segment.  GC the hole, fixing up only meta seg!
+* remove old artifact from its segment. fixup code and data.
+----------------------------------------------------------------------------*/
+
+void replace_old_symbol(sSym* old, sSym* new){
+  U32 fixes = segs_reref(old->data, new->data);
+  printf("%d fixups\n",fixes);
+}
 sSym* compile(void){
   sSym* sym=0;
   sElf* pelf = rebuild("unit",0);
@@ -98,12 +111,10 @@ sSym* compile(void){
       printf("old version exists\n");
       // first, make ssure it's in the same seg.
       if( (SEG_BITS(oldsym->data)) == (SEG_BITS(sym->data))){
-	// yes, both are in the same seg.  Fix old refs
-	seg_reref(psCode,oldsym->data,sym->data); // in code seg
-	seg_reref(psData,oldsym->data,sym->data); // in data seg
+	//	// yes, both are in the same seg.  Fix old refs
+	replace_old_symbol(oldsym,sym);
       } else { // No, different segs.  Nothing good can come of it.
 	fprintf(stderr,"New one is in a different seg! Abandoning!\n");
-	
 	//	    sym = pkg_drop_symb(pkgs); // drop new object from topmost pkg
       }
     } // else a new symbol, no problem

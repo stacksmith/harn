@@ -32,4 +32,4 @@ U8*  seg_append(sSeg* psg,U8* start,U64 size);
 void seg_rel_mark(sSeg*psg,U32 pos,U32 kind);
 
 
-void seg_reref(sSeg*psg,U32 old,U32 new);
+U32 seg_reref(sSeg*psg,U32 old,U32 new);

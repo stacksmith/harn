@@ -58,7 +58,7 @@ sSym* sym_new(char* name, U32 data, U32 size, U32 src,char* proto){
   seg_align(psMeta,8);
   return p;
 }
-
+/*
 void sym_wipe_last(sSym* sym){
   U32 bytes = sym->octs * 8;
   U32 addr = sym->data;
@@ -75,7 +75,7 @@ void sym_wipe_last(sSym* sym){
   memset(sym,0,bytes);
   memset((U8*)(U64)(psMeta->fill/8),0,sym->octs); // clear rel
 }
-
+*/
 char* sym_name(sSym* sym){
   return ((char*)sym)+SYM_NAME_OFF;
 }
@@ -108,13 +108,13 @@ void pk_push_sym(sSym* pk, sSym* sym){
   pk->next = (U32)(U64)sym;
 
 }
-
+/*
 void pk_wipe_last_sym(sSym* pk){
   sSym* ret = U32_SYM(pk->next);
   pk->next = ret->next;
   sym_wipe_last(ret);
-  
 }
+*/
 sSym* pk_find_hash(sSym* pk,U32 hash){
   sSym*s = U32_SYM(pk->next);  //skip pk, next is it
   while(s){
