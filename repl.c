@@ -35,7 +35,7 @@ void exec_repl_sym(sSym* sym,char*p){
 }
 
 void run_repl_fun(U32 hash,char*p){
-  sSym* sym = pks_find_hash((sSym*)(U64)SRCH_LIST,hash);
+  sSym* sym = pks_find_hash((sSym*)(U64)SRCH_LIST,hash,0);
   if(sym){  //
     exec_repl_sym(sym,p);
   } else {
@@ -105,7 +105,7 @@ sSym* compile(void){
     printf("Ingested %s: %s %d bytes\n",
 	   SYM_NAME(sym),sym_proto(sym),sym->size);
     // do we already have a symbol with same name?  Hold onto it.
-    sSym* oldsym = pks_find_name((sSym*)(U64)SRCH_LIST,SYM_NAME(sym));
+    sSym* oldsym = pks_find_name((sSym*)(U64)SRCH_LIST,SYM_NAME(sym),0);
     
     // Now that the new object is in our segment, is there an 
     if(oldsym) { // older version we are replacing?
@@ -171,7 +171,7 @@ void repl_sys(char* p){
 
 void repl_list(char* p){
   U32 hash = cmd_hash(&p);
-  sSym* sym = pks_find_hash((sSym*)(U64)SRCH_LIST,hash);
+  sSym* sym = pks_find_hash((sSym*)(U64)SRCH_LIST,hash,0);
   if(sym){
     src_to_file(sym->src,stdout); //todo: src length...
   }
@@ -267,7 +267,7 @@ void repl_load(char*p){
   //pk_rebind( ((sSym*)(U64)SRCH_LIST),"libc.so.6");
 }
 void repl_edit(char*p){
-  sSym* sym = pks_find_name((sSym*)(U64)SRCH_LIST,p);
+  sSym* sym = pks_find_name((sSym*)(U64)SRCH_LIST,p,0);
   FILE*f = fopen("sys/body.c","w");
   if(sym){
     src_to_file(sym->src,f);

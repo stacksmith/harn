@@ -11,7 +11,8 @@
 	global bit_test
 	global bits_cnt
 	global bits_next_ref	;
-	global bits_reref
+	global bits_reref	; replace old ref to new ref
+	global bits_fixdown     ; replace refs above hole down by ecx
 
 ;;; edi=addr
 bit_set2:	
@@ -176,6 +177,63 @@ bits_reref:
 	cmp	[rdi],edx
 	jne	.loop1
 	add	[rdi],ecx
+	 inc    ebx
+	jmp	.loop1
+
+;;; FIXDOWN: upon deletion, we create a hole at edx, of ecx bytes.
+;;; once the hole is compacted, we need to drop all references to above
+;;; the hole by ecx...
+;;; edi = addr of top+1,   	;work pointer
+;;; esi = addr of bottom        ;limit 
+;;; edx = hole
+;;; ecx = size	 
+bits_fixdown:
+	 push	rbx             ;ebx = count of fixups
+	 xor	ebx,ebx
+	inc     edi		;we will immediately decrement twice...
+.loop0:	xor	eax,eax		;eax = base(0);
+.loop1:	dec     edi				
+.loop:	dec	edi		;scan bits down, until
+	cmp	edi,esi        	;the very bottom
+	je      .done          	;if offset is 0, exit with 0
+	bt	[rax],rdi       ;testing bits
+	jnc	.loop           ;skipping 0 bits
+
+ 	;; got a 0-1 transition. !  now count
+	dec     edi
+	bt	[rax],rdi
+	jc	.notone
+	;a single bit was set.  Off32.
+.one:	inc    	edi		;point at first 1 bit again
+	mov	eax,[rdi]	;load 32-bit offset
+	lea	eax,[rax+rdi+4] ;convert to abs32
+	cmp	eax,edx
+	jb	.loop0		;< hole? skip fixup
+	sub	[rdi],ecx	;fixup
+	dec	edi            	;
+	 inc	ebx
+	jmp	.loop0
+.done:
+	mov	eax,ebx 	;return number of fixes
+	pop	rbx
+	ret
+	
+.notone: dec	edi
+	bt	[rax],rdi	
+	jc      .three
+	
+.two:	;; 64-bit relocation; edi = address  edx = old
+	inc	edi
+	cmp	[rdi],rdx       ;pointing above hole?
+	jb	.loop1		;below hole, skip fixup
+	sub	[rdi],rcx       ;fixup
+	 inc	 ebx
+	jmp	.loop1
+	
+.three:;; 32-bit absolute; assuming next bit is 0; pointing at it.
+	cmp	[rdi],edx
+	jb	.loop1
+	cmp	[rdi],ecx
 	 inc    ebx
 	jmp	.loop1
 
