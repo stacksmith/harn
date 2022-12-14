@@ -171,9 +171,14 @@ void repl_sys(char* p){
 
 void repl_list(char* p){
   U32 hash = cmd_hash(&p);
-  sSym* sym = pks_find_hash((sSym*)(U64)SRCH_LIST,hash,0);
+  sSym* pkg;
+  sSym* sym = pks_find_hash((sSym*)(U64)SRCH_LIST,hash,&pkg);
   if(sym){
+    puts("-------------------------------------------------------------");
+    printf("In package: %s\n",SYM_NAME(pkg));
+    puts("-------------------------------------------------------------");
     src_to_file(sym->src,stdout); //todo: src length...
+    puts("-------------------------------------------------------------");
   }
 }
 

@@ -53,13 +53,6 @@ sSym* pk_find_prev(sSym* pk, U32 hash){
   }
   return s;
 }
-/*
-void pk_wipe_last_sym(sSym* pk){
-  sSym* ret = U32_SYM(pk->next);
-  pk->next = ret->next;
-  sym_wipe_last(ret);
-}
-*/
 sSym* pk_find_hash(sSym* pk,U32 hash){
   sSym*s = U32_SYM(pk->next);  //skip pk, next is it
   while(s){
@@ -69,6 +62,7 @@ sSym* pk_find_hash(sSym* pk,U32 hash){
   }
   return s;
 }
+
 void pk_dump_protos(sSym* pk,FILE* f){
   sSym*s = U32_SYM(pk->next);  //skip pk, next is it
   char* proto;
@@ -103,6 +97,7 @@ sSym* pks_find_hash(sSym*pk, U32 hash,sSym**in){
 sSym* pks_find_name(sSym*pk, char*name,sSym**in){
   return pks_find_hash(pk,string_hash(name),in);
 }
+
 
 void pks_dump_protos(){
   FILE* f = fopen("sys/headers.h","w");
