@@ -9,6 +9,7 @@
 #include "seg.h"
 #include "src.h"
 #include "sym.h"
+#include "pkg.h"
 extern sSeg* psCode;
 extern sSeg* psData;
 

@@ -19,8 +19,9 @@
 //#include "system.h"
 //#include "pkg.h"
 #include "src.h"
-//#include "pkgs.h"
+
 #include "sym.h"
+#include "pkg.h"
 
 
 sSeg* psCode;

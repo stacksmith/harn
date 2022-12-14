@@ -4,7 +4,7 @@ CC=gcc
 
 CFLAGS= -Wall -O2 -std=c99 -fno-strict-aliasing -Wno-pointer-sign -Wno-sign-compare -Wno-unused-result -Wno-format-truncation -Wno-stringop-truncation 
 
-cfiles= harn.c elf.c elfdump.c util.c src.c repl.c sym.c elf_ingester.c seg.c segs.c
+cfiles= harn.c elf.c elfdump.c util.c src.c repl.c sym.c pkg.c elf_ingester.c seg.c segs.c
 
 all: harn
 

@@ -221,5 +221,6 @@ void seg_del(sSeg*psg,U32 start,U32 end){
   U32 bytes = psg->end - end;
   memmove(PTR(void*,start), PTR(void*,end), bytes);
   memmove(PTR(void*,start>>3), PTR(void*,end>>3), bytes>>3); 
+
 }
   

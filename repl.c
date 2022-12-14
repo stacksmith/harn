@@ -7,10 +7,10 @@
 #include "elf.h"
 #include "seg.h"
 #include "segs.h"
-//#include "pkg.h"
 //#include "pkgs.h"
 #include "src.h"
 #include "sym.h"
+#include "pkg.h"
 
 sSym* ing_elf(sElf* pelf);
 U64 ing_elf_func(sElf* pelf);
@@ -92,6 +92,7 @@ to the pkg).
 ----------------------------------------------------------------------------*/
 
 void replace_old_symbol(sSym* old, sSym* new){
+  
   U32 fixes = segs_reref(old->art, new->art);
   printf("%d fixups\n",fixes);
 }
