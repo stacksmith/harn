@@ -90,7 +90,6 @@ int main(int argc, char **argv){
     seg_reset(psCode);
     seg_reset(psData);
 
-
     sSym* pk = pk_from_libtxt("libc","libc.txt");
     pk_rebind(pk,"libc.so.6");
     srch_list_push(pk);

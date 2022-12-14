@@ -65,6 +65,8 @@ U32 sym_delete(sSym* prev){
 
   U32 size = sym->octs << 3; //size of the hole!
   U32 end = PTR_U32(sym)+size;
+  U32 art = sym->art;
+  U32 artsize = 0xFFFFFFF8 & (sym->size + 7);
 
   printf("size %08x; end %08x\n",size,end);
 
@@ -80,7 +82,37 @@ U32 sym_delete(sSym* prev){
   
   ret = bits_fixdown(psMeta->fill,PTR_U32(psMeta), PTR_U32(sym),size);
   printf("bits_fixdown on meta got %08X\n",ret);
-  hd( U32_SYM(0xc0001d28),4);
+
+
+  {
+ printf("\nfixdown is broken!  It must only fix within the segment!\n\n");
+    // incoming data segment.
+    sSeg* seg = (sSeg*)(U64)SEG_BITS(art);
+    seg_align(seg,8);
+  hd( U32_SYM(0x40000000),4); 
+    U32 ret = bits_hole(art, art+artsize, 0, seg->fill - (art+artsize));
+    printf("bits_hole got %08X\n",ret);
+    hd( U32_SYM(0x40000000),4);
+
+    printf("bits_fixdown(%08x,%08x,%08x,%08x)\n"
+	   , seg->fill,PTR_U32(seg), art,artsize);
+    ret = bits_fixdown(seg->fill, SEG_BITS(art), art, artsize);
+    printf("bits_fixdown on seg got %08X\n",ret);
+
+    U32 seg1bits = (0xC0000000 ^ SEG_BITS(art));
+    sSeg* seg1 = (sSeg*)(U64)seg1bits;
+    printf("bits_fixdown(%08x,%08x,%08x,%08x)\n"
+	   , seg1->fill,seg1bits, art,artsize);
+    ret = bits_fixdown(seg1->fill, seg1bits, art, artsize);
+    printf("bits_fixdown on seg got %08X\n",ret);
+    // now drop meta, to update any artifact pointers
+    printf("final meta bits_fixdown(%08x,%08x,%08x,%08x)\n"
+	   , psMeta->fill, PTR_U32(psMeta), art,artsize);
+    ret = bits_fixdown(psMeta->fill, PTR_U32(psMeta), art,artsize);
+    printf("bits_fixdown on final meta got %08X\n",ret);
+    
+
+  }
   return size;
 }
 

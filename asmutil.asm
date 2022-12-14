@@ -186,7 +186,7 @@ bits_reref:
 ;;; edi = addr of top+1,   	;work pointer
 ;;; esi = addr of bottom        ;limit 
 ;;; edx = hole
-;;; ecx = size	 (fixup amout)
+;;; ecx = size of hole (fixup amout)
 bits_fixdown:
 	 push	rbx             ;ebx = count of fixups
 	xor	ebx,ebx
@@ -241,10 +241,12 @@ bits_fixdown:
 	sub	[rdi],rcx       ;fixup
  	inc	 ebx		;
 	jmp	.loop1
-	
+;;; 	// ;; BROKEN! skip refs to segs other than hole segment
 .three:;; 32-bit absolute       ;pointing at third 1 bit,
-	cmp	[rdi],edx
+	cmp	[rdi],edx	;compare ref target with hole
 	jc	.loop0          ;below hole, skip fixup
+	cmp	[rdi],esi	
+	jc      .loop0          ;if outside of segment, skip
 	sub     [rdi],ecx
 	inc    ebx
 	jmp	.loop0 

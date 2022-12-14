@@ -116,6 +116,9 @@ void new_symbol(sSym* new){
 	// shit is different places now!
 	new = U32_SYM( PTR_U32(new) - holesize);
 	pk_push_sym(U32_SYM(SRCH_LIST),new);
+
+
+	
       } else {
 	printf("Old version is in %s, new in %s; abandoning\n",
 	       SYM_NAME(pkg), SYM_NAME((sSym*)(U64)SRCH_LIST));
