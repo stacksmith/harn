@@ -209,10 +209,11 @@ U32 seg_reref(sSeg*pseg,U64 old,U64 new){
 }
 */
 U32 seg_reref(sSeg*psg,U32 old,U32 new){
-  printf("%08X %08X %08X %08X \n",
+  printf("top:%08X bot:%08X old:%08X new:%08X \n",
 	 seg_pos(psg),
 	 X32(psg),
 	 old,new);
+  
   //                top           bottom 
   return bits_reref(seg_pos(psg), X32(psg), old, new);	 
 }

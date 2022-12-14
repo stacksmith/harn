@@ -107,6 +107,7 @@ void new_symbol(sSym* new){
       //	// yes, both are in the same seg.  Fix old refs
       if(pkg == (sSym*)(U64)SRCH_LIST){
 	// rereference data and code segments
+	printf("xx\n");
 	U32 fixes = segs_reref(old->art, new->art);
 	printf("%d fixups\n",fixes);
 	// now remove the symbol in metadata

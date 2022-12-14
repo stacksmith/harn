@@ -138,7 +138,7 @@ bits_reref:
 .loop1:	dec     edi				
 .loop:	dec	edi		;scan bits down, until
 	cmp	edi,esi        	;the very bottom
-	je      .done          	;if offset is 0, exit with 0
+	jb      .done          	;if offset is 0, exit with 0
 	bt	[rax],rdi       ;testing bits
 	jnc	.loop           ;skipping 0 bits
 
@@ -175,10 +175,10 @@ bits_reref:
 	
 .three:;; 32-bit absolute; assuming next bit is 0; pointing at it.
 	cmp	[rdi],edx
-	jne	.loop1
+	jne	.loop0
 	add	[rdi],ecx
 	 inc    ebx
-	jmp	.loop1
+	jmp	.loop0
 
 ;;; FIXDOWN: upon deletion, we create a hole at edx, of ecx bytes.
 ;;; once the hole is compacted, we need to drop all references to above
@@ -237,19 +237,12 @@ bits_fixdown:
 .two:	;; 64-bit relocation; edi = address  edx = old
 	inc	edi
 	cmp	[rdi],rdx       ;pointing above hole?
-	jb	.loop1		;below hole, skip fixup
+	jc	.loop1		;below hole, skip fixup
 	sub	[rdi],rcx       ;fixup
  	inc	 ebx		;
 	jmp	.loop1
 	
 .three:;; 32-bit absolute       ;pointing at third 1 bit,
-	;;  	dec ebx			;
-	;; 	jnz .q
-	;; 	mov eax,	edi
-	;; 	pop rbx
-	;; 	ret
-	;;  	.q
-	
 	cmp	[rdi],edx
 	jc	.loop0          ;below hole, skip fixup
 	sub     [rdi],ecx

@@ -27,9 +27,11 @@ extern sSeg* psData;
 extern sSeg* psMeta;
 // Reref data and code segments.  Leave the metadata alone.
 U32 segs_reref(U32 old, U32 new){
+  printf("segs_reref:%08x,%08x\n",old,new);
   U32 ret = 0;
   ret += seg_reref(psCode, old, new); // in code seg
   ret += seg_reref(psData, old, new); // in data seg
   //  ret += seg_reref(psMeta, old, new); // in meta seg
+  printf("segs_reref:returning %d\n",ret);
   return ret;
 }
