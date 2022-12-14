@@ -32,7 +32,7 @@ typedef struct siSymb {
   
 } siSymb;
 
-sSym* sym_new(char* name, U32 data, U32 size, U32 src,char* proto){
+sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   U32 namelen = strlen(name);
   U32 protolen = proto ? strlen(proto) : 0;
   U32 octs = (SYM_NAME_OFF + namelen + protolen + 2 + 7) >> 3;
@@ -45,7 +45,7 @@ sSym* sym_new(char* name, U32 data, U32 size, U32 src,char* proto){
 
   seg_align(psMeta,8);
   p->hash = string_hash(name);
-  p->data = data;
+  p->art = art;
   p->size = size;
   p->src  = src;
   p->octs = octs;
@@ -85,7 +85,7 @@ char* sym_proto(sSym* sym){
 }
 
 void sym_dump1(sSym* sym){
-  printf("%p: %s:\t %08X %04X %s\n",sym,SYM_NAME(sym),sym->data, sym->size,sym_proto(sym));
+  printf("%p: %s:\t %08X %04X %s\n",sym,SYM_NAME(sym),sym->art, sym->size,sym_proto(sym));
 }
 sSym* sym_from_siSymb(void* v){
   siSymb*s = (siSymb*)v;
@@ -146,7 +146,7 @@ sSym* pks_find_hash(sSym*pk, U32 hash){
   do {
     if((ret = pk_find_hash(pk,hash)))
       return ret;
-  } while ((pk = U32_SYM(pk->data)));
+  } while ((pk = U32_SYM(pk->art)));
   return 0;
 }
 
@@ -159,7 +159,7 @@ void pks_dump_protos(){
   sSym* pk = (sSym*)(U64)SRCH_LIST;
   do {
     pk_dump_protos(pk,f);
-  } while ((pk = U32_SYM(pk->data)));
+  } while ((pk = U32_SYM(pk->art)));
   fclose(f);
 }
 
@@ -167,7 +167,7 @@ void pks_dump_protos(){
 U64 find_global(char*name){
   sSym* sym = pks_find_name((sSym*)(U64)SRCH_LIST,name);
   if(sym)
-    return sym->data;
+    return sym->art;
   else
     return 0;
 }
@@ -214,13 +214,13 @@ void pk_rebind(sSym* pk,char*dllpath){
      void* pfun = dlsym(dlhan,SYM_NAME(s));
     if(!pfun)
       printf("pk_rebind: could not bind to %s\n",SYM_NAME(s));
-    *((void**)(U64)(s->data+2)) = pfun; // fixup to function address
+    *((void**)(U64)(s->art+2)) = pfun; // fixup to function address
     s = U32_SYM(s->next); 
   }
   dlclose(dlhan);
 }
 
 void srch_list_push(sSym* pk){
-  pk->data = SRCH_LIST;  // we point at whatever srch_list did
+  pk->art = SRCH_LIST;  // we point at whatever srch_list did
   SRCH_LIST = (U32)(U64)pk;
 }

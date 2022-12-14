@@ -24,7 +24,7 @@ typedef void (*fpreplfun)(char*p);
 typedef U64 (*fpvoidfun)();
 
 void exec_repl_sym(sSym* sym,char*p){
-  U32 addr = sym->data;
+  U32 addr = sym->art;
   if(IN_CODE_SEG(addr)){
     //    printf("found %s\n",funname);
     fpreplfun entry = (fpreplfun)(U64)(addr);
@@ -92,7 +92,7 @@ to the pkg).
 ----------------------------------------------------------------------------*/
 
 void replace_old_symbol(sSym* old, sSym* new){
-  U32 fixes = segs_reref(old->data, new->data);
+  U32 fixes = segs_reref(old->art, new->art);
   printf("%d fixups\n",fixes);
 }
 sSym* compile(void){
@@ -110,7 +110,7 @@ sSym* compile(void){
     if(oldsym) { // older version we are replacing?
       printf("old version exists\n");
       // first, make ssure it's in the same seg.
-      if( (SEG_BITS(oldsym->data)) == (SEG_BITS(sym->data))){
+      if( (SEG_BITS(oldsym->art)) == (SEG_BITS(sym->art))){
 	//	// yes, both are in the same seg.  Fix old refs
 	replace_old_symbol(oldsym,sym);
       } else { // No, different segs.  Nothing good can come of it.
@@ -262,7 +262,7 @@ void repl_load(char*p){
   seg_deserialize(psMeta,f);
   fclose(f);
   //TODO: automate search for libraries to rebind upon load
-  pk_rebind( (sSym*)(U64)(((sSym*)(U64)SRCH_LIST)->data),"libc.so.6");
+  pk_rebind( (sSym*)(U64)(((sSym*)(U64)SRCH_LIST)->art),"libc.so.6");
   //pk_rebind( ((sSym*)(U64)SRCH_LIST),"libc.so.6");
 }
 void repl_edit(char*p){

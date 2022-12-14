@@ -10,7 +10,7 @@ typedef struct sSym {
   union {
     U64 bounds;
     struct {
-      U32 data;               // local, code, or data  data, must fix
+      U32 art;               // local, code, or data  data, must fix
       U32 size;
     };
   };
