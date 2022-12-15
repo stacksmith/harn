@@ -6,7 +6,7 @@
 #include "util.h"
 #include "elf.h"
 #include "seg.h"
-#include "segs.h"
+#include "aseg.h"
 //#include "pkgs.h"
 #include "src.h"
 #include "sym.h"
@@ -15,8 +15,6 @@
 sSym* ing_elf(sElf* pelf);
 U64 ing_elf_func(sElf* pelf);
 
-extern sSeg* psCode;
-extern sSeg* psData;
 extern sSeg* psMeta;
 
 
@@ -102,6 +100,9 @@ void new_symbol(sSym* new){
     printf("old version exists\n");
     sSym* old = (sSym*)(U64)prev->next;
     printf("prev: %p, old: %p\n",prev,old);
+
+pk_push_sym(U32_SYM(SRCH_LIST),new);
+#if 0
     // first, make ssure it's in the same seg.
     if( (SEG_BITS(old->art)) == (SEG_BITS(new->art))){
       //	// yes, both are in the same seg.  Fix old refs
@@ -115,6 +116,7 @@ void new_symbol(sSym* new){
 	U32 holesize = sym_delete(prev);
 	// shit is different places now!
 	new = U32_SYM( PTR_U32(new) - holesize);
+
 	pk_push_sym(U32_SYM(SRCH_LIST),new);
 
 
@@ -128,6 +130,7 @@ void new_symbol(sSym* new){
       fprintf(stderr,"New one is in a different seg! Abandoning!\n");
       //	    sym = pkg_drop_symb(pkgs); // drop new object from topmost pkg
     }
+#endif
   } else {// else a new symbol, no problem
     printf("pushing symbol\n");
     pk_push_sym((sSym*)(U64)SRCH_LIST,new);
@@ -143,6 +146,7 @@ sSym* compile(void){
   }
   // load the entire ELF trainwreck
   sym = ing_elf(pelf); 
+
   if(sym){ // OK, this means we are done with ingestion.
     printf("Ingested %s: %s %d bytes\n",
 	   SYM_NAME(sym),sym_proto(sym),sym->size);
@@ -190,12 +194,6 @@ char* cmd_ws(char*p){
   return p;
 }
 //if(0xC3589F16 == hash){
-void repl_sys(char* p){
-  seg_dump(psCode);
-  seg_dump(psData);
-  seg_dump(psMeta);
-  //pkgs_list();
-}
 
 void repl_list(char* p){
   U32 hash = cmd_hash(&p);
@@ -258,20 +256,19 @@ void repl_expr(char*p){
   fclose(f);
 
   sElf* pelf = rebuild("commandline",1);
-  if(!pelf)
-    return;
-
+  if(!pelf) return;
   REL_FLAG = 0;
-  U32 addr = (U32)ing_elf_func(pelf);
+  U32 here = CFILL;
+  U32 addr = (U32)ing_elf_func(pelf); // don't care about size
   REL_FLAG = 1;
-  
   elf_delete(pelf);
   
+  hd(PTR(U8*,addr),4);
   if(addr){
     fpreplfun entry = (fpreplfun)(U64)(addr);
     (*entry)(p);
-    memset(entry,0,seg_pos(psCode)-addr);
-    psCode->fill = addr;
+    memset(entry,0,here-addr);
+    CFILL = here;
   }
 }
 
@@ -281,6 +278,7 @@ void repl_dump(char*p){
     hd((void*)addr,4);
   }
 }
+#if 0
 void repl_save(char*p){
   FILE* f = fopen("image/image.dat","w");
   seg_serialize(psData,f);
@@ -299,6 +297,7 @@ void repl_load(char*p){
   pk_rebind( (sSym*)(U64)(((sSym*)(U64)SRCH_LIST)->art),"libc.so.6");
   //pk_rebind( ((sSym*)(U64)SRCH_LIST),"libc.so.6");
 }
+#endif
 void repl_edit(char*p){
   sSym* sym = pks_find_name((sSym*)(U64)SRCH_LIST,p,0);
   FILE*f = fopen("sys/body.c","w");
@@ -307,6 +306,14 @@ void repl_edit(char*p){
   }
   fclose(f);
   puts("edit and enter 'cc' when done\n");
+}
+/*---------------------------------------------------------------------------
+
+  ----------------------------------------------------------------------------*/
+void repl_sys(char* p){
+  aseg_dump();
+  seg_dump(psMeta);
+  //pkgs_list();
 }
     
 /*----------------------------------------------------------------------------
@@ -326,7 +333,7 @@ void repl_loop(){
     //    printf("Hash: %08X, len %d\n",hash,(U32)(p-linebuf));
     //    U32 cmdlen = (p-linebuf);
     // if terminated by a (, compile line and execute as a function
-    if('('==*p) { repl_expr(linebuf); continue ; }
+    if(strchr(p,';')) { repl_expr(linebuf); continue ; }
 
     // skip any whitespace to parameters, and remove the final cr
     p = cmd_ws(p);
@@ -338,14 +345,14 @@ void repl_loop(){
     // ox56299123
     // 5CB7AA8A,
     if(!strncmp("words",linebuf,4)){ repl_words(p); continue; }
-    if(!strncmp("edit",linebuf,4)){ repl_edit(p);  continue; }
+    //if(!strncmp("edit",linebuf,4)){ repl_edit(p);  continue; }
 
-    if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
+    //if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
 
     if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }
     if(!strncmp("dump",linebuf,4)){ repl_dump(p); continue; }
-    if(!strncmp("save",linebuf,4)){ repl_save(p); continue; }
-    if(!strncmp("load",linebuf,4)){ repl_load(p); continue; }
+    //if(!strncmp("save",linebuf,4)){ repl_save(p); continue; }
+    //if(!strncmp("load",linebuf,4)){ repl_load(p); continue; }
 
     // user typed in the name of a function to run as void
     // 0x71F39F63

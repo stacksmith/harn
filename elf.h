@@ -48,7 +48,7 @@ sElf* elf_new();
 sElf* elf_load(char* path);            // calls elf_new!
 void  elf_delete(sElf* pelf);
 U32 elf_find_section(sElf*pelf,char*name);
-
+U8* elf_section_data(sElf* pelf, Elf64_Shdr* shdr);
 //void elf_syms(sElf* pelf);
 
 // process symbol

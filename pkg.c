@@ -4,13 +4,12 @@
 #include <dlfcn.h>
 #include "global.h"
 #include "util.h"
-#include "seg.h"
+
+//#include "seg.h"
+#include "aseg.h"
 #include "sym.h"
 #include "pkg.h"
 
-extern sSeg* psCode;
-extern sSeg* psData;
-extern sSeg* psMeta;
 
 
 /*----------------------------------------------------------------------------
@@ -152,8 +151,7 @@ sSym* pk_from_libtxt(char* name,char*path){
   char* pc = buf;
   char* next;
   while((next = next_line(pc))){
-    seg_align(psCode,8);
-    U32 addr = (U32)(U64)seg_append(psCode,ljump,sizeof(ljump));
+    U32 addr = cseg_prepend(ljump,sizeof(ljump));
     sSym* sy = sym_new(pc,addr,sizeof(ljump),0,0);
     pk_push_sym(pk,sy) ;
     pc = next;

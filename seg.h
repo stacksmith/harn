@@ -12,8 +12,8 @@ typedef struct sSeg {
 // check which seg
 #define SMETA_BASE 0xC0000000
 #define REL_FLAG (*(U32*)(U64)(0xC000000C))
-#define IN_CODE_SEG(addr) (0x80000000 == ((addr) & 0xC0000000))
-#define IN_DATA_SEG(addr) (0x40000000 == ((addr) & 0xC0000000))
+#define IN_DATA_SEG(addr) (0x80000000 == ((addr) & 0xC0000000))
+#define IN_CODE_SEG(addr) (0x40000000 == ((addr) & 0xC0000000))
 #define IN_META_SEG(addr) (0xC0000000 == ((addr) & 0xC0000000))
 // to check if two addrs are in the same seg, for instance:
 #define SEG_BITS(addr) ((addr) & 0xC0000000)

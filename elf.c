@@ -82,6 +82,21 @@ U32 elf_find_section(sElf*pelf,char*name){
   }
   return 0;
 }
+
+U8* elf_section_data(sElf* pelf, Elf64_Shdr* shdr){
+  // PROGBITS sections contain data to ingest;
+  // NOBITS sections are .bss, reserve cleared memory
+  switch(shdr->sh_type){
+  case SHT_PROGBITS: return pelf->buf + shdr->sh_offset;
+  case SHT_NOBITS:   return 0;
+  default:
+    printf("elf_section_data: can't ingest section %s\n",
+	   pelf->buf + (ELF_SHSTRTAB(pelf))->sh_offset + shdr->sh_name);
+	   
+    exit(1);
+  }
+  return 0;
+}
 /*-------------------------------------------------------------
   elf_process_symbols     Call a proc on each symbol.
 
