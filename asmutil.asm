@@ -287,3 +287,17 @@ bits_hole:
 .x:
 	mov	eax,edx         ;return hole size
 	ret
+%if 0
+--------------------------------------------------------------------------------
+	FIXDOWN
+
+An artifact is removed from a segment, creating a hole at haddr of size hsize.
+The hole is compacted by dropping the rest of the segment from haddr+hsize to 
+segment top down to haddr.  At this point, we need to fixup all absolute refs
+to artifacts above the hole, and all relative references that point across the	
+hole.
+
+--------------------------------------------------------------------------------
+
+%endif
+
