@@ -4,26 +4,13 @@
 
 ;;; rdi = base address
 ;;; rsi = bit to set
-	
-	global bit_set1
-	global bit_set2
-	global bits_set
+	global bits_set	        ; (addr,cnt)
 	global bit_test
 	global bits_cnt
 	global bits_next_ref	;
 	global bits_reref	; replace old ref to new ref
 	global bits_fixdown     ; replace refs above hole down by ecx
 	global bits_hole	; delete a piece of a segment and rel
-;;; edi=addr
-bit_set2:	
-	xor	eax,eax
-	bts 	[rax],rdi
-	inc 	edi
-;;; edi=addr
-bit_set1:
-	xor	eax,eax
-	bts 	[rax],rdi
-	ret
 
 ;;; rdi = addr
 ;;; rsi = cnt

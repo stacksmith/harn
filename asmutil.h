@@ -1,5 +1,3 @@
-extern U32 bit_set1(U64 bit);
-extern U32 bit_set2(U64 bit);
 extern U32 bits_set(U64 bit,U32 count);
 extern U32 bit_test(U64 bit);
 extern U32 bits_cnt(U64 bit);
