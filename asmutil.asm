@@ -11,6 +11,7 @@
 	global bits_reref	; replace old ref to new ref
 	global bits_drop	; delete a piece of a segment and rel
 	global bits_fix_inside      ; replace refs above hole down by ecx
+	global bits_fix_inside1      ; replace refs above hole down by ecx	
 	global bits_fix_outside
 	global bits_fix_meta
 ;;;--------------------------------------------------------------------------------
@@ -275,20 +276,6 @@ bits_fix_outside:
 	jmp	.loopx
 	
 %if 0
-/* -------------------------------------------------------------
-        fixup_inside - fixup region inside dropzone
-
-Scan the dropzone proper, the region that has been dropped, and
-perform the following fixup:
- * absolute refs to dropped area	-size
- * relative refs to dropped area	unchanged
- * absolute refs outside	        unchanged
- * relative refs outside                +size
-	;; 
- edi = region top+1,   (before drop), dropzone
- esi = region bottom   (before drop) 
- edx = fixup
-*/
 
 %endif
 bits_fix_inside:	
@@ -338,5 +325,71 @@ bits_fix_inside:
 	cmp	rax,rcx         ;abs target >= dropzone?
 	jae	.loop0          ; no action
 	sub     [rdi],edx       ;within drop zone, fix by -hole!
+	jmp	.loop0
+
+%if 0
+/* -------------------------------------------------------------
+        fixup_inside - fixup region inside dropzone
+
+Scan the dropzone proper, the region that has been dropped, and
+perform the following fixup:
+ * absolute refs to dropped area	-size
+ * relative refs to dropped area	unchanged
+ * absolute refs outside	        unchanged
+ * relative refs outside                +size
+	;; 
+ edi = region bottom   dropzone statoc
+ esi = region top+1,   dropzone-end, scanning
+ edx = fixup
+*/
+%endif
+
+bits_fix_inside1:	
+	push	rbx             ;ebx = count of fixups
+	mov     ecx,esi         ;ecx = constant top of range
+	xor	ebx,ebx		;fixup count
+	jmp	.loop0
+	;; 0 - 1 - 0    R32     RELATIVE...
+.one:	mov	eax,[rsi]	;load 32-bit offset
+	lea	eax,[rax+rsi+4] ;convert to abs32
+.loopx:	cmp	rax,rdi         ;target < dropzone bottom
+	jb	.fixpl		;fix by +holesize (outside!)
+	cmp	rax,rcx		;target >= dropzone? 
+	jb	.loop0          ; = should not really happen!
+.fixpl:	inc     ebx             ;increment fixup count
+	add	[rsi],edx       ;make the offset larger
+	
+.loop0: xor	eax,eax		;Jump here to clear ea = base(0);
+.loop:	dec     esi
+	cmp	esi,edi        	;Scan region
+	js      .done          	;until end
+	bt	[rax],rsi       ;testing bits
+	jnc	.loop           ;skipping 0 bits
+ 	;; got a 1-0 transition.  Now dispatch on number of bits.
+	dec     esi
+	bt	[rax],rsi
+	jnc	.one
+	dec	esi
+	bt	[rax],rsi
+	jnc	.two
+	dec	esi
+	bt	[rax],rsi
+	jnc	.three
+;;; more than three 1's, return -1.
+	sbb	ebx,ebx		;-1, since C is set...
+.done:	mov	eax,ebx 	;return number of fixes
+	pop	rbx
+	ret	
+.three:	;; 0 - 1 - 1 - 1 - 0   A64 (could ref entirely outside!)
+	mov	rax,[rsi]	;load entire 64-bit pointer
+	jmp	.abs		;same as A32
+.two:;; 0 - 1 - 1 - 0   A32
+	mov	eax,[rsi]
+	;; fix abs references into the dropzone by -fixup
+.abs:	cmp	rax,rdi		;abs target < dropzone?
+	jb	.loop0          ; no action
+	cmp	rax,rcx         ;abs target >= dropzone?
+	jae	.loop0          ; no action
+	sub     [rsi],edx       ;within drop zone, fix by -hole!
 	jmp	.loop0
 

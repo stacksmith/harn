@@ -35,6 +35,8 @@ extern U32 bits_reref(U32 top,U32 bottom,U32 old,U32 new);
 
 extern U32 bits_fix_inside(U32 top,U32 bottom,  U32 fixup);
 
+extern U32 bits_fix_inside1(U32 dz_start,U32 dz_end,  U32 fixup);
+
 
 /*----------------------------------------------------------------------------
   bits_fix_outside              scan from top to bottom, the span being the

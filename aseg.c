@@ -128,8 +128,7 @@ U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
   U32 dz_target = dz_start - fixup;
   // fix the dropzone itself
   //  hd(PTR(U8*,0x40000e40),4);
-  ret += bits_fix_inside(dz_end, dz_start, // top, bottom
-			 fixup); // 
+  ret += bits_fix_inside1(dz_start, dz_end,  fixup); // 
   // fix the bottom part of dropzone segment, target downto base.
   ret += bits_fix_outside(dz_target, SEG_BITS(dz_start),  
 			  dz_start, dz_end, fixup); // dropzone bounds
