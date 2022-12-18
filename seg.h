@@ -12,6 +12,10 @@ typedef struct sSeg {
 } sSeg;
 
 // check which seg
+#define MFILL_ADDR ((U32*)0xC0000000L)
+#define MFILL (*MFILL_ADDR)
+
+
 #define SMETA_BASE 0xC0000000
 #define REL_FLAG (*(U32*)(U64)(0xC000000C))
 #define IN_DATA_SEG(addr) (0x80000000 == ((addr) & 0xC0000000))

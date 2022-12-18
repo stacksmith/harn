@@ -92,16 +92,19 @@ to the pkg).
 void new_symbol(sSym* new){
       // do we already have a symbol with same name?  Hold onto it.
   sSym* pkg;
+  
   sSym* prev = pks_find_prev_hash((sSym*)(U64)SRCH_LIST,new->hash,&pkg);
-  if(prev)
-    printf("new_symbol: prev is %p\n",prev);
-  // Now that the new object is in our segment, is there an 
   if(prev) { // older version we are replacing?
     printf("old version exists\n");
     sSym* old = (sSym*)(U64)prev->next;
     printf("prev: %p, old: %p\n",prev,old);
-
-pk_push_sym(U32_SYM(SRCH_LIST),new);
+    
+    U32 bytes_deleted = sym_delete(prev);
+    
+    new = PTR(sSym*,(THE_U32(new) - bytes_deleted));
+    printf("sym is now %p\n",new);
+    
+    pk_push_sym(U32_SYM(SRCH_LIST),new);
 #if 0
     // first, make ssure it's in the same seg.
     if( (SEG_BITS(old->art)) == (SEG_BITS(new->art))){
@@ -132,10 +135,14 @@ pk_push_sym(U32_SYM(SRCH_LIST),new);
     }
 #endif
   } else {// else a new symbol, no problem
-    printf("pushing symbol\n");
-    pk_push_sym((sSym*)(U64)SRCH_LIST,new);
+    //    printf("pushing symbol\n");
+    pk_push_sym((sSym*)(U64)SRCH_LIST,new);   
   }
 }
+/*----------------------------------------------------------------------------
+compile
+
+------------------------------------------------------------------------------*/
 
 sSym* compile(void){
   sSym* sym=0;
@@ -280,8 +287,11 @@ void repl_expr(char*p){
 }
 
 void repl_dump(char*p){
-  U64 addr = strtol(p,0,16);
-  printf("addr is %08lX\n",addr);
+  char* pend;
+  U64 addr = strtol(p,&pend,16);
+  //  printf("addr is %08lX\n",addr);
+  if('r'== *pend)
+    addr>>=3;
   if(addr<0xFFFFFFFF){
     hd((void*)addr,4);
   }

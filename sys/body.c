@@ -1,3 +1,6 @@
+void foo(void){
 
+  printf("fuck\n");
 
-int fuck = 99;
+  
+}

@@ -55,12 +55,17 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   seg_align(psMeta,8);
   return p;
 }
+/*----------------------------------------------------------------------------
+  sym_delete                  delete a symbol.
+
+In order to unlink sym, we need the symbol that comes before it in the search
+known as prev!
+
+----------------------------------------------------------------------------*/
 
 U32 sym_delete(sSym* prev){ 
-printf("2. prev: %p, next %08x\n",prev,prev->next);
+  //printf("2. prev: %p, next %08x\n",prev,prev->next);
   sSym* sym = U32_SYM(prev->next);  //symbol we are actually deleting
-printf("3. prev: %p, next %08x\n",prev,prev->next);
-
   prev->next = sym->next;    //unlink symbol
   // before the symbol disappears, read the data stored therein...
   U32 symU32 = THE_U32(sym);
@@ -69,23 +74,36 @@ printf("3. prev: %p, next %08x\n",prev,prev->next);
   // artifact bounds
   U32 art = sym->art;
   U32 artsize = 0xFFFFFFF8 & (sym->size + 7);
-printf("symsize %08x; end %08x\n",symsize, symend);
-printf("bits_drop(%08x,%08x,%08x,%08x)\n",
-	 symU32, symend, 0, psMeta->fill - symend);
+  //printf("symsize %08x; end %08x\n",symsize, symend);
+  //printf("bits_drop(%08x,%08x,%08x,%08x)\n",
+  //	 symU32, symend, 0, psMeta->fill - symend);
   // drop in meta, eliminating the symbol
   U32 ret = bits_drop(symU32, symend, 0, psMeta->fill - symend);
-printf("sym_delete got %08X\n",ret);
-  // now fix meta
-printf("bits_fix_meta(%08x,%08x, sym:%08x,%08x, art:%08x,%08x)\n"
-       ,psMeta->fill-symsize, THE_U32(psMeta),
-       symU32, symsize,
-       art, artsize);
-  
+  //printf("drop got %08X\n",ret);
+  // printf("after drop before fix, prev->next is %08x\n",prev->next);
+  //hd(prev,4);
+
+// now fix meta
+//intf("bits_fix_meta(%08x,%08x, sym:%08x,%08x, art:%08x,%08x)\n"
+  //    ,psMeta->fill-symsize, THE_U32(psMeta),
+  //   symU32, symsize,
+  //   art, artsize);
+ 
  ret = bits_fix_meta(psMeta->fill - symsize, // because we dropped by that
 		     THE_U32(psMeta),
 		     symU32, symsize,
-		     art, artsize);
-  printf("bits_fix_meta on meta got %08X\n",ret);
+		     //		     art, artsize);
+		     0xFFFFFFFF,0); // TODO: remove this! disables art fix
+ 
+ //printf("bits_fix_meta on meta got %08X\n",ret);
+
+ printf("Requesting drop %08X, %08X\n",art,artsize);
+ bits_drop(art, art+artsize, 0, ps
+
+ 
+ //d(prev,4);
+
+
   /*
 
   {
