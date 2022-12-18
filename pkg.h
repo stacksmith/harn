@@ -2,7 +2,6 @@
 
 // smSymbs are symbols stored in the meta segment.
 
-#define SRCH_LIST (*(U32*)(U64)(0xC0000008))
 
 void pk_dump(sSym* pk);
 sSym* pk_new(char*name);

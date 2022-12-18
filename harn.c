@@ -25,11 +25,6 @@
 #include "pkg.h"
 
 
-sSeg* psCode;
-sSeg* psData;
-sSeg* psMeta;
-
-
 //sPkg* pkgs=0;
 
 
@@ -72,8 +67,8 @@ sSym* ing_elf(sElf* pelf);
 
 int main(int argc, char **argv){
   //meta must be first, otherwise REL_FLAG will crap out
-  psMeta = seg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
-  seg_reset(psMeta);
+  sSeg* psMeta = mseg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
+  mseg_reset(psMeta);
   
   aseg_alloc();
     printf("OK\n");

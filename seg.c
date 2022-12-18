@@ -29,14 +29,14 @@ A fillable area for code or data
   char name[8];
 } sSeg;
 */
-void seg_dump(sSeg* psg){
-  printf("Segment %p %08x\n",psg, psg->fill);
+void mseg_dump(){
+  printf("Segment %08X %08x\n",SMETA_BASE,MFILL);
 }
 /* -------------------------------------------------------------
    seg_alloc
 
 ---------------------------------------------------------------*/
-sSeg* seg_alloc(U64 req_size, void* req_addr, U32 prot){
+sSeg* mseg_alloc(U64 req_size, void* req_addr, U32 prot){
   // allocate data area
   sSeg* psg = (sSeg*)mmap(req_addr, req_size, prot,
 			0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
@@ -68,20 +68,20 @@ C rel_flag  --   relocation control
 
 ---------------------------------------------------------------*/
 
-void seg_reset(sSeg* psg){
+void mseg_reset(){
 
-  U32 base = THE_U32(psg);
-  psg->fill = base + 16;
-  psg->srchlist = 0;
-  psg->rel_flag = 1;
+  U32 base = SMETA_BASE; 
+  MFILL = base + 16;
+  SRCH_LIST = 0;
+  REL_FLAG = 1;
   
-  seg_rel_mark(psg, base + 0, 2); // fill  A32, local/link-like
-  seg_rel_mark(psg, base + 8, 2); // fill  A32, local/link
+  rel_mark(THE_U32(MFILL_ADDR), 2); // fill  
+  rel_mark(THE_U32(SRCH_LIST_ADDR), 2); // srch_list
 }
-
+/*
 void seg_serialize(sSeg* psg,FILE* f){
   // save data area
-  seg_align(psg,8);
+
   U32 size = psg->fill - (U32)(U64)(psg);  // byte size of segment data
   size_t wr1 = fwrite(psg,1,size,f);
   U8* prel = (U8*)(((U64)psg)>>3);
@@ -100,16 +100,9 @@ void seg_deserialize(sSeg* psg,FILE*f){
   size_t rd2 = fread (prel,1,size>>3,f);
   printf("read: %lx %lx\n",rd1+8,rd2);
 }
-U32 seg_pos(sSeg* psg){
-  return psg->fill;
-}
-
-void seg_align(sSeg*psg, U64 align){
-  int rem  = psg->fill % (U32)align;
-  if(rem) {
-    seg_append(psg,0,align-rem);
-    //    printf("Inserted pad of %ld bytes\n",align-rem);
-  }  
+*/
+void mseg_align8(){
+  MFILL  = (MFILL + 7) & 0xFFFFFFF8;
 }
 
 
@@ -119,15 +112,15 @@ seg_append  Append a run of bytes to the segment
             start  address from which to copy.  
                    if 0, fill with 0 bytes.
 ---------------------------------------------------------------*/
-U8* seg_append(sSeg* psg,U8* start,U64 size){
-  U32 end = psg->fill + size;
-  U8* dest = (U8*)(U64)psg->fill;
-  if(end >= psg->end) {
-    seg_dump(psg);
+U8* mseg_append(U8* start,U32 size){
+  U32 end = MFILL + size;
+  U8* dest = PTR(U8*,MFILL);
+  if(end >= MTOP) {
+    mseg_dump();
     fprintf(stderr,"seg_append failed: out of space\n");
     exit(1);
   } else {
-    psg->fill = end;
+    MFILL = end;
     if(start)
       memcpy(dest,start,size);
     else
@@ -135,6 +128,8 @@ U8* seg_append(sSeg* psg,U8* start,U64 size){
   } 
   return dest;
 }
+
+
 /*----------------------------------------------------------------------------
  RELOCATIONS
 
@@ -155,15 +150,6 @@ We support two kinds of refs:
 
 */
 
-void seg_rel_mark(sSeg* psg,U32 pos,U32 kind){
-  if(REL_FLAG){
-    if( (pos<(U32)(U64)psg) || (pos >= psg->fill)){
-      printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
-      exit(1);
-    }
-    bits_set(pos, kind);  
-  }
-}
 #include "util.h"
 /*
 U32 cnt_refs(sSeg*pseg,void*target){
@@ -228,12 +214,12 @@ U32 seg_reref(sSeg*pseg,U64 old,U64 new){
 */
 U32 seg_reref(sSeg*psg,U32 old,U32 new){
   printf("top:%08X bot:%08X old:%08X new:%08X \n",
-	 seg_pos(psg),
+	 MFILL,
 	 X32(psg),
 	 old,new);
   
   //                top           bottom 
-  return bits_reref(seg_pos(psg), X32(psg), old, new);	 
+  return bits_reref(MFILL, X32(psg), old, new);	 
 }
 /*----------------------------------------------------------------------------
 seg_del             Delete a portion of a segment

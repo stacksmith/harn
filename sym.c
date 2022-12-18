@@ -5,11 +5,10 @@
 #include "global.h"
 #include "util.h"
 #include "seg.h"
+#include "aseg.h" 
+
 #include "sym.h"
 #include "asmutil.h"
-extern sSeg* psCode;
-extern sSeg* psData;
-extern sSeg* psMeta;
 
 struct siSymb;
 typedef struct siSymb {
@@ -33,14 +32,14 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   U32 namelen = strlen(name);
   U32 protolen = proto ? strlen(proto) : 0;
   U32 octs = (SYM_NAME_OFF + namelen + protolen + 2 + 7) >> 3;
-  U8* bptr = seg_append(psMeta,0,octs*8);
+  U8* bptr = mseg_append(0,octs*8);
   U32 uptr = (U32)(U64)bptr;
   sSym* p = (sSym*)bptr;
   
-  seg_rel_mark(psMeta,uptr+0,2); // next pointer is a 32-bit pointer
-  seg_rel_mark(psMeta,uptr+8,2); // data pointer is a 32-bit pointer
+  rel_mark(uptr+0,2); // next pointer is a 32-bit pointer
+  rel_mark(uptr+8,2); // data pointer is a 32-bit pointer
 
-  seg_align(psMeta,8);
+  mseg_align8();
   p->hash = string_hash(name);
   p->art = art;
   p->size = size;
@@ -52,7 +51,7 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   if(proto){
     strcpy(bptr+SYM_NAME_OFF+1+namelen, proto);
   }
-  seg_align(psMeta,8);
+  mseg_align8();
   return p;
 }
 /*----------------------------------------------------------------------------

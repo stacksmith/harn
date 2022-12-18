@@ -33,7 +33,7 @@ void exec_repl_sym(sSym* sym,char*p){
 }
 
 void run_repl_fun(U32 hash,char*p){
-  sSym* sym = pks_find_hash((sSym*)(U64)SRCH_LIST,hash,0);
+  sSym* sym = pks_find_hash(PTR(sSym*,SRCH_LIST),hash,0);
   if(sym){  //
     exec_repl_sym(sym,p);
   } else {
@@ -103,9 +103,7 @@ void new_symbol(sSym* new){
     
     sym_delete(prev);
 
-
-
-    
+   
 
 #if 0
     // first, make ssure it's in the same seg.
@@ -114,7 +112,7 @@ void new_symbol(sSym* new){
       if(pkg == (sSym*)(U64)SRCH_LIST){
 	// rereference data and code segments
 	printf("xx\n");
-	U32 fixes = segs_reref(old->art, new->art);
+	//	U32 fixes = segs_reref(old->art, new->art);
 	printf("%d fixups\n",fixes);
 	// now remove the symbol in metadata
 	printf("1. prev: %p, next %08x\n",prev,prev->next);
@@ -123,8 +121,6 @@ void new_symbol(sSym* new){
 	new = U32_SYM( PTR_U32(new) - holesize);
 
 	pk_push_sym(U32_SYM(SRCH_LIST),new);
-
-
 	
       } else {
 	printf("Old version is in %s, new in %s; abandoning\n",
@@ -337,7 +333,7 @@ void repl_edit(char*p){
   ----------------------------------------------------------------------------*/
 void repl_sys(char* p){
   aseg_dump();
-  seg_dump(psMeta);
+  mseg_dump();
   //pkgs_list();
 }
     

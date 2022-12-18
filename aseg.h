@@ -27,8 +27,11 @@ $80000004 DFILL  fill pointer for the data segment
 #define DATA_SEG_SIZE 0x10000000
 #define DATA_SEG_ADDR 0x80000000
 
-// check which seg
+
+// TODO: move these duplicates from seg.h into own header
 #define SMETA_BASE 0xC0000000
+#define SRCH_LIST_ADDR ((U32*)0xC0000008)
+#define SRCH_LIST (*SRCH_LIST_ADDR)
 #define REL_FLAG (*(U32*)(U64)(0xC000000C))
 
 #define IN_CODE_SEG(addr) (0x40000000 == ((addr) & 0xC0000000))

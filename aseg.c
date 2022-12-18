@@ -103,12 +103,10 @@ void seg_deserialize(sSeg* psg,FILE*f){
   size_t rd2 = fread (prel,1,size>>3,f);
   printf("read: %lx %lx\n",rd1+8,rd2);
 }
-U32 seg_pos(sSeg* psg){
-  return psg->fill;
-}
+
 */
 /* -------------------------------------------------------------
-seg_append  Append a run of bytes to the segment
+xseg_append  Append a run of bytes to the segment
             size   number of bytes to append
             start  address from which to copy.  
                    if 0, fill with 0 bytes.
