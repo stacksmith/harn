@@ -11,7 +11,6 @@
 	global bits_reref	; replace old ref to new ref
 	global bits_drop	; delete a piece of a segment and rel
 	global bits_fix_inside      ; replace refs above hole down by ecx
-	global bits_fix_inside1      ; replace refs above hole down by ecx	
 	global bits_fix_outside
 	global bits_fix_meta
 ;;;--------------------------------------------------------------------------------
@@ -24,16 +23,16 @@
 ;;; rsi = cnt
 bits_set:
 	xor	eax,eax
-.loop:	inc 	rdi
-	bts 	[rax],edi
-	dec 	rsi
+.loop:	inc 	edi
+	bts 	[rax],rdi
+	dec 	esi
 	jnz	.loop
 	ret
 	
 ;;; rdi = addr
 bit_test:
 	xor	eax,eax
-	bt	[rax],edi
+	bt	[rax],rdi
 	sbb	eax,eax
 	ret
 
@@ -51,13 +50,13 @@ bits_next_ref:
 	cmp	edi,esi
 	js      .done          	;exit when below bottom
 	
-	bt	[rcx],edi     
+	bt	[rcx],rdi     
 	jnc	.loop
  
 	;; got a 1!  now count
 .loop1:	inc	eax             ; count the bit
 	dec     edi             ; previous bit
-	bt	[rcx],edi      
+	bt	[rcx],rdi      
 	jc	.loop1
 	mov	[rdx],edi	;set caller's pointer
 .done:
@@ -90,17 +89,17 @@ bits_reref:
 .loop:	dec     edi
 	cmp	edi,esi        	;the very bottom
 	js      .done          	;if offset is 0, exit with 0
-	bt	[rax],edi       ;testing bits
+	bt	[rax],rdi       ;testing bits
 	jnc	.loop           ;skipping 0 bits
  	;; got a 1-0 transition.	
 	dec     edi
-	bt	[rax],edi
+	bt	[rax],rdi
 	jnc	.one		; 0 1 0
 	dec	edi
-	bt	[rax],edi
+	bt	[rax],rdi
 	jnc	.two
 	dec	edi
-	bt	[rax],edi
+	bt	[rax],rdi
 	jnc	.three
 ;;; more than three 1's, return -1.
 	sbb	ebx,ebx		;-1, since C is set...
@@ -182,7 +181,7 @@ bits_fix_meta:
 .loop: 	dec	edi
 	cmp	edi,0xC0000000
 	js	.done
-	bt	[rax],edi       ;testing bits
+	bt	[rax],rdi       ;testing bits
 	jnc	.loop		;     1 0 proven
 	dec	edi		;   1 1 0 assumed!
 	dec	edi             ; 0 1 1 0 assumed
@@ -252,17 +251,17 @@ bits_fix_outside:
 .loop:	dec     edi
 	cmp	edi,ebp        	;still above region floor?
 	js      .done          	;no? done
-	bt	[rax],edi       ;testing bits
+	bt	[rax],rdi       ;testing bits
 	jnc	.loop           ;skipping 0 bits; eax is 0
  	;; got a 1-0 transition.	
 	dec     edi
-	bt	[rax],edi
+	bt	[rax],rdi
 	jnc	.one
 	dec	edi
-	bt	[rax],edi
+	bt	[rax],rdi
 	jnc	.two
 	dec	edi
-	bt	[rax],edi
+	bt	[rax],rdi
 	jnc	.three
 ;;; more than three 1's, return -1.
 	sbb	ebx,ebx		;-1, since C is set...
@@ -296,7 +295,7 @@ perform the following fixup:
 */
 %endif
 
-bits_fix_inside1:	
+bits_fix_inside:	
 	push	rbx             ;ebx = count of fixups
 	mov     ecx,esi         ;ecx = constant top of range
 	xor	ebx,ebx		;fixup count
@@ -315,17 +314,17 @@ bits_fix_inside1:
 .loop:	dec     esi
 	cmp	esi,edi        	;Scan region
 	js      .done          	;until end
-	bt	[rax],esi       ;testing bits
+	bt	[rax],rsi       ;testing bits
 	jnc	.loop           ;skipping 0 bits
  	;; got a 1-0 transition.  Now dispatch on number of bits.
 	dec     esi
-	bt	[rax],esi
+	bt	[rax],rsi
 	jnc	.one
 	dec	esi
-	bt	[rax],esi
+	bt	[rax],rsi
 	jnc	.two
 	dec	esi
-	bt	[rax],esi
+	bt	[rax],rsi
 	jnc	.three
 ;;; more than three 1's, return -1.
 	sbb	ebx,ebx		;-1, since C is set...

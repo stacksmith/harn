@@ -42,15 +42,20 @@ void mseg_alloc(){
   // allocate data area
   seg_mmap(PTR(void*,META_SEG_ADDR), META_SEG_SIZE,
 	   PROT_READ|PROT_WRITE, "meta");
+  
   seg_mmap(PTR(void*,(META_SEG_ADDR/8)), META_SEG_SIZE/8,
 	   PROT_READ | PROT_WRITE,"meta-rel");
 
   MFILL = META_SEG_ADDR + 16;
   SRCH_LIST = 0;
   REL_FLAG = 1;
-  
+
+ printf("1\n");
   rel_mark(THE_U32(MFILL_ADDR), 2); // fill  
-  rel_mark(THE_U32(SRCH_LIST_ADDR), 2); // srch_list  
+ printf("2\n");
+ rel_mark(THE_U32(SRCH_LIST_ADDR), 2); // srch_list  
+
+ printf("3\n");
 }
 /* -------------------------------------------------------------
 Metaseg has some system variables (each 32 bits long)

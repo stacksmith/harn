@@ -66,6 +66,7 @@ void repl_loop();
 int main(int argc, char **argv){
   //meta must be first, otherwise REL_FLAG will crap out
   mseg_alloc();
+ 
   aseg_alloc();
   src_init();      // open source files and setup buffers
 
