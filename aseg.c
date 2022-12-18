@@ -123,6 +123,32 @@ void cseg_align8(){
 
 ----------------------------------------------------------------------------*/
 #include "util.h"
+
+typedef struct sSegDrop {
+  U32 start;
+  U32 end;
+  U32 fixup;
+} sSegDrop;
+  
+U32 aseg_delete1(sSegDrop* dz,  U32 other_end){
+  U32 ret = 0;
+  U32 dz_target = dz->start - dz->fixup;
+  // fix the dropzone itself
+  //  hd(PTR(U8*,0x40000e40),4);
+  ret += bits_fix_inside1(dz->start, dz->end,  dz->fixup); // 
+  // fix the bottom part of dropzone segment, target downto base.
+  ret += bits_fix_outside(dz_target, 
+			  dz->start, dz->end, dz->fixup); // dropzone bounds
+  // now fix entire other segment,  top is provided, bottom is seg base.
+  ret += bits_fix_outside(other_end, 
+			  dz->start, dz->end, dz->fixup); // dropzone bounds
+  // drop the dropzone; fill with 0.
+  bits_drop(dz_target, dz->start, dz->end - dz->start);
+  //  hd(PTR(U8*,0x40000e40),4);
+
+  return ret;
+  
+}
 U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
   U32 ret = 0;
   U32 dz_target = dz_start - fixup;
@@ -130,10 +156,10 @@ U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
   //  hd(PTR(U8*,0x40000e40),4);
   ret += bits_fix_inside1(dz_start, dz_end,  fixup); // 
   // fix the bottom part of dropzone segment, target downto base.
-  ret += bits_fix_outside(dz_target, SEG_BITS(dz_start),  
+  ret += bits_fix_outside(dz_target, 
 			  dz_start, dz_end, fixup); // dropzone bounds
   // now fix entire other segment,  top is provided, bottom is seg base.
-  ret += bits_fix_outside(other_end, SEG_BITS(other_end), 
+  ret += bits_fix_outside(other_end, 
 			  dz_start, dz_end, fixup); // dropzone bounds
   // drop the dropzone; fill with 0.
   bits_drop(dz_target, dz_start, dz_end-dz_start);

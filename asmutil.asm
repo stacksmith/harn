@@ -25,7 +25,7 @@
 bits_set:
 	xor	eax,eax
 .loop:	inc 	rdi
-	bts 	[rax],rdi
+	bts 	[rax],edi
 	dec 	rsi
 	jnz	.loop
 	ret
@@ -33,7 +33,7 @@ bits_set:
 ;;; rdi = addr
 bit_test:
 	xor	eax,eax
-	bt	[rax],rdi
+	bt	[rax],edi
 	sbb	eax,eax
 	ret
 
@@ -51,13 +51,13 @@ bits_next_ref:
 	cmp	edi,esi
 	js      .done          	;exit when below bottom
 	
-	bt	[rcx],rdi     
+	bt	[rcx],edi     
 	jnc	.loop
  
 	;; got a 1!  now count
 .loop1:	inc	eax             ; count the bit
 	dec     edi             ; previous bit
-	bt	[rcx],rdi      
+	bt	[rcx],edi      
 	jc	.loop1
 	mov	[rdx],edi	;set caller's pointer
 .done:
@@ -81,26 +81,26 @@ bits_reref:
 ;;; R32
 .one:	mov	eax,[rdi]	;load 32-bit offset
 	lea	eax,[rax+rdi+4] ;convert to abs32
-.loopx:	cmp	rax,rdx         ;match?  Check all 64 bits (for A64)
+.loopx:	cmp	rax,rdx         ;A64 pointers can point to anything!
 	jne	.loop0		;go back to loop; skip this 1 and prev 0
-	add	[rdi],ecx       ;fixup
+	add	[rdi],ecx       ;fixup (the low part, should work)
 	inc     ebx             ;increment fixup count
 	
 .loop0: xor	eax,eax		;Jump here to clear eaeax = base(0);
 .loop:	dec     edi
 	cmp	edi,esi        	;the very bottom
 	js      .done          	;if offset is 0, exit with 0
-	bt	[rax],rdi       ;testing bits
+	bt	[rax],edi       ;testing bits
 	jnc	.loop           ;skipping 0 bits
  	;; got a 1-0 transition.	
 	dec     edi
-	bt	[rax],rdi
+	bt	[rax],edi
 	jnc	.one		; 0 1 0
 	dec	edi
-	bt	[rax],rdi
+	bt	[rax],edi
 	jnc	.two
 	dec	edi
-	bt	[rax],rdi
+	bt	[rax],edi
 	jnc	.three
 ;;; more than three 1's, return -1.
 	sbb	ebx,ebx		;-1, since C is set...
@@ -182,7 +182,7 @@ bits_fix_meta:
 .loop: 	dec	edi
 	cmp	edi,0xC0000000
 	js	.done
-	bt	[rax],rdi       ;testing bits
+	bt	[rax],edi       ;testing bits
 	jnc	.loop		;     1 0 proven
 	dec	edi		;   1 1 0 assumed!
 	dec	edi             ; 0 1 1 0 assumed
@@ -190,21 +190,20 @@ bits_fix_meta:
 ;;; %if 0
 	mov	ebx,r9d		;prepare to drop by artzone drop
 	cmp	[rdi],ecx	;<bottom?
-	cmovb	rbx,rax		;adjust by 0 (avoiding branches)
+	cmovb	ebx,eax		;adjust by 0 (avoiding branches)
 	cmp	[rdi],r8d       ;> artzone top?
-	cmova   rbx,rax         ;adjust by 0
+	cmova   ebx,eax         ;adjust by 0
 	cmp     [rdi],esi       ;> metazone start
-	cmovae  rbx,rdx         ;adjust by meta fixup.
+	cmovae  ebx,edx         ;adjust by meta fixup.
 	sub	[rdi],ebx	;fix this artifact pointer by drop or 0
-
 
 	test 	ebx,ebx		;did we fixup?  TODO: do we really care?
 	setnz	bl
 	and	ebx,1		;if fixup,1; otherwise 0
 	add	ebp,ebx
 	
-	dec	edi
-	jmp     .loop
+	dec	edi             ; 0 1 1 0  ;may go belof Cxxx, but will
+	jmp     .loop           ;       ^  ;test before reading...
 
 .done:	mov	eax,ebp
 	pop	rbp
@@ -223,47 +222,52 @@ and perform the following fixup:
  * absolute refs elsewhere       unchanged
  * relative refs elsewhere       unchanged
 
+Technically, can return -1 if too many 1 bits encountered...
+
  edi = region top+1,   
- esi = region bottom   
- edx = dropzone start  (before drop)
- ecx = dropzone end    (before drop) 
- r8  = fixup 
+ esi = dropzone start  (before drop)
+ edx = dropzone end    (before drop) 
+ ecx = fixup 
 fixup	                ;aka hole size ; ; ;
 */
 %endif 
 bits_fix_outside:
 	push	rbx             ;ebx = count of fixups
 	xor	ebx,ebx		;fixup count
+	push	rbp
+	mov	ebp,edi		;scan segment top
+	and	ebp,0xC0000000   ;scan segment bottom
 	jmp	.loop0
 	;; 0 - 1 - 0    R32
 .one:	mov	eax,[rdi]	;load R32 reference
 	lea	eax,[rax+rdi+4] ;convert to A32
-.loopx:	cmp	rax,rdx         ;< dropzone start? skip.
-	jb	.loop0		;
-	cmp	rax,rcx		;> dropzone end? skip.
+.loopx:	cmp	rax,rsi         ;< dropzone start? A64s can point
+	jb	.loop0		;      anywhere at all!
+	cmp	rax,rdx		;> dropzone end? skip.
 	ja	.loop0          ;= end? will fix up (FILLPTR!)
 	inc     ebx             ;increment fixup count
-	sub	[rdi],r8d       ;drop ref by fixup
+	sub	[rdi],ecx       ;drop ref by fixup
 	
 .loop0: xor	eax,eax		;Jump here to clear ea = base(0);
 .loop:	dec     edi
-	cmp	edi,esi        	;still in region? 
+	cmp	edi,ebp        	;still above region floor?
 	js      .done          	;no? done
-	bt	[rax],rdi       ;testing bits
+	bt	[rax],edi       ;testing bits
 	jnc	.loop           ;skipping 0 bits; eax is 0
  	;; got a 1-0 transition.	
 	dec     edi
-	bt	[rax],rdi
+	bt	[rax],edi
 	jnc	.one
 	dec	edi
-	bt	[rax],rdi
+	bt	[rax],edi
 	jnc	.two
 	dec	edi
-	bt	[rax],rdi
+	bt	[rax],edi
 	jnc	.three
 ;;; more than three 1's, return -1.
 	sbb	ebx,ebx		;-1, since C is set...
 .done:	mov	eax,ebx 	;return number of fixes
+	pop	rbp
 	pop	rbx
 	ret	
 
@@ -274,58 +278,6 @@ bits_fix_outside:
 .three:	;; 0 - 1 - 1 - 1 - 0   A64 
 	mov	rax,[rdi]	;load entire 64-bit pointer
 	jmp	.loopx
-	
-%if 0
-
-%endif
-bits_fix_inside:	
-	push	rbx             ;ebx = count of fixups
-	mov     ecx,edi         ;ecx = constant top of range
-	xor	ebx,ebx		;fixup count
-	jmp	.loop0
-	;; 0 - 1 - 0    R32     RELATIVE...
-.one:	mov	eax,[rdi]	;load 32-bit offset
-	lea	eax,[rax+rdi+4] ;convert to abs32
-.loopx:	cmp	rax,rsi         ;target < dropzone bottom
-	jb	.fixpl		;fix by +holesize (outside!)
-	cmp	rax,rcx		;target >= dropzone? 
-	jb	.loop0          ; = should not really happen!
-.fixpl:	inc     ebx             ;increment fixup count
-	add	[rdi],edx       ;make the offset larger
-	
-.loop0: xor	eax,eax		;Jump here to clear ea = base(0);
-.loop:	dec     edi
-	cmp	edi,esi        	;Scan region
-	js      .done          	;until end
-	bt	[rax],rdi       ;testing bits
-	jnc	.loop           ;skipping 0 bits
- 	;; got a 1-0 transition.  Now dispatch on number of bits.
-	dec     edi
-	bt	[rax],rdi
-	jnc	.one
-	dec	edi
-	bt	[rax],rdi
-	jnc	.two
-	dec	edi
-	bt	[rax],rdi
-	jnc	.three
-;;; more than three 1's, return -1.
-	sbb	ebx,ebx		;-1, since C is set...
-.done:	mov	eax,ebx 	;return number of fixes
-	pop	rbx
-	ret	
-.three:	;; 0 - 1 - 1 - 1 - 0   A64 (could ref entirely outside!)
-	mov	rax,[rdi]	;load entire 64-bit pointer
-	jmp	.abs		;same as A32
-.two:;; 0 - 1 - 1 - 0   A32
-	mov	eax,[rdi]
-	;; fix abs references into the dropzone by -fixup
-.abs:	cmp	rax,rsi		;abs target < dropzone?
-	jb	.loop0          ; no action
-	cmp	rax,rcx         ;abs target >= dropzone?
-	jae	.loop0          ; no action
-	sub     [rdi],edx       ;within drop zone, fix by -hole!
-	jmp	.loop0
 
 %if 0
 /* -------------------------------------------------------------
@@ -338,8 +290,8 @@ perform the following fixup:
  * absolute refs outside	        unchanged
  * relative refs outside                +size
 	;; 
- edi = region bottom   dropzone statoc
- esi = region top+1,   dropzone-end, scanning
+ edi = dropzone start   also, scan-segment bottom
+ esi = dropzone end     also, scan-segment top
  edx = fixup
 */
 %endif
@@ -352,7 +304,7 @@ bits_fix_inside1:
 	;; 0 - 1 - 0    R32     RELATIVE...
 .one:	mov	eax,[rsi]	;load 32-bit offset
 	lea	eax,[rax+rsi+4] ;convert to abs32
-.loopx:	cmp	rax,rdi         ;target < dropzone bottom
+.loopx:	cmp	rax,rdi         ;target < dropzone bottom (A64 possible)
 	jb	.fixpl		;fix by +holesize (outside!)
 	cmp	rax,rcx		;target >= dropzone? 
 	jb	.loop0          ; = should not really happen!
@@ -363,17 +315,17 @@ bits_fix_inside1:
 .loop:	dec     esi
 	cmp	esi,edi        	;Scan region
 	js      .done          	;until end
-	bt	[rax],rsi       ;testing bits
+	bt	[rax],esi       ;testing bits
 	jnc	.loop           ;skipping 0 bits
  	;; got a 1-0 transition.  Now dispatch on number of bits.
 	dec     esi
-	bt	[rax],rsi
+	bt	[rax],esi
 	jnc	.one
 	dec	esi
-	bt	[rax],rsi
+	bt	[rax],esi
 	jnc	.two
 	dec	esi
-	bt	[rax],rsi
+	bt	[rax],esi
 	jnc	.three
 ;;; more than three 1's, return -1.
 	sbb	ebx,ebx		;-1, since C is set...

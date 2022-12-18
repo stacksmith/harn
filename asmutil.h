@@ -33,7 +33,7 @@ extern U32 bits_reref(U32 top,U32 bottom,U32 old,U32 new);
  
 ----------------------------------------------------------------------------*/
 
-extern U32 bits_fix_inside(U32 top,U32 bottom,  U32 fixup);
+//extern U32 bits_fix_inside(U32 top,U32 bottom,  U32 fixup);
 
 extern U32 bits_fix_inside1(U32 dz_start,U32 dz_end,  U32 fixup);
 
@@ -54,7 +54,7 @@ looking for targets in the dropzone region....
 ----------------------------------------------------------------------------*/
 
 
-extern U32 bits_fix_outside(U32 top,U32 bottom,
+extern U32 bits_fix_outside(U32 top,
 			    U32 dropzone_start, U32 dropzone_end,
 			    U32 fixup);
 

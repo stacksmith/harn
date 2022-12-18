@@ -1,4 +1,4 @@
-#define pass 1
+#define pass 3
 #if (pass==2)
 void bar(){
   foo();
