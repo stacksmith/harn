@@ -32,32 +32,41 @@ A fillable area for code or data
 void mseg_dump(){
   printf("Segment %08X %08x\n",SMETA_BASE,MFILL);
 }
+
+void mseg_reset(){
+  MFILL = SMETA_BASE + 16;
+  SRCH_LIST = 0;
+  REL_FLAG = 1;
+  
+  rel_mark(THE_U32(MFILL_ADDR), 2); // fill  
+  rel_mark(THE_U32(SRCH_LIST_ADDR), 2); // srch_list
+}
 /* -------------------------------------------------------------
    seg_alloc
 
 ---------------------------------------------------------------*/
-sSeg* mseg_alloc(U64 req_size, void* req_addr, U32 prot){
+void mseg_alloc(){
   // allocate data area
-  sSeg* psg = (sSeg*)mmap(req_addr, req_size, prot,
-			0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
-			0,0);
+  sSeg* psg = (sSeg*)mmap(PTR(void*,SMETA_BASE), SMETA_SIZE,
+			  PROT_READ|PROT_WRITE,
+			  0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
+			  0,0);
   if(MAP_FAILED == psg){
-    fprintf(stderr,"Error allocating %p seg: %d\n",req_addr,errno);
+    fprintf(stderr,"Error allocating %08X seg: %d\n",SMETA_BASE,errno);
     exit(1);
   }
   // allocate rel area
-  U8* prel =(U8*)mmap((void*)(((U64)req_addr)/8), req_size/8,
+  U8* prel =(U8*)mmap(PTR(void*,(SMETA_BASE/8)), SMETA_SIZE/8,
 		      PROT_READ | PROT_WRITE,
 		      0x20 | MAP_SHARED | MAP_FIXED ,    //MAP_ANONYMOUS
 		      0,0);
   if(MAP_FAILED == prel){
-    fprintf(stderr,"Error allocating rel table of %p seg: %d\n",req_addr,errno);
+    fprintf(stderr,"Error allocating rel table at %08X seg: %d\n",SMETA_BASE/8,errno);
     exit(1);
   }
-  psg->end =  (U32)(U64)psg + (U32)req_size;
+  MTOP = SMETA_BASE + SMETA_SIZE;
 
-
-  return psg;
+  mseg_reset();
 }
 /* -------------------------------------------------------------
 Metaseg has some system variables (each 32 bits long)
@@ -68,16 +77,6 @@ C rel_flag  --   relocation control
 
 ---------------------------------------------------------------*/
 
-void mseg_reset(){
-
-  U32 base = SMETA_BASE; 
-  MFILL = base + 16;
-  SRCH_LIST = 0;
-  REL_FLAG = 1;
-  
-  rel_mark(THE_U32(MFILL_ADDR), 2); // fill  
-  rel_mark(THE_U32(SRCH_LIST_ADDR), 2); // srch_list
-}
 /*
 void seg_serialize(sSeg* psg,FILE* f){
   // save data area

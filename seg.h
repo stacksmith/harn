@@ -17,6 +17,8 @@ typedef struct sSeg {
 
 
 #define SMETA_BASE 0xC0000000
+#define SMETA_SIZE 0x10000000
+
 #define MTOP_ADDR ((U32*)0xC0000004)
 #define MTOP (*MTOP_ADDR)
 #define SRCH_LIST_ADDR ((U32*)0xC0000008)
@@ -32,7 +34,7 @@ void rel_mark(U32 pos,U32 kind);
 
 
 void mseg_dump();
-sSeg* mseg_alloc(U64 req_size, void* req_addr, U32 prot);
+void mseg_alloc();
 void mseg_reset();
 //void seg_serialize(sSeg* psg,FILE* f);
 //void seg_deserialize(sSeg* psg,FILE* f);

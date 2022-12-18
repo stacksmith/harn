@@ -63,18 +63,10 @@ C0000000 - D0000000    meta
 void repl_loop();
 
 
-sSym* ing_elf(sElf* pelf);
-
 int main(int argc, char **argv){
   //meta must be first, otherwise REL_FLAG will crap out
-  sSeg* psMeta = mseg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
-  mseg_reset(psMeta);
-  
+  mseg_alloc();
   aseg_alloc();
-    printf("OK\n");
-
-  aseg_dump();
-
   src_init();      // open source files and setup buffers
 
   sSym* pk = pk_from_libtxt("libc","libc.txt");
@@ -90,47 +82,4 @@ int main(int argc, char **argv){
   repl_loop();
   return 0;
 }
-#if    0
-  //sElf* pelf = elf_load("sys/test.o"); 
-  ///sSym* sy = ing_elf(pelf);
-  //printf("ingested... %p\n",sy);
-  //typedef U64 (*fpvoidfun)();
-  //fpvoidfun fun = (fpvoidfun)(U64)sy->data;
-  //(*fun)();
-  //  printf("%lx \n",pks_find_global("printf"));
-  /*
-  
-  {
-    sSym* pk = pk_new("libc.so");
-    siSymb* ps = pkg->data;
-    while(ps){
-      sSym* s = sym_from_siSymb((void*)ps);
-      pk_add_sym(pk,s);
-      ps = ps->next;
-    }
-    //    sym_dump1(pk_find_name(pk,"printf"));
-    pk_dump(pk);
 
-
-  }
-  */
-  //  sPkg* usrpkg = pkg_new();
-  //pkg_set_name(usrpkg,"usr");
-  //pkgs_add(usrpkg);
-
-
-  //test(usrpkg,argv[1],argv[2]);
-  //test_data(usrpkg,argv[1]);
-  //  pkgs_list();
-  //pkg_dump(pkg);
-  
-  //  testab("o/twoA.o","o/twoB.o");
-  //testmult(argc-1,argv+1);
-  
-  //  printf("sizeof sDataSize is %ld\n",sizeof(sDataSize));
-  // sDataSize ds = pkg_find_name(&pkg,"catopen");
-  //printf("found: %08x %d\n",ds.data, ds.size);
-
-  return 0;
-}
-#endif
