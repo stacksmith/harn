@@ -57,6 +57,8 @@ void edit(char* name){
 }
 
 sElf* rebuild(char* name,U32 need_function){
+  printf("dumping protos\n");
+  
   pks_dump_protos();
   char buf[256];
   sprintf(buf,"cd sys; ./build.sh %s",name);
@@ -261,12 +263,15 @@ void repl_expr(char*p){
   fputs(p,f);
   fputs("\n}\n",f);
   fclose(f);
-
   REL_FLAG = 0;     // turn off relocation, as we shall erase this ASAP
   U32 start  = CFILL; // code segment goes down!
+  printf("OK, cfill is %08x\n",start);
 
   sElf* pelf = rebuild("commandline",1);
+  printf("OK, rebuild: %p\n",pelf);
   if(!pelf) return;
+printf("OK, ingesting\n");
+  
   U32 addr = (U32)ing_elf_func(pelf); // don't care about size
   elf_delete(pelf);
 
@@ -274,6 +279,9 @@ void repl_expr(char*p){
 
   if(addr){
     fpreplfun entry = (fpreplfun)(U64)(addr);
+    printf("about to call %p\n",entry);
+    hd(entry,4);
+    
     (*entry)(p);
   }
   U32 end = CFILL;

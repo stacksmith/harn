@@ -165,11 +165,11 @@ U32 dseg_chomp(U32 addr, U32 size){
   
    // drop the dropzone; fill with 0.
   bits_drop(dz_target, dz_start, 0, dz_size);
-  
+  /*  
   ret += bits_fix_inside(dz_target + dz_size, dz_target, // post-drop region
 		  dz_start,dz_end,                // pre-drop dropzone
 		  size);                          // fixup
-  
+  */
   ret += bits_fix_outside(dz_target, DATA_SEG_ADDR,  // region below drop
 		   dz_start,dz_end,           // refs to pre-drop dropzone
 		   size);                     // fixup by -size
@@ -191,24 +191,13 @@ U32 cseg_chomp(U32 addr, U32 size){
 
 hd(PTR(U8*,0x40000E40),4);
 printf("\n");
-// drop the dropzone; fill with 0.
- printf("bit_drop(%08x,%08x, %d, %08x)\n",
-	dz_target, dz_start, 0, dz_size);
- 
-  bits_drop(dz_target, dz_start, 0, dz_size);
 
-printf("after drop\n");
-hd(PTR(U8*,0x40000E40),4);
-
- printf("fix_inside(%08x,%08x, %08x,%08x, %08x\n",
-	dz_target + dz_size, dz_target, // post-drop region
-	dz_start,dz_end,                // pre-drop dropzone
-	size);                          // fixup
+ printf("fix_inside(%08x,%08x,  %08x\n",
+	dz_end, dz_start,size);                          // fixup
 
  
-  ret += bits_fix_inside(dz_target + dz_size, dz_target, // post-drop region
-			 dz_start,dz_end,                // pre-drop dropzone
-			 size);                          // fixup
+ ret += bits_fix_inside(dz_end,dz_start,  // pre-drop dropzone
+			dz_end,size);           // fixup
 
 printf("\ninside: %d\n",ret); hd(PTR(U8*,0x40000E40),4);
 
@@ -229,7 +218,18 @@ printf("\noutside:%d\n",ret); hd(PTR(U8*,0x40000E40),4);
 			  dz_start,dz_end,       // refs to pre-drop dropzone
 			  size);                 // fixup by -size
 printf("\n%ds:d\n",ret); hd(PTR(U8*,0x40000E40),4);  
-  return ret;
+
+// drop the dropzone; fill with 0.
+ printf("bit_drop(%08x,%08x, %d, %08x)\n",
+	dz_target, dz_start, 0, dz_size);
+ bits_drop(dz_target, dz_start, 0, dz_size);
+ printf("after drop:\n");
+ hd(PTR(U8*,0x40000E40),4);
+
+ 
+
+
+ return ret;
 
 }
 U32 aseg_chomp(U32 addr, U32 size){

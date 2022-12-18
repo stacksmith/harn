@@ -16,8 +16,7 @@ extern U32 bits_fix_outside(U32 top,U32 bottom,
 			    U32 fixup);
 // fix region that has been moved
 extern U32 bits_fix_inside(U32 top,U32 bottom,
-			   U32 dropzone_start, U32 dropzone_end,
-			   U32 fixup);
+			   U32 top1, U32 fixup);
 
 
 // fixup area above dropzone (top to hole)

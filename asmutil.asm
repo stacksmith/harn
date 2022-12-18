@@ -276,10 +276,10 @@ perform the following fixup:
  * absolute refs outside	        unchanged
  * relative refs outside                +size
 	;; 
- edi = region top+1,   (actual,after drop)
- esi = region bottom   (actual,after drop)
- edx = dropzone start  (before drop)
- ecx = dropzone end    (before drop) 
+ edi = region top+1,   (before drop), dropzone
+ esi = region bottom   (before drop) 
+ edx = region_top+1
+ ecx = fixup */
  r8  = fixup */
 %endif
 bits_fix_inside:	
@@ -289,12 +289,12 @@ bits_fix_inside:
 	;; 0 - 1 - 0    R32     RELATIVE...
 .one:	mov	eax,[rdi]	;load 32-bit offset
 	lea	eax,[rax+rdi+4] ;convert to abs32
-.loopx:	cmp	rax,rdx         ;target < dropzone
+.loopx:	cmp	rax,rsi         ;target < dropzone bottom
 	jb	.fixpl		;fix by +holesize (outside!)
-	cmp	rax,rcx		;target >= dropzone? 
+	cmp	rax,rdx		;target >= dropzone? 
 	jb	.loop0          ; = should not really happen!
 .fixpl:	inc     ebx             ;increment fixup count
-	add	[rdi],r8d       ;make the offset smaller!
+	add	[rdi],ecx       ;make the offset larger
 	
 .loop0: xor	eax,eax		;Jump here to clear ea = base(0);
 .loop:	dec     edi
@@ -323,10 +323,10 @@ bits_fix_inside:
 .two:;; 0 - 1 - 1 - 0   A32
 	mov	eax,[rdi]
 	;; fix abs references into the dropzone by -fixup
-.abs:	cmp	rax,rdx		;abs target < dropzone?
+.abs:	cmp	rax,rsi		;abs target < dropzone?
 	jb	.loop0          ; no action
-	cmp	rax,rcx         ;abs target >= dropzone?
+	cmp	rax,rdx         ;abs target >= dropzone?
 	jae	.loop0          ; no action
-	sub     [rdi],r8d       ;within drop zone, fix by -hole!
+	sub     [rdi],ecx       ;within drop zone, fix by -hole!
 	jmp	.loop0
 

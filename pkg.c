@@ -64,11 +64,15 @@ void pk_dump_protos(sSym* pk,FILE* f){
   sSym*s = U32_SYM(pk->next);  //skip pk, next is it
   char* proto;
   while(s){
+    printf("pk_dump_protos: %p\n",s);
     proto = sym_proto(s);
+    printf("  proto is at %p\n",proto);
     if(*proto){
       fprintf(f,"%s\n",proto);
     }
     s = U32_SYM(s->next);
+    printf("  next is %p\n",s);
+
   }
 }
 
@@ -113,6 +117,7 @@ sSym* pks_find_name(sSym*pk, char*name,sSym**in){
 
 void pks_dump_protos(){
   FILE* f = fopen("sys/headers.h","w");
+  pk_dump((sSym*)(U64)SRCH_LIST);
   sSym* pk = (sSym*)(U64)SRCH_LIST;
   do {
     pk_dump_protos(pk,f);
