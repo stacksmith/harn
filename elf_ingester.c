@@ -30,7 +30,7 @@ U32 ing_elf_code_sec(sElf*pelf,U32 isec){
   Elf64_Shdr* shdr = pelf->shdr + isec;
   U8* src = elf_section_data(pelf,shdr);
   U32 size = shdr->sh_size;
-  U32 addr = cseg_prepend(src,size);
+  U32 addr = cseg_append(src,size);
   shdr->sh_addr = addr;   
 #ifdef DEBUG
   printf("ingesting code %d bytes from %p\n",size,src);
@@ -47,7 +47,7 @@ U32 ing_elf_code_sec(sElf*pelf,U32 isec){
 U64 ing_elf_func(sElf*pelf){
   U32 end = *CFILL_ADDR;
   // there maybe rodata.  Bring it in first as we are going backwards.
-  
+  cseg_align8(); // align data seg for new data object
   U32 strsec = elf_find_section(pelf,".rodata.str1.1");
   if(strsec) {
 #ifdef DEBUG
@@ -72,7 +72,8 @@ U64 ing_elf_func(sElf*pelf){
   }
   // codesec+1 may be its relocations... If not, no harm done.
   elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc);
-aseg_dump();
+  
+  cseg_align8();
   return (((U64)(end-addr))<<32) | addr;
   
 }
@@ -103,8 +104,8 @@ U32 ing_elf_data_sec(sElf*pelf,U32 isec){
 
 U64 ing_elf_data(sElf* pelf){
   Elf64_Sym* psym = pelf->unique;
-  dseg_align8(); // align data seg for new data object
   // First, ingest the main data object and keep its address.
+  dseg_align8(); // align data seg for new data object
   U32 sec = psym->st_shndx;
   U32 addr = ing_elf_data_sec(pelf,sec);
 #ifdef DEBUG

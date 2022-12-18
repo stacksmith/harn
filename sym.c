@@ -98,7 +98,7 @@ U32 sym_delete(sSym* prev){
  //printf("bits_fix_meta on meta got %08X\n",ret);
 
  printf("Requesting drop %08X, %08X\n",art,artsize);
- bits_drop(art, art+artsize, 0, ps
+
 
  
  //d(prev,4);

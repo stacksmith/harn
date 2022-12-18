@@ -263,23 +263,22 @@ void repl_expr(char*p){
   fclose(f);
 
   REL_FLAG = 0;     // turn off relocation, as we shall erase this ASAP
-  U32 end  = CFILL; // code segment goes down!
+  U32 start  = CFILL; // code segment goes down!
 
   sElf* pelf = rebuild("commandline",1);
   if(!pelf) return;
   U32 addr = (U32)ing_elf_func(pelf); // don't care about size
   elf_delete(pelf);
 
-  U32 start  = CFILL;
   REL_FLAG = 1;
-
-  hd(PTR(U8*,addr),4);
 
   if(addr){
     fpreplfun entry = (fpreplfun)(U64)(addr);
     (*entry)(p);
   }
-  CFILL = end;
+  U32 end = CFILL;
+  CFILL = start;
+    
   memset(PTR(U8*,start),0,end-start);
 
 

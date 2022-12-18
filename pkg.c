@@ -151,7 +151,11 @@ sSym* pk_from_libtxt(char* name,char*path){
   char* pc = buf;
   char* next;
   while((next = next_line(pc))){
-    U32 addr = cseg_prepend(ljump,sizeof(ljump));
+    U32 addr = cseg_append(ljump,sizeof(ljump));
+    cseg_align8();
+    aseg_dump();
+    cseg_align8();
+
     rel_mark( addr+2, 3); // mark the 64-bit address
     sSym* sy = sym_new(pc,addr,sizeof(ljump),0,0);
     pk_push_sym(pk,sy) ;

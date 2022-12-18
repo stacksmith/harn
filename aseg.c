@@ -30,7 +30,7 @@ A fillable area for code or data
 } sSeg;
 */
 void aseg_dump(){
-  printf(" %08X %08X \n ",*DFILL_ADDR,*CFILL_ADDR);
+  printf(" %08X %08X \n",CFILL,DFILL);
 }
 /* -------------------------------------------------------------
    seg_alloc
@@ -49,24 +49,31 @@ void aseg_alloc(){
 		     0,0);
   if(MAP_FAILED == pcode) err("code");
 
+  void* prelc = mmap( PTR(void*,CODE_SEG_ADDR/8), CODE_SEG_SIZE/8,
+		     PROT_READ | PROT_WRITE,
+		     0x20 | MAP_SHARED | MAP_FIXED ,    //MAP_ANONYMOUS
+		     0,0);
+   if(MAP_FAILED == prelc) err("code-rel");
+
+  
   void* pdata = mmap(PTR(void*,DATA_SEG_ADDR), DATA_SEG_SIZE,
 		     PROT_READ|PROT_WRITE,
 		     0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
 		     0,0);
   if(MAP_FAILED == pdata) err("data");
-
-  void* prel = mmap( PTR(void*,CODE_SEG_ADDR/8), (DATA_SEG_SIZE+CODE_SEG_SIZE)/8,
+ 
+  void* preld = mmap( PTR(void*,DATA_SEG_ADDR/8), DATA_SEG_SIZE/8,
 		     PROT_READ | PROT_WRITE,
 		     0x20 | MAP_SHARED | MAP_FIXED ,    //MAP_ANONYMOUS
 		     0,0);
   
-  if(MAP_FAILED == prel) err("rel");
+  if(MAP_FAILED == preld) err("data-rel");
 
-  CFILL = DATA_SEG_ADDR;
+  CFILL = CODE_SEG_ADDR;
   DFILL = DATA_SEG_ADDR+8;
 
-  rel_mark (DATA_SEG_ADDR, 3); //dfill
-  rel_mark (DATA_SEG_ADDR+4, 3); //cfill
+  rel_mark (DATA_SEG_ADDR,   3); //dfill A32
+  rel_mark (DATA_SEG_ADDR+4, 3); //cfill A32
 }
 /* ------------------------------------------------------------- */
 void rel_mark(U32 pos,U32 kind){
@@ -121,16 +128,17 @@ void dseg_align8(){
   DFILL = (DFILL+7) & 0xFFFFFFF8;
 }
 
-U32 cseg_prepend(U8* start,U64 size){
-  U32 udest = (CFILL - size) & 0xFFFFFFF8;
-  U8* dest = (U8*)(U64)udest;
-  CFILL = udest;
-  if(start){
+U32 cseg_append(U8* start,U64 size){
+  U32 end =  CFILL + size;
+  U8* dest = CFILL_PTR;
+  CFILL = end;
+  if(start)
     memcpy(dest,start,size);
-  } else {
+  else
     memset(dest,0,size);
-  } 
   return THE_U32(dest);
 }
 
-
+void cseg_align8(){
+  CFILL = (CFILL+7) & 0xFFFFFFF8;
+}

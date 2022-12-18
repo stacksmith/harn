@@ -74,8 +74,10 @@ int main(int argc, char **argv){
   //meta must be first, otherwise REL_FLAG will crap out
   psMeta = seg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
   seg_reset(psMeta);
-
+  
   aseg_alloc();
+    printf("OK\n");
+
   aseg_dump();
 
   src_init();      // open source files and setup buffers
