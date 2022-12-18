@@ -1,16 +1,21 @@
-#define pass 3
-#if (pass==2)
-void bar(){
-  foo();
-}
-#endif
-#if ((pass==1) || (pass==3))
-void foo(){
+#define pass 1
 #if (pass==1)
-   puts("old");
-#else
-   puts("newest of them all");
+U32 ass = 1;
 #endif
+
+#if (pass==2)
+extern U32 ass;
+U32* p = &ass;
+#endif
+
+#if (pass==3)
+U32 ass = 99;
+#endif
+
+#if (pass==4)
+extern U32* p;
+void tester(){
+  printf("%d\n",*p);
 }
 #endif
 

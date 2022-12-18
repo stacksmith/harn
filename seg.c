@@ -50,12 +50,9 @@ void mseg_alloc(){
   SRCH_LIST = 0;
   REL_FLAG = 1;
 
- printf("1\n");
   rel_mark(THE_U32(MFILL_ADDR), 2); // fill  
- printf("2\n");
  rel_mark(THE_U32(SRCH_LIST_ADDR), 2); // srch_list  
 
- printf("3\n");
 }
 /* -------------------------------------------------------------
 Metaseg has some system variables (each 32 bits long)

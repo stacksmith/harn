@@ -255,16 +255,17 @@ void pk_incorporate(sSym* new){
   sCons* prev = pks_find_prev_hash0(PTR(sCons*,SRCH_LIST), new->hash);
   if(prev) { // older version we are replacing?
     sSym* old = PTR(sSym*,prev->cdr);
-    printf("prev: %p, old: %p\n",prev,old);
+    //printf("prev: %p, old: %p\n",prev,old);
     // replacing symbol must be in same seg
     if( (SEG_BITS(old->art)) == (SEG_BITS(new->art))){
       new->cdr = old->cdr;   // relink new in the same place old was
-      prev->cdr = THE_U32(new);       // 
+      prev->cdr = THE_U32(new);
+     
       U32 fixups = aseg_reref(old->art,new->art);
-      printf("%d old refs fixed from %08X to %08X\n",fixups, old->art, new->art);
-      hd(PTR(void*,old->art),4);
-      fixups = sym_del(old);       
-      printf("%d gc fixups\n",fixups);
+  //  printf("%d old refs fixed from %08X to %08X\n",fixups, old->art, new->art);
+      //      hd(PTR(void*,old->art),4);
+      fixups += sym_del(old);       
+      printf("%d fixups\n",fixups);
     } else {
       printf("!!! SEGMENT MISMATCH! TODO: FIX!!!!\n");
       //segment mismatch..

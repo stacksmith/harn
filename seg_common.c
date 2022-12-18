@@ -49,11 +49,7 @@ void* seg_mmap(void* addr, U64 size, U64 prot, char* which){
 
 /* ------------------------------------------------------------- */
 void rel_mark(U32 pos,U32 kind){
-   printf("11\n");
-   if(REL_FLAG) {
-     printf("12 %08x %08x\n",pos,kind);
+  if(REL_FLAG) {
     bits_set(pos, kind);
-     printf("13 %08x %08x\n",pos,kind);
-    
-   }
+  }
 }

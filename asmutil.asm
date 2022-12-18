@@ -192,7 +192,7 @@ bits_fix_meta:
 	cmovb	ebx,eax		;adjust by 0 (avoiding branches)
 	cmp	[rdi],r8d       ;> artzone top?
 	cmova   ebx,eax         ;adjust by 0
-	cmp     [rdi],esi       ;> metazone start
+	cmp     [rdi],esi       ;> metazone start?
 	cmovae  ebx,edx         ;adjust by meta fixup.
 	sub	[rdi],ebx	;fix this artifact pointer by drop or 0
 

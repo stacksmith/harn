@@ -1,1 +1,1 @@
-extern void foo (void);
+extern void tester (void);

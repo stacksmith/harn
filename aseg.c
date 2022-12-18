@@ -119,10 +119,10 @@ void cseg_align8(){
 }
 /*----------------------------------------------------------------------------
   aseg_delete                     Delete an artifact; drop rest of segment;
-                                 perform fixups within asegs.
+                                  perform fixups within asegs.
 
 ----------------------------------------------------------------------------*/
-#include "util.h"
+//#include "util.h"
 
 
 U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
