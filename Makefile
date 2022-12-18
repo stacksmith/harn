@@ -2,10 +2,15 @@ TOP = ..
 
 CC=gcc
 
-CFLAGS= -Wall -O2 -std=c99 -fno-strict-aliasing -Wno-pointer-sign -Wno-sign-compare -Wno-unused-result -Wno-format-truncation -Wno-stringop-truncation 
+CFLAGS= -Wall -Os -std=c99 \
+-Wno-pointer-sign -Wno-sign-compare -Wno-unused-result -Wno-format-truncation -Wno-stringop-truncation  \
+-fcf-protection=none    \
+-fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables \
+-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 \
+-fno-stack-protector  -fno-mudflap 
 
 cfiles= harn.c elf.c elfdump.c util.c src.c repl.c sym.c pkg.c elf_ingester.c \
-seg_common.c seg.c aseg.c mcons.c
+seg_common.c seg.c aseg.c 
 
 all: harn
 

@@ -202,7 +202,7 @@ U32 seg_reref(sSeg*psg,U32 old,U32 new){
 
 ----------------------------------------------------------------------------*/
 
-sCons* mseg_cons(U32 car, U32 cdr){
+sCons* mcons(U32 car, U32 cdr){
   sCons* ret;
   U32* p = PTR(U32*,MFILL);
   ret = (sCons*)p;
@@ -215,4 +215,20 @@ sCons* mseg_cons(U32 car, U32 cdr){
 }
   
 
- 
+sCons* minsert(sCons* after, sCons* it){
+  it->cdr = after->cdr;     // make it link to whatever we linked to
+  after->cdr = THE_U32(it); // we link to it.
+  return after;
+}
+
+
+
+U64 mapc(mapcfun fun,U32 list){
+  U64 ret;
+  while(list){
+    if((ret = (*fun)(list)))
+      return ret;
+    list = PTR(sCons*,list)->cdr;
+  }
+  return 0; 
+}

@@ -4,7 +4,7 @@
 
 
 typedef struct sSym {
-  U32 next;               // fixed up upon local moves only
+  U32 cdr;               // fixed up upon local moves only
   U32 hash;
   union {
     U64 bounds;
@@ -32,6 +32,6 @@ typedef struct sSym {
 sSym* sym_new(char* name, U32 data, U32 size, U32 src,char* proto);
 char* sym_proto(sSym* sym);
 void sym_dump1(sSym* sym);
-sSym* sym_from_siSymb(void* symb);
 
-U32 sym_delete(sSym* sym);
+
+U32 sym_delete(sCons* sym);

@@ -33,7 +33,7 @@ void exec_repl_sym(sSym* sym,char*p){
 }
 
 void run_repl_fun(U32 hash,char*p){
-  sSym* sym = pks_find_hash(PTR(sSym*,SRCH_LIST),hash,0);
+  sSym* sym = pks_find_hash0(PTR(sCons*,SRCH_LIST),hash);
   if(sym){  //
     exec_repl_sym(sym,p);
   } else {
@@ -92,15 +92,12 @@ to the pkg).
 
 void new_symbol(sSym* new){
       // do we already have a symbol with same name?  Hold onto it.
-  sSym* pkg;
-  
-  sSym* prev = pks_find_prev_hash((sSym*)(U64)SRCH_LIST,new->hash,&pkg);
+  sCons* prev = pks_find_prev_hash0(PTR(sCons*,SRCH_LIST), new->hash);
   if(prev) { // older version we are replacing?
     printf("old version exists\n");
-    sSym* old = (sSym*)(U64)prev->next;
+    sSym* old = PTR(sSym*,prev->cdr);
     printf("prev: %p, old: %p\n",prev,old);
-    pk_push_sym(U32_SYM(SRCH_LIST),new);
-    
+    pk_push_sym(PTR(sCons*,SRCH_LIST),new);
     sym_delete(prev);
 
    
@@ -115,7 +112,7 @@ void new_symbol(sSym* new){
 	//	U32 fixes = segs_reref(old->art, new->art);
 	printf("%d fixups\n",fixes);
 	// now remove the symbol in metadata
-	printf("1. prev: %p, next %08x\n",prev,prev->next);
+	printf("1. prev: %p, next %08x\n",prev,prev->cdr);
 	U32 holesize = sym_delete(prev);
 	// shit is different places now!
 	new = U32_SYM( PTR_U32(new) - holesize);
@@ -124,7 +121,7 @@ void new_symbol(sSym* new){
 	
       } else {
 	printf("Old version is in %s, new in %s; abandoning\n",
-	       SYM_NAME(pkg), SYM_NAME((sSym*)(U64)SRCH_LIST));
+	       SYM_NAME(pkg), "package..");
 	//TODO: kill segment!
       }
     } else { // No, different segs.  Nothing good can come of it.
@@ -134,7 +131,7 @@ void new_symbol(sSym* new){
 #endif
   } else {// else a new symbol, no problem
     //    printf("pushing symbol\n");
-    pk_push_sym((sSym*)(U64)SRCH_LIST,new);   
+    pk_push_sym(PTR(sCons*,SRCH_LIST),new);   
   }
 }
 /*----------------------------------------------------------------------------
@@ -202,11 +199,10 @@ char* cmd_ws(char*p){
 
 void repl_list(char* p){
   U32 hash = cmd_hash(&p);
-  sSym* pkg;
-  sSym* sym = pks_find_hash((sSym*)(U64)SRCH_LIST,hash,&pkg);
+  sSym* sym = pks_find_hash0(PTR(sCons*,SRCH_LIST),hash);
   if(sym){
     puts("-------------------------------------------------------------");
-    printf("In package: %s\n",SYM_NAME(pkg));
+    //    printf("In package: %s\n",SYM_NAME(pkg));
     puts("-------------------------------------------------------------");
     src_to_file(sym->src,stdout); //todo: src length...
     puts("-------------------------------------------------------------");
@@ -214,7 +210,7 @@ void repl_list(char* p){
 }
 
 void repl_words(char* p){
-  pk_dump((sSym*)(U64)SRCH_LIST);
+  pk_dump(PTR(sCons*,SRCH_LIST));
 }
 char* helpstr =
   "built-in commands:\n\
@@ -315,12 +311,12 @@ void repl_load(char*p){
   seg_deserialize(psMeta,f);
   fclose(f);
   //TODO: automate search for libraries to rebind upon load
-  pk_rebind( (sSym*)(U64)(((sSym*)(U64)SRCH_LIST)->art),"libc.so.6");
+  pk_rebind((PTR(sCons*,SRCH_LIST)->car),"libc.so.6");
   //pk_rebind( ((sSym*)(U64)SRCH_LIST),"libc.so.6");
 }
 #endif
 void repl_edit(char*p){
-  sSym* sym = pks_find_name((sSym*)(U64)SRCH_LIST,p,0);
+  sSym* sym = pks_find_name0(PTR(sCons*,SRCH_LIST),p);
   FILE*f = fopen("sys/body.c","w");
   if(sym){
     src_to_file(sym->src,f);

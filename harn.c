@@ -69,7 +69,7 @@ int main(int argc, char **argv){
   aseg_alloc();
   src_init();      // open source files and setup buffers
 
-  sSym* pk = pk_from_libtxt("libc","libc.txt");
+  sCons* pk = pk_from_libtxt("libc","libc.txt");
   pk_rebind(pk,"libc.so.6");
   srch_list_push(pk);
   aseg_dump();
@@ -77,7 +77,7 @@ int main(int argc, char **argv){
 
    sym_dump1(pk_find_name(pk,"printf"));
   
-  sSym* pku = pk_new("user");
+  sCons* pku = pk_new("user");
   srch_list_push(pku);
   repl_loop();
   return 0;

@@ -10,24 +10,6 @@
 #include "sym.h"
 #include "asmutil.h"
 
-struct siSymb;
-typedef struct siSymb {
-  struct siSymb* next;
-  char* name;                 // malloc'ed
-  union {
-    sDataSize ds;
-    struct {
-      U32 data;
-      U32 size;
-    };
-  };
-  char* proto;                // malloc'ed
-  U32 src;                    // file
-  U32 srclen;
-  U32 hash;
-  
-} siSymb;
-
 sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   U32 namelen = strlen(name);
   U32 protolen = proto ? strlen(proto) : 0;
@@ -62,10 +44,10 @@ known as prev!
 
 ----------------------------------------------------------------------------*/
 #include "aseg.h"
-U32 sym_delete(sSym* prev){ 
-  printf("sym.delete.. prev: %p, next %08x\n",prev,prev->next);
-  sSym* sym = U32_SYM(prev->next);  //symbol we are actually deleting
-  prev->next = sym->next;    //unlink symbol
+U32 sym_delete(sCons* prev){ 
+  printf("sym.delete.. prev: %p, next %08x\n",prev,prev->cdr);
+  sSym* sym = U32_SYM(prev->cdr);  //symbol we are actually deleting
+  prev->cdr = sym->cdr;    //unlink symbol
   // before the symbol disappears, read the data stored therein...
   U32 symU32 = THE_U32(sym);
   U32 symsize = sym->octs << 3;  // size of the hole, in bytes
@@ -144,12 +126,4 @@ void sym_dump1(sSym* sym){
 /*----------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------
-create a symbol from ELF sisymb   ;TODO: wtf?
-----------------------------------------------------------------------------*/
-sSym* sym_from_siSymb(void* v){
-  siSymb*s = (siSymb*)v;
-  return sym_new(s->name,s->data,s->size,s->src,s->proto);
-}
 

@@ -34,10 +34,21 @@ void* hd(void*ptr,int lines){
 #define FNV_PRIME 16777619
 #define FNV_OFFSET_BASIS 2166136261
 
+
 U32 string_hash(char*p){
   U32 hash = FNV_OFFSET_BASIS;
   U8 c;
   while((c=*p++)){
+    hash = (U32)((hash ^ c) * FNV_PRIME);
+  }
+  return hash;
+}
+
+
+U32 string_hash1(void* ptr, char*str){
+  U32 hash = FNV_OFFSET_BASIS;
+  U8 c;
+  while((c=*str++)){
     hash = (U32)((hash ^ c) * FNV_PRIME);
   }
   return hash;

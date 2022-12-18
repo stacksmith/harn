@@ -27,4 +27,7 @@ U8*  mseg_append(U8* start,U32 size);
 
 U32 seg_reref(sSeg*psg,U32 old,U32 new);
 
-sCons* mseg_cons(U32 car, U32 cdr);
+sCons* mcons(U32 car, U32 cdr);
+sCons* mins(sCons* after, sCons* it); 
+typedef U64 (*mapcfun)(U32 cons); // return 0 to continue; val exits mapc
+U64 mapc(mapcfun fun,U32 list);
