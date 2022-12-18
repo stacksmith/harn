@@ -114,7 +114,7 @@ U32 dseg_append(U8* start,U64 size){
     memcpy(dest,start,size);
   else
     memset(dest,0,size);
-  return PTR_U32(dest);
+  return THE_U32(dest);
 }
 
 void dseg_align8(){
@@ -130,7 +130,7 @@ U32 cseg_prepend(U8* start,U64 size){
   } else {
     memset(dest,0,size);
   } 
-  return PTR_U32(dest);
+  return THE_U32(dest);
 }
 
 

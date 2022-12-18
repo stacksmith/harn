@@ -9,15 +9,22 @@
 	global bits_cnt
 	global bits_next_ref	;
 	global bits_reref	; replace old ref to new ref
-	global bits_fixdown     ; replace refs above hole down by ecx
-	global bits_hole	; delete a piece of a segment and rel
-
+	global bits_drop	; delete a piece of a segment and rel
+	global bits_fix_lo      ; replace refs above hole down by ecx
+	global bits_fix_hi
+	global bits_fix_meta
+;;;--------------------------------------------------------------------------------
+;;; bits_set                    Set a zero followed by specified number of bits
+;;;
+;;; We make inherent assumptions that count is reasonable, and that the rel table
+;;; is correctly set to 0 at the site.
+;;; 
 ;;; rdi = addr
 ;;; rsi = cnt
 bits_set:
 	xor	eax,eax
-.loop:	bts 	[rax],rdi
-	inc 	rdi
+.loop:	inc 	rdi
+	bts 	[rax],rdi
 	dec 	rsi
 	jnz	.loop
 	ret
@@ -28,90 +35,33 @@ bit_test:
 	bt	[rax],rdi
 	sbb	eax,eax
 	ret
-;;; rdi = addr
-bits_cnt:
-	dec	rdi		;previous bit must be 0!
-	xor	esi,esi		;esi = base (0)
-	bt  	[rsi],rdi
-	sbb	eax,eax		;-1 if error
-	js      .x              ;if set, we are done, -1=error!
-.loop:	
-	inc	rdi		;next bit.
-	inc	eax		;+1, one ahead
-	bt	[rdi],rsi
-	jc	.loop
-	dec	eax            	;we were at +1, so fix it
-.x:	ret
 
 	
 ;;; edi = addr of top+1,   	;used as bit 
 ;;; esi = addr of bottom
-;;; return: high=cnt low=bits at reference
+;;; edx = ptr (address of reference)
+;;; ecx = 0
+;;; return: count of 1's
 bits_next_ref:
 	xor	eax,eax		;eax = bit counter
-	xor	edx,edx		;edx = base(0);
-	
-.loop:	dec	edi
+	xor	ecx,ecx		;edx = base(0);
+
+.loop:	dec	edi		;next reference
 	cmp	edi,esi
-	je      .done          	;if offset is 0, exit with 0
-	bt	[rdx],rdi
+	js      .done          	;exit when below bottom
+	
+	bt	[rcx],rdi     
 	jnc	.loop
  
 	;; got a 1!  now count
-.loop1:	inc	eax
+.loop1:	inc	eax             ; count the bit
 	dec     edi             ; previous bit
-	bt	[rdx],rdi
+	bt	[rcx],rdi      
 	jc	.loop1
-	shl	rax,32		; put count into high dword
-	inc	edi 		; point at actual ref
-	or	rax,rdi		; put offset into low dword;
+	mov	[rdx],edi	;set caller's pointer
 .done:
 	ret
 	
-;;; edi = addr of top+1,   	;used as bit 
-;;; esi = addr of bottom
-;;; edx = old
-;;; ecx = new
-;;;
-%if 0
-bits_reref:
-
-	push	rbx
-	sub	rcx,rdx         ;compute fixup difference, S64
-.loop0:	xor	eax,eax		;eax = bit counter
-	xor	ebx,ebx		;edx = base(0);
-.loop:	dec	edi		;scan bits down, until
-	cmp	edi,esi        	;the very bottom
-	je      .done          	;if offset is 0, exit with 0
-	bt	[rbx],rdi       ;testing bits
-	jnc	.loop           ;skipping 0 bits
-
- 	;; got a 1!  now count
-.loop1:	inc	eax
-	dec     edi             ; previous bit
-	bt	[rbx],rdi
-	jc	.loop1
-	inc	edi 		; point at actual ref
-	dec	eax
-	jnz	.large
-;;; 32-bit offset relocation
-	mov	ebx,[rdi]	;load 32-bit offset
-	lea	ebx,[rbx+rdi+4] ;convert to pointer
-	cmp	ebx,edx
-	jne	.loop0		;go back to loop, but reset ebx
-	add	[rdi],ecx	;fixup
-	jmp	.loop0
-;;; 64-bit relocation; edi = address  edx = old
-.large: cmp	[rdi],rdx       ;pointing at old?
-	jne	.loop0		;no match, go back to loop
-	add	[rdi],rcx       ;fixup
-	jmp	.loop0
-
-.done:	pop	rbx
-	ret
-%endif
-
-
 ;;; edi = addr of top+1,   	;work pointer
 ;;; esi = addr of bottom        ;limit 
 ;;; edx = old
@@ -119,131 +69,61 @@ bits_reref:
 bits_reref:
 	 push	rbx             ;ebx = count of fixups
 	 xor	ebx,ebx
-	sub	rcx,rdx         ;compute fixup difference, S64
-	inc     edi		;we will immediately decrement twice...
-.loop0:	xor	eax,eax		;eax = base(0);
-.loop1:	dec     edi				
-.loop:	dec	edi		;scan bits down, until
+	sub	ecx,edx         ;compute fixup difference, S64
+	jmp	.loop0
+
+.one:	mov	eax,[rdi]	;load 32-bit offset
+	lea	eax,[rax+rdi+4] ;convert to abs32
+.loopx:	cmp	rax,rdx         ;match?  Check all 64 bits...
+	jne	.loop0		;go back to loop; skip this 1 and prev 0
+	inc     ebx             ;increment fixup count
+	add	[rdi],ecx       ;fixup
+.loop0: xor	eax,eax		;Jump here to clear eaeax = base(0);
+.loop:	dec     edi
 	cmp	edi,esi        	;the very bottom
-	jb      .done          	;if offset is 0, exit with 0
+	js      .done          	;if offset is 0, exit with 0
 	bt	[rax],rdi       ;testing bits
 	jnc	.loop           ;skipping 0 bits
-
- 	;; got a 0-1 transition. !  now count
+ 	;; got a 1-0 transition.	
 	dec     edi
 	bt	[rax],rdi
-	jc	.notone
-	;a single bit was set.  Off32.
-.one:	inc    	edi		;point at first 1 bit again
-	mov	eax,[rdi]	;load 32-bit offset
-	lea	eax,[rax+rdi+4] ;convert to abs32
-	cmp	eax,edx
-	jne	.loop0		;go back to loop; skip this 1 and prev 0
-	add	[rdi],ecx	;fixup
-	dec	edi            	;
-	 inc	ebx
-	jmp	.loop0
-.done:
-	mov	eax,ebx 	;return number of fixes
-	pop	rbx
-	ret
-	
-.notone: dec	edi
-	bt	[rax],rdi	
-	jc      .three
-	
-.two:	;; 64-bit relocation; edi = address  edx = old
-	inc	edi
-	cmp	[rdi],rdx       ;pointing at old?
-	jne	.loop1		;no match, go back to loop (rax is 0);
-	add	[rdi],rcx       ;fixup
-	 inc	 ebx
-	jmp	.loop1
-	
-.three:;; 32-bit absolute; assuming next bit is 0; pointing at it.
-	cmp	[rdi],edx
-	jne	.loop0
-	add	[rdi],ecx
-	 inc    ebx
-	jmp	.loop0
-
-;;; FIXDOWN: upon deletion, we create a hole at edx, of ecx bytes.
-;;; once the hole is compacted, we need to drop all references to above
-;;; the hole by ecx...
-;;; edi = addr of top+1,   	;work pointer
-;;; esi = addr of bottom        ;limit 
-;;; edx = hole
-;;; ecx = size of hole (fixup amout)
-bits_fixdown:
-	 push	rbx             ;ebx = count of fixups
-	xor	ebx,ebx
-	inc     edi		;we will immediately decrement twice...
-.loop0:	xor	eax,eax		;eax = base(0);
-.loop1:	dec     edi				
-.loop:	dec	edi		;scan bits down, until
-	cmp	edi,esi        	;the very bottom
-	jb      .done          	;if offset is 0, exit with 0
-	bt	[rax],rdi       ;testing bits
-	jnc	.loop           ;skipping 0 bits
-
- 	;; got a 0-1 transition. !  now count
-	dec     edi             ;second bit below top 1
+	jnc	.one
+	dec	edi
 	bt	[rax],rdi
-	jc	.notone
-;;; Relative 32-bit offset is tricky: we need to check if the reference
-;;; crosses the hole.  Refs that are local to either side of the hole are
-;;; unchanged..
-.one:	inc    	edi		;point at first 1 bit again
-	cmp     edi,edx         ;is the reference site below or above?
-	mov	eax,[rdi]	;load 32-bit offset
-	lea	eax,[rax+rdi+4] ;convert to abs32
-	jb      .below
-.above:				;reference site is above...
-	cmp	eax,edx		;is target below?
-	jae	.loop0		;no, it's above, so no fixup here.
-	add	[rdi],ecx	;fixup: make neg offset less negative!
-	dec	edi            	;
- 	inc	ebx
-	jmp	.loop0
-.below:				;reference site is below hole;
-	cmp	eax,edx         ;is target above?
-	jb	.loop0		;no, it's below too, so no fixup.
-	sub	[rdi],ecx	;fixup: make pos offset less positive.
-	dec	edi            	;
- 	inc	ebx
-	jmp	.loop0
-.done:
-	mov	eax,ebx 	;return number of fixes
+	jnc	.two
+	dec	edi
+	bt	[rax],rdi
+	jnc	.three
+;;; more than three 1's, return -1.
+	sbb	ebx,ebx		;-1, since C is set...
+.done:	mov	eax,ebx 	;return number of fixes
 	pop	rbx
-	ret
-	
-.notone: dec	edi             ;point at third-down bit
-	bt	[rax],rdi	
-	jc      .three
-	
-.two:	;; 64-bit relocation; edi = address  edx = old
-	inc	edi
-	cmp	[rdi],rdx       ;pointing above hole?
-	jc	.loop1		;below hole, skip fixup
-	sub	[rdi],rcx       ;fixup
- 	inc	 ebx		;
-	jmp	.loop1
-;;; 	// ;; BROKEN! skip refs to segs other than hole segment
-.three:;; 32-bit absolute       ;pointing at third 1 bit,
-	cmp	[rdi],edx	;compare ref target with hole
-	jc	.loop0          ;below hole, skip fixup
-	cmp	[rdi],esi	
-	jc      .loop0          ;if outside of segment, skip
-	sub     [rdi],ecx
-	inc    ebx
-	jmp	.loop0 
+	ret	
 
+.two:;; 0 - 1 - 1 - 0   A32
+	mov	eax,[rdi]
+	jmp	.loopx
+	;; 0 - 1 - 1 - 1 - 0   A64 
+.three:	;; 64-bit relocation; edi = address  edx = old
+	mov	rax,[rdi]	;load entire 64-bit pointer
+	jmp	.loopx
+
+
+
+%if 0
+--------------------------------------------------------------------------------
+	DROP
+
+When an artifact is eliminated, the resulting hole must be removed, by dropping
+the entire area from the top of the hole to the end of the segment.	
+--------------------------------------------------------------------------------
+%endif
 
 ;;; edi = start of hole
 ;;; esi = end of hole
 ;;; edx = ?
-;;; ecx = byte count from end of hole to top of segment
-bits_hole:	
+;;; ecx = bytes to move
+bits_drop:	
 	push	rdi
 	push	rsi
 	push	rcx
@@ -255,36 +135,210 @@ bits_hole:
 	xor	eax,eax         ;fill top with 0s
 	rep     stosb
 ;;; Now, process rel
-	pop	rcx
-	pop	rsi
-	pop	rdi
-
-	shr	edi,3
+	pop	rcx		;restore count of bytes to move
+	shr	ecx,3           ;moving bits, not bytes
+	pop	rsi             ;source
 	shr	esi,3
-	shr	ecx,3
-
+	pop	rdi             ;destination
+	shr	edi,3
 
 	rep 	movsb		;edi points at new reltop, esi, old
-
-
 	mov	ecx,edx         ;hole size
 	shr	ecx,3      
 	xor	eax,eax         ;fill top with 0s
 	rep     stosb
 .x:
-	mov	eax,edx         ;return hole size
+	mov	eax,edx         ;return hole size / amount dropped by
 	ret
 %if 0
 --------------------------------------------------------------------------------
 	FIXDOWN
 
 An artifact is removed from a segment, creating a hole at haddr of size hsize.
-The hole is compacted by dropping the rest of the segment from haddr+hsize to 
-segment top down to haddr.  At this point, we need to fixup all absolute refs
-to artifacts above the hole, and all relative references that point across the	
-hole.
+The hole is compacted by dropping the rest of the segment down to the hole.
+The affected area, from the hole start to segment top is known as 'dropzone'.
 
+After a hole is compacted, the fixup is done in two stages:
+1) bits_fix_lo  to fix the area from bottom to dropzone.
+	* All refs into dropzone are fixed-up by -holesize.
+2) bits_fix_hi  to fix the dropzone itself.
+	* Absolute refs into dropzone are fixed by -holesize.
+	* Relative refs out of dropzone are fixed by +holesize.
 --------------------------------------------------------------------------------
+%endif
+	
+;;; fixdown_below:
+;;; 
+;;; Scan the area below the dropzone:
+;;; * absolute refs to dropped area	-size
+;;; * relative refs to dropped area	-size
+;;; * absolute refs outside	        unchanged
+;;; * relative refs outside             unchanged
+
+;;; * references to  hole < n < segment end   -size;
+	
+;;; edi = addr of top+1,   	;segment top
+;;; esi = addr of bottom        ;limit 
+;;; edx = hole                  ;dropzone start
+;;; ecx = size of hole (fixup amout)
+bits_fix_lo:
+	push	rbx             ;ebx = count of fixups
+	push	rbp
+	mov	ebp,edi		;ebp = segment top,dropzone end
+	mov	edi,edx 	;START: HOLE!
+	xor	ebx,ebx		;fixup count
+	jmp	.loop0
+	;; 0 - 1 - 0    R32
+.one:	mov	eax,[rdi]	;load 32-bit offset
+	lea	eax,[rax+rdi+4] ;convert to abs32
+.loopx:	cmp	rax,rdx         ;< dropzone start? skip.
+	jb	.loop0		;
+	cmp	rax,rbp		;>= dropzone end? skp.
+	jae	.loop0          ;
+	inc     ebx             ;increment fixup count
+	sub	[rdi],ecx       ;drop target
+	
+.loop0: xor	eax,eax		;Jump here to clear ea = base(0);
+.loop:	dec     edi
+	cmp	edi,esi        	;Operate down to segment bottom
+	js      .done          	;END: BOTTOM OF SEG!
+	bt	[rax],rdi       ;testing bits
+	jnc	.loop           ;skipping 0 bits; eax is 0
+ 	;; got a 1-0 transition.	
+	dec     edi
+	bt	[rax],rdi
+	jnc	.one
+	dec	edi
+	bt	[rax],rdi
+	jnc	.two
+	dec	edi
+	bt	[rax],rdi
+	jnc	.three
+;;; more than three 1's, return -1.
+	sbb	ebx,ebx		;-1, since C is set...
+.done:	mov	eax,ebx 	;return number of fixes
+	pop	rbp
+	pop	rbx
+	ret	
+
+.two:;; 0 - 1 - 1 - 0   A32
+	mov	eax,[rdi]	;rax = target... if in dropzone,
+	jmp	.loopx          ;will fix up there, same as rel.
+	
+.three:	;; 0 - 1 - 1 - 1 - 0   A64 
+	mov	rax,[rdi]	;load entire 64-bit pointer
+	jmp	.loopx
+;;; fixdown_high
+;;; Scan the area that was dropped:
+;;; * absolute refs to dropped area	-size
+;;; * relative refs to dropped area	unchanged
+;;; * absolute refs outside	        unchanged
+;;; * relative refs outside             +size
+	
+bits_fix_hi:	
+;;; edi = addr of top+1,   	;segment top
+;;; esi = unused
+;;; edx = hole
+;;; ecx = size of hole (fixup amout)
+	push	rbx             ;ebx = count of fixups
+	push	rbp
+	mov	ebp,edi		;ebp = segment top, dropzone end,
+				;START at dropzone end!
+	xor	ebp,ebp		;fixup count
+	jmp	.loop0
+	;; 0 - 1 - 0    R32     RELATIVE...
+.one:	mov	eax,[rdi]	;load 32-bit offset
+	lea	eax,[rax+rdi+4] ;convert to abs32
+.loopx:	cmp	rax,rdx         ;target < dropzone
+	jb	.fixpl		;fix by -holesize
+	cmp	rax,rbp		;target < segment end? 
+	jb	.loop0        
+.fixpl:	inc     ebx             ;increment fixup count
+	add	[rdi],ecx       ;make the offset smaller!
+	
+.loop0: xor	eax,eax		;Jump here to clear ea = base(0);
+.loop:	dec     edi
+	cmp	edi,edx        	;Operate down to dropzone bottom!
+	js      .done          	;if offset is 0, exit with 0
+	bt	[rax],rdi       ;testing bits
+	jnc	.loop           ;skipping 0 bits
+ 	;; got a 1-0 transition.  Now dispatch on number of bits.
+	dec     edi
+	bt	[rax],rdi
+	jnc	.one
+	dec	edi
+	bt	[rax],rdi
+	jnc	.two
+	dec	edi
+	bt	[rax],rdi
+	jnc	.three
+;;; more than three 1's, return -1.
+	sbb	ebx,ebx		;-1, since C is set...
+.done:	mov	eax,ebx 	;return number of fixes
+	pop	rbp
+	pop	rbx
+	ret	
+.three:	;; 0 - 1 - 1 - 1 - 0   A64 
+	mov	rax,[rdi]	;load entire 64-bit pointer
+	jmp	.abs		;same as A32
+.two:;; 0 - 1 - 1 - 0   A32
+	mov	eax,[rdi]
+.abs:	cmp	rax,rdx		;abs target < dropzone?
+	jb	.loopx          ; no action
+	cmp	rax,rbp         ;abs target > segment end?
+	jae	.loopx          ; no action
+	sub     [rdi],ecx       ;within drop zone, fix by -hole!
+	jmp	.loop0
+	
+
+%if 0
+--------------------------------------------------------------------------------
+The meta segment is a special case: metadata is in control of other segments...
+
+0100 refs mark link references - A32
+0110 refs mark artifact pointers - A32
+
+The act of deleting a header implies a deletion of its artifact, and the fixup
+can take care of both the local linkage _and_ the artifact pointers.
 
 %endif
+	
+bits_fix_meta:	
+;;; edi = addr of top+1,   	;segment top
+;;; esi = bottom                ;segment bottom
+;;; edx = hole
+;;; ecx = size of hole (fixup amout)
+;;; r8  = arthole
+;;; r9  = arthole size / fixup amount
+	
+	
+	push	rbx             ;ebx = count of fixups
+	xor	ebx,ebx		;fixup count
+	xor	eax,eax
+	dec	ebx		;
 
+.loopf: inc	ebx
+.loop:  dec	edi
+	cmp	edi,esi
+	js	.done
+	bt	[rax],rdi       ;testing bits
+	jnc	.loop
+	
+.bit:	dec	edi
+	bt	[rax],rdi       ; ? 1 0
+	jc	.art		
+				; 0 1 0 = link ref A32
+.link:	cmp	[rdi],edx	; compare reference to hole
+	jb	.loop           ; below? no action.
+	sub 	[rdi],ecx	; above hole? fixup by -size.
+	jmp	.loopf
+
+.done:	mov	eax,ebx		; return count of fixups
+	pop	rbx
+	ret
+				; 0 1 1 0 = artifact ref A32
+.art:	dec     edi
+	cmp	[rdi],r8d	;compare art pointer to arthole
+	jb	.loop
+	sub	[rdi],r9d	; above arthole? fixup
+	jmp	.loopf

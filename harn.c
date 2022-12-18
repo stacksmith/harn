@@ -74,16 +74,10 @@ int main(int argc, char **argv){
   //meta must be first, otherwise REL_FLAG will crap out
   psMeta = seg_alloc(0x10000000,(void*)SMETA_BASE,PROT_READ|PROT_WRITE);
   seg_reset(psMeta);
-  psMeta->fill+=8; // SRCH_LIST at +8, 4 bytes
-  REL_FLAG = 1;    // REL_FLAG  at +C, 4 bytes
-  seg_rel_mark(psMeta, psMeta->fill-16 ,3); // mark the fill 
-  SRCH_LIST = 0;
-  seg_rel_mark(psMeta, psMeta->fill-8 ,3); // mark srch_list
 
   aseg_alloc();
-
-  
   aseg_dump();
+
   src_init();      // open source files and setup buffers
 
   sSym* pk = pk_from_libtxt("libc","libc.txt");

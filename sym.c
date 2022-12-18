@@ -37,8 +37,8 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   U32 uptr = (U32)(U64)bptr;
   sSym* p = (sSym*)bptr;
   
-  seg_rel_mark(psMeta,uptr+0,3); // next pointer is a 32-bit pointer
-  seg_rel_mark(psMeta,uptr+8,3); // data pointer is a 32-bit pointer
+  seg_rel_mark(psMeta,uptr+0,1); // next pointer is a 32-bit pointer
+  seg_rel_mark(psMeta,uptr+8,2); // data pointer is a 32-bit pointer
 
   seg_align(psMeta,8);
   p->hash = string_hash(name);
@@ -57,32 +57,36 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
 }
 
 U32 sym_delete(sSym* prev){ 
-  printf("2. prev: %p, next %08x\n",prev,prev->next);
+printf("2. prev: %p, next %08x\n",prev,prev->next);
   sSym* sym = U32_SYM(prev->next);  //symbol we are actually deleting
-  printf("3. prev: %p, next %08x\n",prev,prev->next);
+printf("3. prev: %p, next %08x\n",prev,prev->next);
 
-  prev->next = sym->next; //unlink
-
-  U32 size = sym->octs << 3; //size of the hole!
-  U32 end = PTR_U32(sym)+size;
+  prev->next = sym->next;    //unlink symbol
+  // before the symbol disappears, read the data stored therein...
+  U32 symU32 = THE_U32(sym);
+  U32 symsize = sym->octs << 3;  // size of the hole, in bytes
+  U32 symend = symU32 + symsize; // alignment inherent
+  // artifact bounds
   U32 art = sym->art;
   U32 artsize = 0xFFFFFFF8 & (sym->size + 7);
-
-  printf("size %08x; end %08x\n",size,end);
-
-  printf("sym_delete(%08x,%08x,%08x,%08x)\n",
-	 PTR_U32(sym), end, 0, psMeta->fill-end);
+printf("symsize %08x; end %08x\n",symsize, symend);
+printf("bits_drop(%08x,%08x,%08x,%08x)\n",
+	 symU32, symend, 0, psMeta->fill - symend);
+  // drop in meta, eliminating the symbol
+  U32 ret = bits_drop(symU32, symend, 0, psMeta->fill - symend);
+printf("sym_delete got %08X\n",ret);
+  // now fix meta
+printf("bits_fix_meta(%08x,%08x, sym:%08x,%08x, art:%08x,%08x)\n"
+       ,psMeta->fill-symsize, THE_U32(psMeta),
+       symU32, symsize,
+       art, artsize);
   
-  U32 ret = bits_hole( PTR_U32(sym), end, 0, psMeta->fill - end);
-  printf("sym_delete got %08X\n",ret);
-  //  psMeta->fill -= ret;
-  
-  printf("bits_fixdown(%08x,%08x,%08x,%08x)\n"
-	 , psMeta->fill,PTR_U32(psMeta), PTR_U32(sym),size);
-  
-  ret = bits_fixdown(psMeta->fill,PTR_U32(psMeta), PTR_U32(sym),size);
-  printf("bits_fixdown on meta got %08X\n",ret);
-
+ ret = bits_fix_meta(psMeta->fill - symsize, // because we dropped by that
+		     THE_U32(psMeta),
+		     symU32, symsize,
+		     art, artsize);
+  printf("bits_fix_meta on meta got %08X\n",ret);
+  /*
 
   {
  printf("\nfixdown is broken!  It must only fix within the segment!\n\n");
@@ -113,7 +117,8 @@ U32 sym_delete(sSym* prev){
     
 
   }
-  return size;
+  */
+  return symsize;
 }
 
 /*

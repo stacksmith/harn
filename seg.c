@@ -59,9 +59,24 @@ sSeg* seg_alloc(U64 req_size, void* req_addr, U32 prot){
 
   return psg;
 }
+/* -------------------------------------------------------------
+Metaseg has some system variables (each 32 bits long)
+0 fill      A32  fill pointer
+4 top       --   top of segment
+8 srchlist  A32  link to search path
+C rel_flag  --   relocation control
+
+---------------------------------------------------------------*/
+
 void seg_reset(sSeg* psg){
-  psg->fill = (U32)(U64)psg + 8;
-  seg_rel_mark(psg, (U32)(U64)psg ,3); // mark the fill as a 32-bit ptr
+
+  U32 base = THE_U32(psg);
+  psg->fill = base + 16;
+  psg->srchlist = 0;
+  psg->rel_flag = 1;
+  
+  seg_rel_mark(psg, base + 0, 1); // fill  A32, local/link-like
+  seg_rel_mark(psg, base + 8, 1); // fill  A32, local/link
 }
 
 void seg_serialize(sSeg* psg,FILE* f){
@@ -131,19 +146,22 @@ U8* seg_append(sSeg* psg,U8* start,U64 size){
 ----------------------------------------------------------------------------*/
 
 
-/* ------------------------------------------------------------- */
+/* ------------------------------------------------------------- 
+seg_rel_mark
+
+We support two kinds of refs:
+1 = link A32
+2 = artptr A32
+
+*/
+
 void seg_rel_mark(sSeg* psg,U32 pos,U32 kind){
   if(REL_FLAG){
     if( (pos<(U32)(U64)psg) || (pos >= psg->fill)){
       printf("seg_rel_mark: pos %08X is out of bounds\n",pos);
       exit(1);
     }
-    if(kind>3){
-      printf("seg_rel_mark: kind %d is out of bounds\n",kind);
-      exit(1);
-    }
-
-    bits_set(pos, kind);
+    bits_set(pos, kind);  
   }
 }
 #include "util.h"

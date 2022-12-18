@@ -255,25 +255,33 @@ void repl_expr(char*p){
   fputs("\n}\n",f);
   fclose(f);
 
+  REL_FLAG = 0;     // turn off relocation, as we shall erase this ASAP
+  U32 end  = CFILL; // code segment goes down!
+
   sElf* pelf = rebuild("commandline",1);
   if(!pelf) return;
-  REL_FLAG = 0;
-  U32 here = CFILL;
   U32 addr = (U32)ing_elf_func(pelf); // don't care about size
-  REL_FLAG = 1;
   elf_delete(pelf);
-  
+
+  U32 start  = CFILL;
+  REL_FLAG = 1;
+
   hd(PTR(U8*,addr),4);
+
   if(addr){
     fpreplfun entry = (fpreplfun)(U64)(addr);
     (*entry)(p);
-    memset(entry,0,here-addr);
-    CFILL = here;
   }
+  CFILL = end;
+  memset(PTR(U8*,start),0,end-start);
+
+
+
 }
 
 void repl_dump(char*p){
   U64 addr = strtol(p,0,16);
+  printf("addr is %08lX\n",addr);
   if(addr<0xFFFFFFFF){
     hd((void*)addr,4);
   }

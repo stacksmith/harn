@@ -6,5 +6,14 @@ extern U32 bits_cnt(U64 bit);
 extern U64 bits_next_ref(U32 top,U32 bottom);
 
 extern U32 bits_reref(U32 top,U32 bottom,U32 old,U32 new);
-extern U32 bits_fixdown(U32 top,U32 bottom,U32 hole,U32 size);
-extern U32 bits_hole(U32 start,U32 end,U32 unused,U32 top);
+extern U32 bits_drop(U32 start,U32 end,U32 unused,U32 count);
+
+// After a drop:
+// fixup area below dropzone (hole to bottom)
+extern U32 bits_fix_lo(U32 top,U32 bottom,U32 hole,U32 size);
+// fixup area above dropzone (top to hole)
+extern U32 bits_fix_hi(U32 top,U32 unused,U32 hole,U32 size);
+// fixup a hole in the meta segment (special!)
+extern U32 bits_fix_meta(U32 top, U32 bottom,
+			 U32 hole,U32 size,
+			 U32 arthole, U32 artholesize);

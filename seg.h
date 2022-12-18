@@ -7,6 +7,8 @@ A fillable area for code or data
 typedef struct sSeg {
   U32 fill;
   U32 end;
+  U32 srchlist;
+  U32 rel_flag; 
 } sSeg;
 
 // check which seg
