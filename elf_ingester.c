@@ -45,9 +45,12 @@ U32 ing_elf_code_sec(sElf*pelf,U32 isec){
  return: symb
 -----------------------------------------------------------------------------*/
 U64 ing_elf_func(sElf*pelf){
-  U32 end = *CFILL_ADDR;
-  // there maybe rodata.  Bring it in first as we are going backwards.
   cseg_align8(); // align data seg for new data object
+  //now bring in the unique function  
+  Elf64_Sym* psym = pelf->unique;
+  U32 codesec = psym->st_shndx;
+  U32 addr = ing_elf_code_sec(pelf,codesec); 
+  // there maybe rodata.  Bring it in.
   U32 strsec = elf_find_section(pelf,".rodata.str1.1");
   if(strsec) {
 #ifdef DEBUG
@@ -55,10 +58,9 @@ U64 ing_elf_func(sElf*pelf){
 #endif
     ing_elf_code_sec(pelf,strsec); //TODO
   }
-  //now bring in the unique function  
-  Elf64_Sym* psym = pelf->unique;
-  U32 codesec = psym->st_shndx;
-  U32 addr = ing_elf_code_sec(pelf,codesec); //TODO
+  U32 end = CFILL;
+  cseg_align8();  
+
   U32 unresolved = elf_resolve_symbols(pelf,find_global);
   if(unresolved)
     return 0;
@@ -73,7 +75,7 @@ U64 ing_elf_func(sElf*pelf){
   // codesec+1 may be its relocations... If not, no harm done.
   elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc);
   
-  cseg_align8();
+
   return (((U64)(end-addr))<<32) | addr;
   
 }
