@@ -122,13 +122,14 @@ void cseg_align8(){
                                  perform fixups within asegs.
 
 ----------------------------------------------------------------------------*/
-
+#include "util.h"
 U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
   U32 ret = 0;
   U32 dz_target = dz_start - fixup;
   // fix the dropzone itself
+  //  hd(PTR(U8*,0x40000e40),4);
   ret += bits_fix_inside(dz_end, dz_start, // top, bottom
-			 dz_end, fixup); // 
+			 fixup); // 
   // fix the bottom part of dropzone segment, target downto base.
   ret += bits_fix_outside(dz_target, SEG_BITS(dz_start),  
 			  dz_start, dz_end, fixup); // dropzone bounds
@@ -136,7 +137,8 @@ U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
   ret += bits_fix_outside(other_end, SEG_BITS(other_end), 
 			  dz_start, dz_end, fixup); // dropzone bounds
   // drop the dropzone; fill with 0.
-  bits_drop(dz_target, dz_start, 0, fixup);
+  bits_drop(dz_target, dz_start, dz_end-dz_start);
+  //  hd(PTR(U8*,0x40000e40),4);
 
   return ret;
   
@@ -144,6 +146,7 @@ U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
 /*----------------------------------------------------------------------------
   aseg_reref                    Fix all refs to old, point them at new.
 
+Notably, mseg is not affected
 ----------------------------------------------------------------------------*/
 
 U32 aseg_reref(U32 old, U32 new){

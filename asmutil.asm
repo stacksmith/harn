@@ -126,17 +126,17 @@ the entire area from the top of the hole to the end of the segment.
 
 ;;; edi = start of hole
 ;;; esi = end of hole
-;;; edx = ?
-;;; ecx = bytes to move
-bits_drop:	
+;;; edx =  bytes to move
+bits_drop:
+	mov     ecx,edx        	;count
 	push	rdi
 	push	rsi
 	push	rcx
 
 	rep 	movsb		;edi points to new top; esi, old top
 	mov	ecx,esi
-	sub	ecx,edi	        ;ecx = size of hole
-	mov     edx,ecx         ;edx = size of hole, keep it around 
+	sub	ecx,edi	        ;ecx = byte size of hole, for wiping
+	mov     edx,ecx         ;edx = byte size of hole
 	xor	eax,eax         ;fill top with 0s
 	rep     stosb
 ;;; Now, process rel
@@ -153,7 +153,7 @@ bits_drop:
 	xor	eax,eax         ;fill top with 0s
 	rep     stosb
 .x:
-	mov	eax,edx         ;return hole size / amount dropped by
+	;; 	mov	eax,edx         ;return hole size / amount dropped by
 	ret
 
 %if 0
@@ -167,7 +167,7 @@ can take care of both the local linkage _and_ the artifact pointers.
 %endif
 	
 bits_fix_meta:	
-;;; edi = region top+1 ;region bottom is always top & 0xCFFFFFFF
+;;; edi = region top+1 ;region bottom is always top & 0xC00000000
 ;;; esi = metazone start 
 ;;; edx = metazone drop/fixup
 ;;; ecx = artzone start (before drop)
@@ -182,9 +182,9 @@ bits_fix_meta:
 	cmp	edi,0xC0000000
 	js	.done
 	bt	[rax],rdi       ;testing bits
-	jnc	.loop		; 0 1 1 0 is the only ref allowed...
-	dec	edi		;
-	dec	edi
+	jnc	.loop		;     1 0 proven
+	dec	edi		;   1 1 0 assumed!
+	dec	edi             ; 0 1 1 0 assumed
 				;
 ;;; %if 0
 	mov	ebx,r9d		;prepare to drop by artzone drop
@@ -193,7 +193,6 @@ bits_fix_meta:
 	cmp	[rdi],r8d       ;> artzone top?
 	cmova   rbx,rax         ;adjust by 0
 	cmp     [rdi],esi       ;> metazone start
-
 	cmovae  rbx,rdx         ;adjust by meta fixup.
 	sub	[rdi],ebx	;fix this artifact pointer by drop or 0
 
@@ -202,12 +201,11 @@ bits_fix_meta:
 	setnz	bl
 	and	ebx,1		;if fixup,1; otherwise 0
 	add	ebp,ebx
+	
 	dec	edi
 	jmp     .loop
 
 .done:	mov	eax,ebp
-
-
 	pop	rbp
 	pop	rbx
 	ret
@@ -289,12 +287,13 @@ perform the following fixup:
 	;; 
  edi = region top+1,   (before drop), dropzone
  esi = region bottom   (before drop) 
- edx = region_top+1
- ecx = fixup */
- r8  = fixup */
+ edx = fixup
+*/
+
 %endif
 bits_fix_inside:	
 	push	rbx             ;ebx = count of fixups
+	mov     ecx,edi         ;ecx = constant top of range
 	xor	ebx,ebx		;fixup count
 	jmp	.loop0
 	;; 0 - 1 - 0    R32     RELATIVE...
@@ -302,10 +301,10 @@ bits_fix_inside:
 	lea	eax,[rax+rdi+4] ;convert to abs32
 .loopx:	cmp	rax,rsi         ;target < dropzone bottom
 	jb	.fixpl		;fix by +holesize (outside!)
-	cmp	rax,rdx		;target >= dropzone? 
+	cmp	rax,rcx		;target >= dropzone? 
 	jb	.loop0          ; = should not really happen!
 .fixpl:	inc     ebx             ;increment fixup count
-	add	[rdi],ecx       ;make the offset larger
+	add	[rdi],edx       ;make the offset larger
 	
 .loop0: xor	eax,eax		;Jump here to clear ea = base(0);
 .loop:	dec     edi
@@ -336,8 +335,8 @@ bits_fix_inside:
 	;; fix abs references into the dropzone by -fixup
 .abs:	cmp	rax,rsi		;abs target < dropzone?
 	jb	.loop0          ; no action
-	cmp	rax,rdx         ;abs target >= dropzone?
+	cmp	rax,rcx         ;abs target >= dropzone?
 	jae	.loop0          ; no action
-	sub     [rdi],ecx       ;within drop zone, fix by -hole!
+	sub     [rdi],edx       ;within drop zone, fix by -hole!
 	jmp	.loop0
 

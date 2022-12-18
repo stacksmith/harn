@@ -38,17 +38,15 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   return p;
 }
 /*----------------------------------------------------------------------------
-  sym_delete                  delete a symbol.
+  sym_delete                  delete an unlinked symbol, whose artifacts are
+                              free from refs
 
-In order to unlink sym, we need the symbol that comes before it in the search
-known as prev!
 
 ----------------------------------------------------------------------------*/
 #include "aseg.h"
-U32 sym_delete(sCons* prev){ 
-  printf("sym.delete.. prev: %p, next %08x\n",prev,prev->cdr);
-  sSym* sym = U32_SYM(prev->cdr);  //symbol we are actually deleting
-  prev->cdr = sym->cdr;    //unlink symbol
+U32 sym_delete(sSym* sym){
+  printf("sym_delete %p\n",sym);
+  sym_dump1(sym);
   // before the symbol disappears, read the data stored therein...
   U32 symU32 = THE_U32(sym);
   U32 symsize = sym->octs << 3;  // size of the hole, in bytes
@@ -61,34 +59,34 @@ U32 sym_delete(sCons* prev){
   U32 artend;                   // end of art dropzone segment
   U32 otherend;                 // end of other segment
   U32 mtop = MFILL;             
-   if(IN_DATA_SEG(art)){
+  if(IN_DATA_SEG(art)){
     artend =  DFILL;
     otherend = CFILL;
   } else {
     artend = CFILL;
     otherend = DFILL;
   }
-   printf("will delete %08x to %08x\n",symU32,symend);  
-
-   //   hd(sym,4);
-   //printf("bits_fix_meta(top:%08x, hole: %08x, fix:%08x,\n artz:%08x,artend:%08x,artfix:%08x)\n",  mtop,symend,symsize,  artzone,artend,artsize);
+  printf("will delete %08x to %08x\n",symU32,symend);  
+  printf("  art: %08x, %08x\n",art,artsize);
+  hd(sym,4);
+  printf("bits_fix_meta(top:%08x, hole: %08x, fix:%08x,\n artz:%08x,artend:%08x,artfix:%08x)\n",  mtop,symend,symsize,  artzone,artend,artsize);
  U32 ret = bits_fix_meta(mtop,
 			 symend, symsize,
 			 artzone,artend,artsize);
- //  printf("%08X fixups\n",ret);
- //  hd(sym,4);
+   printf("%08X fixups\n",ret);
+   hd(sym,4);
   
-  //printf("symsize %08x; end %08x\n",symsize, symend);
- //  printf("bits_drop(%08x,%08x,%08x,%08x)\n",	 symU32, symend, 0, mtop - symend);
+ ///printf("symsize %08x; end %08x\n",symsize, symend);
+   printf("bits_drop(%08x,%08x,%08x)\n",	 symU32, symend,  mtop - symend);
   // drop in meta, eliminating the symbol
-  bits_drop(symU32, symend, 0, mtop - symend);
-  //printf("drop got %08X\n",ret);
+  bits_drop(symU32, symend,  mtop - symend);
+  printf("drop got %08X\n",ret);
   // printf("after drop before fix, prev->next is %08x\n",prev->next);
-  // hd(sym,4);
   // printf("bits_fix_meta: %08X fixups\n",ret);
 
   // printf("Requesting drop %08X, %08X\n",art,artsize);
-  //rintf("aseg_chomp(%08x,%08x,%08x, %08x)\n",	artzone, artend, artsize, otherend);
+
+  printf("aseg_chomp(%08x,%08x,%08x, %08x)\n",	artzone, artend, artsize, otherend);
   ret += aseg_delete(artzone, artend, artsize, otherend);
   return ret;
 }

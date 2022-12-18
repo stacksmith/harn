@@ -9,7 +9,7 @@ void foo(){
 #if (pass==1)
    puts("old");
 #else
-   puts("new");
+   puts("newest of them all");
 #endif
 }
 #endif

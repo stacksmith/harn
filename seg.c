@@ -233,3 +233,18 @@ U64 mapc(mapcfun fun,U32 list){
   return 0; 
 }
 */
+/*----------------------------------------------------------------------------
+  sym_delete                  delete an unlinked symbol, whose artifacts are
+                              free from refs
+
+
+----------------------------------------------------------------------------*/
+U32 temp(U32 dropzone, U32 fix, U32 artzone, U32 artend, U32 artsize){
+  U32 mfill = MFILL; // MFILL will be altered - keep original copy.
+  // prepare meta segment references for upcoming drop.
+  U32 ret = bits_fix_meta(mfill, dropzone, fix,
+			  artzone,artend,artsize);
+  //  dest: hole start   src:hole-end   bytes from hole_end to top
+  bits_drop(dropzone-fix, dropzone,  mfill-dropzone);
+  return ret;
+}

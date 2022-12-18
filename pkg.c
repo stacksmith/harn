@@ -247,6 +247,8 @@ void srch_list_push(sCons* pk){
                              a valid new symbol, or a valid replacement of
                              an old one (in which case, replace!)
 
+This is particularly tricky, as:
+
 ----------------------------------------------------------------------------*/
 void pk_incorporate(sSym* new){
   // do we already have a symbol with same name?  Hold onto it.
@@ -256,10 +258,12 @@ void pk_incorporate(sSym* new){
     printf("prev: %p, old: %p\n",prev,old);
     // replacing symbol must be in same seg
     if( (SEG_BITS(old->art)) == (SEG_BITS(new->art))){
-      pk_push_sym(PTR(sCons*,SRCH_LIST),new); //attach it so we don't lose it
+      new->cdr = old->cdr;   // relink new in the same place old was
+      prev->cdr = THE_U32(new);       // 
       U32 fixups = aseg_reref(old->art,new->art);
-      printf("%d old refs fixed\n",fixups);
-      fixups = sym_delete(prev);          //after relocations
+      printf("%d old refs fixed from %08X to %08X\n",fixups, old->art, new->art);
+      hd(PTR(void*,old->art),4);
+      fixups = sym_delete(old);       
       printf("%d gc fixups\n",fixups);
     } else {
       printf("!!! SEGMENT MISMATCH! TODO: FIX!!!!\n");
