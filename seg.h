@@ -16,7 +16,6 @@ typedef struct sSeg {
 
 void mseg_dump();
 void mseg_alloc();
-void mseg_reset();
 //void seg_serialize(sSeg* psg,FILE* f);
 //void seg_deserialize(sSeg* psg,FILE* f);
 
@@ -27,3 +26,5 @@ U8*  mseg_append(U8* start,U32 size);
 
 
 U32 seg_reref(sSeg*psg,U32 old,U32 new);
+
+sCons* mseg_cons(U32 car, U32 cdr);

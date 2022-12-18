@@ -1,3 +1,5 @@
+#ifndef SEG_COMMON_DEFS
+#define SEG_COMMON_DEFS
 /* ==============================================================
 
 Segments are at constant locations
@@ -50,3 +52,10 @@ Segments are at constant locations
 void rel_mark(U32 pos,U32 kind);
 
 void* seg_mmap(void* addr, U64 size, U64 PROT, char* which);
+
+typedef struct sCons {
+  U32 cdr;
+  U32 car;
+} sCons;
+
+#endif

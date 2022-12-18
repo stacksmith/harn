@@ -33,9 +33,7 @@ void mseg_dump(){
   printf("Segment %08X %08x\n",META_SEG_ADDR,MFILL);
 }
 
-void mseg_reset(){
 
-}
 /* -------------------------------------------------------------
    seg_alloc
 
@@ -201,8 +199,20 @@ U32 seg_reref(sSeg*psg,U32 old,U32 new){
   return bits_reref(MFILL, X32(psg), old, new);	 
 }
 /*----------------------------------------------------------------------------
-seg_del             Delete a portion of a segment
+
 ----------------------------------------------------------------------------*/
 
-
+sCons* mseg_cons(U32 car, U32 cdr){
+  sCons* ret;
+  U32* p = PTR(U32*,MFILL);
+  ret = (sCons*)p;
+  MFILL += 8;
+  rel_mark(THE_U32(p),2); // cdr is A32
+  *p++ = cdr;
+  rel_mark(THE_U32(p),2); // cdr is A32
+  *p++ = car;
+  return (sCons*)ret;
+}
   
+
+ 
