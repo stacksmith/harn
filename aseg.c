@@ -11,10 +11,10 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include <errno.h>
 
 #include "global.h"
 #include "asmutil.h"
+
 #include "aseg.h"
 
 /* ==============================================================
@@ -37,49 +37,26 @@ void aseg_dump(){
 
 ---------------------------------------------------------------*/
 void aseg_alloc(){
-  void err(char*what){
-    fprintf(stderr,"Error allocating %s seg: %d\n",what,errno);
-    exit(1);
-  }
 
-  // allocate code
-  void* pcode = mmap(PTR(void*,CODE_SEG_ADDR), CODE_SEG_SIZE,
-		     PROT_READ|PROT_WRITE|PROT_EXEC,
-		     0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
-		     0,0);
-  if(MAP_FAILED == pcode) err("code");
+  seg_mmap(PTR(void*,CODE_SEG_ADDR), CODE_SEG_SIZE,
+	   PROT_READ|PROT_WRITE|PROT_EXEC,"code");
 
-  void* prelc = mmap( PTR(void*,CODE_SEG_ADDR/8), CODE_SEG_SIZE/8,
-		     PROT_READ | PROT_WRITE,
-		     0x20 | MAP_SHARED | MAP_FIXED ,    //MAP_ANONYMOUS
-		     0,0);
-   if(MAP_FAILED == prelc) err("code-rel");
-
+  seg_mmap( PTR(void*,CODE_SEG_ADDR/8), CODE_SEG_SIZE/8,
+	    PROT_READ | PROT_WRITE,"code-rel");
+	    
+  seg_mmap(PTR(void*,DATA_SEG_ADDR), DATA_SEG_SIZE,
+	   PROT_READ|PROT_WRITE,"data");
   
-  void* pdata = mmap(PTR(void*,DATA_SEG_ADDR), DATA_SEG_SIZE,
-		     PROT_READ|PROT_WRITE,
-		     0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
-		     0,0);
-  if(MAP_FAILED == pdata) err("data");
- 
-  void* preld = mmap( PTR(void*,DATA_SEG_ADDR/8), DATA_SEG_SIZE/8,
-		     PROT_READ | PROT_WRITE,
-		     0x20 | MAP_SHARED | MAP_FIXED ,    //MAP_ANONYMOUS
-		     0,0);
-  
-  if(MAP_FAILED == preld) err("data-rel");
+  seg_mmap( PTR(void*,DATA_SEG_ADDR/8), DATA_SEG_SIZE/8,
+	    PROT_READ | PROT_WRITE,"data-rel");
 
   CFILL = CODE_SEG_ADDR;
   DFILL = DATA_SEG_ADDR+8;
 
-  rel_mark (DATA_SEG_ADDR,   3); //dfill A32
-  rel_mark (DATA_SEG_ADDR+4, 3); //cfill A32
+  rel_mark (THE_U32(DFILL_ADDR),  2); //dfill A32
+  rel_mark (THE_U32(CFILL_ADDR),  2); //cfill A32
 }
 /* ------------------------------------------------------------- */
-void rel_mark(U32 pos,U32 kind){
-  if(REL_FLAG)
-    bits_set(pos, kind);
-}
 
 /*
 void seg_serialize(sSeg* psg,FILE* f){

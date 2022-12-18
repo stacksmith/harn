@@ -30,16 +30,11 @@ A fillable area for code or data
 } sSeg;
 */
 void mseg_dump(){
-  printf("Segment %08X %08x\n",SMETA_BASE,MFILL);
+  printf("Segment %08X %08x\n",META_SEG_ADDR,MFILL);
 }
 
 void mseg_reset(){
-  MFILL = SMETA_BASE + 16;
-  SRCH_LIST = 0;
-  REL_FLAG = 1;
-  
-  rel_mark(THE_U32(MFILL_ADDR), 2); // fill  
-  rel_mark(THE_U32(SRCH_LIST_ADDR), 2); // srch_list
+
 }
 /* -------------------------------------------------------------
    seg_alloc
@@ -47,26 +42,17 @@ void mseg_reset(){
 ---------------------------------------------------------------*/
 void mseg_alloc(){
   // allocate data area
-  sSeg* psg = (sSeg*)mmap(PTR(void*,SMETA_BASE), SMETA_SIZE,
-			  PROT_READ|PROT_WRITE,
-			  0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
-			  0,0);
-  if(MAP_FAILED == psg){
-    fprintf(stderr,"Error allocating %08X seg: %d\n",SMETA_BASE,errno);
-    exit(1);
-  }
-  // allocate rel area
-  U8* prel =(U8*)mmap(PTR(void*,(SMETA_BASE/8)), SMETA_SIZE/8,
-		      PROT_READ | PROT_WRITE,
-		      0x20 | MAP_SHARED | MAP_FIXED ,    //MAP_ANONYMOUS
-		      0,0);
-  if(MAP_FAILED == prel){
-    fprintf(stderr,"Error allocating rel table at %08X seg: %d\n",SMETA_BASE/8,errno);
-    exit(1);
-  }
-  MTOP = SMETA_BASE + SMETA_SIZE;
+  seg_mmap(PTR(void*,META_SEG_ADDR), META_SEG_SIZE,
+	   PROT_READ|PROT_WRITE, "meta");
+  seg_mmap(PTR(void*,(META_SEG_ADDR/8)), META_SEG_SIZE/8,
+	   PROT_READ | PROT_WRITE,"meta-rel");
 
-  mseg_reset();
+  MFILL = META_SEG_ADDR + 16;
+  SRCH_LIST = 0;
+  REL_FLAG = 1;
+  
+  rel_mark(THE_U32(MFILL_ADDR), 2); // fill  
+  rel_mark(THE_U32(SRCH_LIST_ADDR), 2); // srch_list  
 }
 /* -------------------------------------------------------------
 Metaseg has some system variables (each 32 bits long)
@@ -114,17 +100,11 @@ seg_append  Append a run of bytes to the segment
 U8* mseg_append(U8* start,U32 size){
   U32 end = MFILL + size;
   U8* dest = PTR(U8*,MFILL);
-  if(end >= MTOP) {
-    mseg_dump();
-    fprintf(stderr,"seg_append failed: out of space\n");
-    exit(1);
-  } else {
-    MFILL = end;
-    if(start)
-      memcpy(dest,start,size);
-    else
-      memset(dest,0,size);
-  } 
+  MFILL = end;
+  if(start)
+    memcpy(dest,start,size);
+  else
+    memset(dest,0,size);
   return dest;
 }
 
