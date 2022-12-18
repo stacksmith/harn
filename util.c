@@ -45,15 +45,6 @@ U32 string_hash(char*p){
 }
 
 
-U32 string_hash1(void* ptr, char*str){
-  U32 hash = FNV_OFFSET_BASIS;
-  U8 c;
-  while((c=*str++)){
-    hash = (U32)((hash ^ c) * FNV_PRIME);
-  }
-  return hash;
-}
-
 
 
 typedef struct sFileMap {

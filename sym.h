@@ -35,3 +35,6 @@ void sym_dump1(sSym* sym);
 
 
 U32 sym_delete(sCons* sym);
+sSym* sym_wrap(char* name,U32 art, U32 size); // called by elf ingetsor
+
+

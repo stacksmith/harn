@@ -241,3 +241,31 @@ void srch_list_push(sCons* pk){
   pk->car = SRCH_LIST;  // next package;
   SRCH_LIST = THE_U32(pk);
 }
+
+/*----------------------------------------------------------------------------
+  pk_incorporate            Given a new, unlinked symbol, make sure it is
+                             a valid new symbol, or a valid replacement of
+                             an old one (in which case, replace!)
+
+----------------------------------------------------------------------------*/
+void pk_incorporate(sSym* new){
+  // do we already have a symbol with same name?  Hold onto it.
+  sCons* prev = pks_find_prev_hash0(PTR(sCons*,SRCH_LIST), new->hash);
+  if(prev) { // older version we are replacing?
+    sSym* old = PTR(sSym*,prev->cdr);
+    printf("prev: %p, old: %p\n",prev,old);
+    // replacing symbol must be in same seg
+    if( (SEG_BITS(old->art)) == (SEG_BITS(new->art))){
+      pk_push_sym(PTR(sCons*,SRCH_LIST),new); //attach it so we don't lose it
+      U32 fixups = aseg_reref(old->art,new->art);
+      printf("%d old refs fixed\n",fixups);
+      fixups = sym_delete(prev);          //after relocations
+      printf("%d gc fixups\n",fixups);
+    } else {
+      printf("!!! SEGMENT MISMATCH! TODO: FIX!!!!\n");
+      //segment mismatch..
+    }
+  } else {
+    pk_push_sym(PTR(sCons*,SRCH_LIST),new);   
+  }
+}

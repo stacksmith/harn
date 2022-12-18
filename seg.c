@@ -222,7 +222,7 @@ sCons* minsert(sCons* after, sCons* it){
 }
 
 
-
+/*
 U64 mapc(mapcfun fun,U32 list){
   U64 ret;
   while(list){
@@ -232,3 +232,4 @@ U64 mapc(mapcfun fun,U32 list){
   }
   return 0; 
 }
+*/

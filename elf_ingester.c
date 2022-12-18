@@ -44,7 +44,7 @@ U32 ing_elf_code_sec(sElf*pelf,U32 isec){
                        get prototype via auxinfo
  return: symb
 -----------------------------------------------------------------------------*/
-U64 ing_elf_func(sElf*pelf){
+sDataSize ing_elf_func(sElf*pelf){
   cseg_align8(); // align data seg for new data object
   //now bring in the unique function  
   Elf64_Sym* psym = pelf->unique;
@@ -63,7 +63,7 @@ U64 ing_elf_func(sElf*pelf){
 
   U32 unresolved = elf_resolve_symbols(pelf,find_global);
   if(unresolved)
-    return 0;
+    return (sDataSize){val:0};
     // Now that all ELF symbols are resolved, process the relocations.
   // for every reference, mark bits in our rel table.
   void relproc(U32 p,U32 kind){
@@ -75,8 +75,7 @@ U64 ing_elf_func(sElf*pelf){
   // codesec+1 may be its relocations... If not, no harm done.
   elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc);
   
-
-  return (((U64)(end-addr))<<32) | addr;
+  return (sDataSize){data:addr,size:end-addr};
   
 }
 /*----------------------------------------------------------------------------
@@ -104,7 +103,7 @@ U32 ing_elf_data_sec(sElf*pelf,U32 isec){
   return addr;
 }
 
-U64 ing_elf_data(sElf* pelf){
+sDataSize ing_elf_data(sElf* pelf){
   Elf64_Sym* psym = pelf->unique;
   // First, ingest the main data object and keep its address.
   dseg_align8(); // align data seg for new data object
@@ -126,13 +125,13 @@ U64 ing_elf_data(sElf* pelf){
 	psec->sh_addr = addr;
       }
     }
-    return 0; //all symbols
+    return 0;
   }
   elf_process_symbols(pelf,proc);
   // Now, resolve elf symbols; should be possible now.
   U32 unresolved = elf_resolve_symbols(pelf,find_global);
   if(unresolved)
-    return 0;
+    return (sDataSize){val:0};
   U64 size = DFILL - addr;
   
   // Now, process all relocations, fixing up the references, and setting
@@ -145,30 +144,25 @@ U64 ing_elf_data(sElf* pelf){
   }
   elf_apply_rels(pelf,relproc);
   dseg_align8();
-  return (size<<32) | addr;
+  return (sDataSize){data:addr,size};
 
 }
 
+/*----------------------------------------------------------------------------
+  ing_elf                              ingest an elf file, return a new
+                                       unlinked sSym
+
+This is a high-level routine which dispatches to ELF function or ELF data 
+ingestor which pulls code or data into a proper segment, returning bounds.
+We then create an unlinked symbol in the meta directory
 
 
 
-// create a sSym, with artifact bounds, source and proto set...
-sSym* ing_elf_sym(sElf* pelf,U64 bounds){
-  Elf64_Sym* psym=pelf->unique;
-  char* name = psym->st_name + pelf->str_sym;
-  U32 len;
-  U32   src = src_from_body(&len);
-  char* proto = 0;
-  if(ELF64_ST_TYPE(psym->st_info) == STT_FUNC){
-    proto = aux_proto();
-  }
-  sSym* ret = sym_new(name, bounds&0xFFFFFFFF, bounds>>32, src, proto);
-  free(proto);
-  return ret;
-}
+------------------------------------------------------------------------------*/
+extern sSym*sym_wrap(char* name,U32 art, U32 size);
 
 sSym* ing_elf(sElf* pelf){
-  U64 bounds;
+  sDataSize bounds;
   switch(ELF64_ST_TYPE(pelf->unique->st_info)){
   case STT_FUNC:
     bounds = ing_elf_func(pelf);
@@ -177,7 +171,11 @@ sSym* ing_elf(sElf* pelf){
     bounds = ing_elf_data(pelf);
     break;
   default:
+    elf_delete(pelf);
     return 0;
   }
-  return ing_elf_sym(pelf,bounds);
+  char* name = pelf->unique->st_name + pelf->str_sym;
+  sSym* sym = sym_wrap(name, bounds.data, bounds.size);
+  elf_delete(pelf);
+  return sym;
 }

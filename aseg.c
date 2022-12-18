@@ -118,12 +118,12 @@ void cseg_align8(){
   CFILL = (CFILL+7) & 0xFFFFFFF8;
 }
 /*----------------------------------------------------------------------------
-  aseg_chomp                     Delete an artifact; drop rest of segment;
+  aseg_delete                     Delete an artifact; drop rest of segment;
                                  perform fixups within asegs.
 
 ----------------------------------------------------------------------------*/
 
-U32 aseg_chomp(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
+U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
   U32 ret = 0;
   U32 dz_target = dz_start - fixup;
   // fix the dropzone itself
@@ -141,3 +141,16 @@ U32 aseg_chomp(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
   return ret;
   
 }
+/*----------------------------------------------------------------------------
+  aseg_reref                    Fix all refs to old, point them at new.
+
+----------------------------------------------------------------------------*/
+
+U32 aseg_reref(U32 old, U32 new){
+  // fix code segment refs
+  U32 fixcnt = bits_reref(CFILL, CODE_SEG_ADDR, old, new);
+  // fix data segment refs
+  fixcnt +=    bits_reref(DFILL, DATA_SEG_ADDR, old, new);
+  return fixcnt;
+}
+  

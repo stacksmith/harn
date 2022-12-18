@@ -57,7 +57,6 @@ void edit(char* name){
 }
 
 sElf* rebuild(char* name,U32 need_function){
-  printf("dumping protos\n");
   pks_dump_protos();
   char buf[256];
   sprintf(buf,"cd sys; ./build.sh %s",name);
@@ -68,6 +67,7 @@ sElf* rebuild(char* name,U32 need_function){
     return 0;
   }
   sprintf(buf,"sys/%s.o",name);
+
   sElf* pelf = elf_load(buf);
   if(!pelf->unique){
     printf("ing_elf: no unique global symbol\n");
@@ -81,92 +81,28 @@ sElf* rebuild(char* name,U32 need_function){
   }
   return pelf;
 }
-/*----------------------------------------------------------------------------
-replace-old-symbol
 
-We just compiled something and generated a new symbol (but haven't attached it
-to the pkg).
-* Remove old sym from meta segment.  GC the hole, fixing up only meta seg!
-* remove old artifact from its segment. fixup code and data.
-----------------------------------------------------------------------------*/
-
-void new_symbol(sSym* new){
-      // do we already have a symbol with same name?  Hold onto it.
-  sCons* prev = pks_find_prev_hash0(PTR(sCons*,SRCH_LIST), new->hash);
-  if(prev) { // older version we are replacing?
-    printf("old version exists\n");
-    sSym* old = PTR(sSym*,prev->cdr);
-    printf("prev: %p, old: %p\n",prev,old);
-    pk_push_sym(PTR(sCons*,SRCH_LIST),new);
-    sym_delete(prev);
-
-   
-
-#if 0
-    // first, make ssure it's in the same seg.
-    if( (SEG_BITS(old->art)) == (SEG_BITS(new->art))){
-      //	// yes, both are in the same seg.  Fix old refs
-      if(pkg == (sSym*)(U64)SRCH_LIST){
-	// rereference data and code segments
-	printf("xx\n");
-	//	U32 fixes = segs_reref(old->art, new->art);
-	printf("%d fixups\n",fixes);
-	// now remove the symbol in metadata
-	printf("1. prev: %p, next %08x\n",prev,prev->cdr);
-	U32 holesize = sym_delete(prev);
-	// shit is different places now!
-	new = U32_SYM( PTR_U32(new) - holesize);
-
-	pk_push_sym(U32_SYM(SRCH_LIST),new);
-	
-      } else {
-	printf("Old version is in %s, new in %s; abandoning\n",
-	       SYM_NAME(pkg), "package..");
-	//TODO: kill segment!
-      }
-    } else { // No, different segs.  Nothing good can come of it.
-      fprintf(stderr,"New one is in a different seg! Abandoning!\n");
-      //	    sym = pkg_drop_symb(pkgs); // drop new object from topmost pkg
-    }
-#endif
-  } else {// else a new symbol, no problem
-    //    printf("pushing symbol\n");
-    pk_push_sym(PTR(sCons*,SRCH_LIST),new);   
-  }
-}
 /*----------------------------------------------------------------------------
 compile
 
 ------------------------------------------------------------------------------*/
 
-sSym* compile(void){
+sSym* repl_compile(char*p){
   sSym* sym=0;
-  sElf* pelf = rebuild("unit",0);
-  if(!pelf){
-    printf("build aborted\n");
-    return 0;
+  {
+    sElf* pelf = rebuild("unit",0);
+    if(pelf)
+      sym = ing_elf(pelf);  //frees pelf!
   }
-  // load the entire ELF trainwreck
-  sym = ing_elf(pelf); 
 
   if(sym){ // OK, this means we are done with ingestion.
-    printf("Ingested %s: %s %d bytes\n",
-	   SYM_NAME(sym),sym_proto(sym),sym->size);
-    new_symbol(sym);
-
-  } else {
-    printf("ELF not ingested due to unresolved ELF symbols.\n");
-  }
-  elf_delete(pelf);
-  
-
-
+    printf("Ingested %s: %s %d bytes\n", SYM_NAME(sym),sym_proto(sym),sym->size);
+    pk_incorporate(sym);
+  } else 
+    printf("aborted.\n");
   return sym;
 }
 
-sSym* repl_compile(char*p){
-  return compile();
-}
 
 char linebuf[1024];
 

@@ -4,6 +4,7 @@
 #include <dlfcn.h>
 #include "global.h"
 #include "util.h"
+#include "src.h"
 #include "seg.h"
 #include "aseg.h" 
 
@@ -88,10 +89,8 @@ U32 sym_delete(sCons* prev){
 
   // printf("Requesting drop %08X, %08X\n",art,artsize);
   //rintf("aseg_chomp(%08x,%08x,%08x, %08x)\n",	artzone, artend, artsize, otherend);
- ret += aseg_chomp(artzone, artend, artsize, otherend);
- printf(" %08X fixups\n",ret);
- 
- return ret;
+  ret += aseg_delete(artzone, artend, artsize, otherend);
+  return ret;
 }
 
 /*
@@ -124,6 +123,26 @@ void sym_dump1(sSym* sym){
   printf("%p: %s:\t %08X %04X %s\n",sym,SYM_NAME(sym),sym->art, sym->size,sym_proto(sym));
 }
 /*----------------------------------------------------------------------------
+  sym_for_artifact            create a sSym for an artifact in aseg...
+
+This is called by ing_elf after ingesting the data.  Some assumptions:
+* sElf structure is still alive and contains the name (delete later!)
+* gcc invoked with '-aux-info info.txt'; last line is func prototype
+* compiled source for this artifact is in 'code.c'; will be absorbed.
 
 ----------------------------------------------------------------------------*/
+
+
+sSym* sym_wrap(char* name,U32 art, U32 size){
+  U32 srclen; //not used!
+  U32 src = src_from_body(&srclen);  // store source and get file offset
+  // if function, extract proto
+  char* proto = 0;
+  if(IN_CODE_SEG(art))
+    proto = aux_proto();    // allocated buffer with prototype from aux-info
+  // create a new symbol (proto is copied);
+  sSym* ret = sym_new(name, art, size, src, proto);
+  free(proto);
+  return ret;
+}
 

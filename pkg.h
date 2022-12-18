@@ -33,3 +33,5 @@ void pk_rebind(sCons* pk,char*dllpath);
 
 
 void srch_list_push(sCons* pk);
+
+void pk_incorporate(sSym* new); 

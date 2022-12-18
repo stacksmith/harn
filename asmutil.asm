@@ -61,23 +61,30 @@ bits_next_ref:
 	mov	[rdx],edi	;set caller's pointer
 .done:
 	ret
+%if 0
+--------------------------------------------------------------------------------
+	REREF               	Replace all references to old with new
+
 	
-;;; edi = addr of top+1,   	;work pointer
-;;; esi = addr of bottom        ;limit 
-;;; edx = old
-;;; ecx = new	 
+ edi = addr of top+1,   	;work pointer
+ esi = addr of bottom        ;limit 
+ edx = old
+ ecx = new	 
+--------------------------------------------------------------------------------
+%endif
 bits_reref:
 	 push	rbx             ;ebx = count of fixups
 	 xor	ebx,ebx
-	sub	ecx,edx         ;compute fixup difference, S64
+	sub	rcx,rdx         ;compute fixup difference, S64
 	jmp	.loop0
-
+;;; R32
 .one:	mov	eax,[rdi]	;load 32-bit offset
 	lea	eax,[rax+rdi+4] ;convert to abs32
-.loopx:	cmp	rax,rdx         ;match?  Check all 64 bits...
+.loopx:	cmp	rax,rdx         ;match?  Check all 64 bits (for A64)
 	jne	.loop0		;go back to loop; skip this 1 and prev 0
-	inc     ebx             ;increment fixup count
 	add	[rdi],ecx       ;fixup
+	inc     ebx             ;increment fixup count
+	
 .loop0: xor	eax,eax		;Jump here to clear eaeax = base(0);
 .loop:	dec     edi
 	cmp	edi,esi        	;the very bottom
@@ -87,7 +94,7 @@ bits_reref:
  	;; got a 1-0 transition.	
 	dec     edi
 	bt	[rax],rdi
-	jnc	.one
+	jnc	.one		; 0 1 0
 	dec	edi
 	bt	[rax],rdi
 	jnc	.two
@@ -99,13 +106,11 @@ bits_reref:
 .done:	mov	eax,ebx 	;return number of fixes
 	pop	rbx
 	ret	
-
-.two:;; 0 - 1 - 1 - 0   A32
-	mov	eax,[rdi]
+;; 0 - 1 - 1 - 0   A32
+.two:	mov	eax,[rdi]
 	jmp	.loopx
-	;; 0 - 1 - 1 - 1 - 0   A64 
-.three:	;; 64-bit relocation; edi = address  edx = old
-	mov	rax,[rdi]	;load entire 64-bit pointer
+;; 0 - 1 - 1 - 1 - 0   A64 
+.three:	mov	rax,[rdi]	;load entire 64-bit pointer
 	jmp	.loopx
 
 
