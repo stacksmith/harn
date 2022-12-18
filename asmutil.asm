@@ -10,8 +10,8 @@
 	global bits_next_ref	;
 	global bits_reref	; replace old ref to new ref
 	global bits_drop	; delete a piece of a segment and rel
-	global bits_fix_lo      ; replace refs above hole down by ecx
-	global bits_fix_hi
+	global bits_fix_inside      ; replace refs above hole down by ecx
+	global bits_fix_outside
 	global bits_fix_meta
 ;;;--------------------------------------------------------------------------------
 ;;; bits_set                    Set a zero followed by specified number of bits
@@ -230,8 +230,8 @@ bits_fix_outside:
 	lea	eax,[rax+rdi+4] ;convert to A32
 .loopx:	cmp	rax,rdx         ;< dropzone start? skip.
 	jb	.loop0		;
-	cmp	rax,rcx		;>= dropzone end?
-	jae	.loop0          ;
+	cmp	rax,rcx		;> dropzone end? skip.
+	ja	.loop0          ;= end? will fix up (FILLPTR!)
 	inc     ebx             ;increment fixup count
 	sub	[rdi],r8d       ;drop ref by fixup
 	
@@ -291,8 +291,8 @@ bits_fix_inside:
 	lea	eax,[rax+rdi+4] ;convert to abs32
 .loopx:	cmp	rax,rdx         ;target < dropzone
 	jb	.fixpl		;fix by +holesize (outside!)
-	cmp	rax,rcx		;target >= dropzone?
-	jb	.loop0          ;
+	cmp	rax,rcx		;target >= dropzone? 
+	jb	.loop0          ; = should not really happen!
 .fixpl:	inc     ebx             ;increment fixup count
 	add	[rdi],r8d       ;make the offset smaller!
 	

@@ -62,7 +62,7 @@ In order to unlink sym, we need the symbol that comes before it in the search
 known as prev!
 
 ----------------------------------------------------------------------------*/
-
+#include "aseg.h"
 U32 sym_delete(sSym* prev){ 
   //printf("2. prev: %p, next %08x\n",prev,prev->next);
   sSym* sym = U32_SYM(prev->next);  //symbol we are actually deleting
@@ -92,12 +92,19 @@ U32 sym_delete(sSym* prev){
  ret = bits_fix_meta(psMeta->fill - symsize, // because we dropped by that
 		     THE_U32(psMeta),
 		     symU32, symsize,
-		     //		     art, artsize);
-		     0xFFFFFFFF,0); // TODO: remove this! disables art fix
+		     art, artsize);
+		     
  
- //printf("bits_fix_meta on meta got %08X\n",ret);
+ printf("bits_fix_meta: %08X fixups\n",ret);
 
  printf("Requesting drop %08X, %08X\n",art,artsize);
+ ret = aseg_chomp(art,artsize);
+ printf("aseg_chomp: %08X fixups\n",ret);
+ 
+   
+ /*
+
+  */
 
 
  

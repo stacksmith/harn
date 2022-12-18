@@ -47,3 +47,4 @@ U32  cseg_append(U8* start,U64 size);
 
 void rel_mark(U32 pos,U32 kind);
 
+U32 aseg_chomp(U32 addr, U32 size);

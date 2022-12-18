@@ -290,7 +290,7 @@ void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
     break;
   case R_X86_64_64: //data, pointer
     *((U64*)p) = s + a;
-    (*proc)((U32)p,2); 
+    (*proc)((U32)p,3); 
 #ifdef DEBUG
     printf("Fixup: P:%lx A:%ld S:%lx S+A: %016lx\n",p,a,s,s+a);
 #endif
