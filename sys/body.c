@@ -1,6 +1,6 @@
 void foo(void){
 
-  printf("fucker\n");
+  printf("hello\n");
 
   
 }

@@ -17,6 +17,9 @@ typedef struct sSeg {
 
 
 #define SMETA_BASE 0xC0000000
+#define MTOP_ADDR ((U32*)0xC0000004)
+#define MTOP (*MTOP_ADDR)
+
 #define REL_FLAG (*(U32*)(U64)(0xC000000C))
 #define IN_DATA_SEG(addr) (0x80000000 == ((addr) & 0xC0000000))
 #define IN_CODE_SEG(addr) (0x40000000 == ((addr) & 0xC0000000))

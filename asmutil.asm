@@ -155,7 +155,6 @@ bits_drop:
 --------------------------------------------------------------------------------
 The meta segment is a special case: metadata is in control of other segments...
 
-0100 refs mark link references - A32
 0110 refs mark artifact pointers - A32
 
 The act of deleting a header implies a deletion of its artifact, and the fixup
@@ -163,44 +162,51 @@ can take care of both the local linkage _and_ the artifact pointers.
 %endif
 	
 bits_fix_meta:	
-;;; edi = addr of top+1,   	;segment top
-;;; esi = bottom                ;segment bottom
-;;; edx = hole
-;;; ecx = size of hole (fixup amout)
-;;; r8  = arthole
-;;; r9  = arthole size / fixup amount
-	
-	
-	push	rbx             ;ebx = count of fixups
-	xor	ebx,ebx		;fixup count
+;;; edi = region top+1 ;region bottom is always top & 0xCFFFFFFF
+;;; esi = metazone start 
+;;; edx = metazone drop/fixup
+;;; ecx = artzone start (before drop)
+;;; r8  = artzone end (before drop);
+;;; r9  = artzone drop
+	push    rbx             ;ebx used to synthesize fixup
+	push	rbp             ;ebp = count of fixups
+	xor	ebp,ebp		;fixup count
 	xor	eax,eax
-	dec	ebx		;
-
-.loopf: inc	ebx
-.loop:  dec	edi
-	cmp	edi,esi
+	
+.loop: 	dec	edi
+	cmp	edi,0xC0000000
 	js	.done
 	bt	[rax],rdi       ;testing bits
-	jnc	.loop
-	
-.bit:	dec	edi
-	bt	[rax],rdi       ; ? 1 0
-	jc	.art		
-				; 0 1 0 = link ref A32
-.link:	cmp	[rdi],edx	; compare reference to hole
-	jb	.loop           ; below? no action.
-	sub 	[rdi],ecx	; above hole? fixup by -size.
-	jmp	.loopf
+	jnc	.loop		; 0 1 1 0 is the only ref allowed...
+	dec	edi		;
+	dec	edi
+				;
+;;; %if 0
+	mov	ebx,r9d		;prepare to drop by artzone drop
+	cmp	[rdi],ecx	;<bottom?
+	cmovb	rbx,rax		;adjust by 0 (avoiding branches)
+	cmp	[rdi],r8d       ;> artzone top?
+	cmova   rbx,rax         ;adjust by 0
+	cmp     [rdi],esi       ;> metazone start
 
-.done:	mov	eax,ebx		; return count of fixups
+	cmovae  rbx,rdx         ;adjust by meta fixup.
+	sub	[rdi],ebx	;fix this artifact pointer by drop or 0
+
+
+	test 	ebx,ebx		;did we fixup?  TODO: do we really care?
+	setnz	bl
+	and	ebx,1		;if fixup,1; otherwise 0
+	add	ebp,ebx
+	dec	edi
+	jmp     .loop
+
+.done:	mov	eax,ebp
+
+
+	pop	rbp
 	pop	rbx
 	ret
-				; 0 1 1 0 = artifact ref A32
-.art:	dec     edi
-	cmp	[rdi],r8d	;compare art pointer to arthole
-	jb	.loop
-	sub	[rdi],r9d	; above arthole? fixup
-	jmp	.loopf
+
 
 %if 0
 /* -------------------------------------------------------------

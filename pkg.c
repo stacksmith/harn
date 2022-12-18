@@ -25,6 +25,7 @@ Note: this is the only time the artifact pointer refers to this, meta, segment!
 sSym* pk_new(char*name){
   return sym_new(name,0,0,0,0);
 }
+
 void pk_dump(sSym* pk){
   sSym*s = U32_SYM(pk->next);
   while(s){
@@ -64,14 +65,14 @@ void pk_dump_protos(sSym* pk,FILE* f){
   sSym*s = U32_SYM(pk->next);  //skip pk, next is it
   char* proto;
   while(s){
-    printf("pk_dump_protos: %p\n",s);
+    //    printf("pk_dump_protos: %p\n",s);
     proto = sym_proto(s);
-    printf("  proto is at %p\n",proto);
+    //    printf("  proto is at %p\n",proto);
     if(*proto){
       fprintf(f,"%s\n",proto);
     }
     s = U32_SYM(s->next);
-    printf("  next is %p\n",s);
+    // printf("  next is %p\n",s);
 
   }
 }
@@ -158,7 +159,6 @@ sSym* pk_from_libtxt(char* name,char*path){
   while((next = next_line(pc))){
     U32 addr = cseg_append(ljump,sizeof(ljump));
     cseg_align8();
-    aseg_dump();
     cseg_align8();
 
     rel_mark( addr+2, 3); // mark the 64-bit address

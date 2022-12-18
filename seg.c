@@ -75,8 +75,8 @@ void seg_reset(sSeg* psg){
   psg->srchlist = 0;
   psg->rel_flag = 1;
   
-  seg_rel_mark(psg, base + 0, 1); // fill  A32, local/link-like
-  seg_rel_mark(psg, base + 8, 1); // fill  A32, local/link
+  seg_rel_mark(psg, base + 0, 2); // fill  A32, local/link-like
+  seg_rel_mark(psg, base + 8, 2); // fill  A32, local/link
 }
 
 void seg_serialize(sSeg* psg,FILE* f){
@@ -239,10 +239,5 @@ U32 seg_reref(sSeg*psg,U32 old,U32 new){
 seg_del             Delete a portion of a segment
 ----------------------------------------------------------------------------*/
 
-void seg_del(sSeg*psg,U32 start,U32 end){
-  U32 bytes = psg->end - end;
-  memmove(PTR(void*,start), PTR(void*,end), bytes);
-  memmove(PTR(void*,start>>3), PTR(void*,end>>3), bytes>>3); 
 
-}
   

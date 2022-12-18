@@ -146,97 +146,23 @@ void cseg_align8(){
   aseg_chomp                     Delete an artifact; drop rest of segment;
                                  perform fixups within asegs.
 
-The segment in which the artifact is deleted must be processed in two steps:
-the area below the dropzone must be processed first, followed by the 
-area inside dropzone.
-
-The other segment must be processed using the outside code.
-
-
 ----------------------------------------------------------------------------*/
 
-U32 dseg_chomp(U32 addr, U32 size){
+U32 aseg_chomp(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
   U32 ret = 0;
-  // determine dropzone bounds, pre-drop
-  U32 dz_target = addr;
-  U32 dz_start  = addr + size;
-  U32 dz_end    = DFILL;                  
-  U32 dz_size   = dz_end - dz_start;
-  
-   // drop the dropzone; fill with 0.
-  bits_drop(dz_target, dz_start, 0, dz_size);
-  /*  
-  ret += bits_fix_inside(dz_target + dz_size, dz_target, // post-drop region
-		  dz_start,dz_end,                // pre-drop dropzone
-		  size);                          // fixup
-  */
-  ret += bits_fix_outside(dz_target, DATA_SEG_ADDR,  // region below drop
-		   dz_start,dz_end,           // refs to pre-drop dropzone
-		   size);                     // fixup by -size
-  // now fix code segment!
-  ret += bits_fix_outside(CFILL, CODE_SEG_ADDR,  // entire code segment
-			  dz_start,dz_end,       // refs to pre-drop dropzone
-			  size);                 // fixup by -size
+  U32 dz_target = dz_start - fixup;
+  // fix the dropzone itself
+  ret += bits_fix_inside(dz_end, dz_start, // top, bottom
+			 dz_end, fixup); // 
+  // fix the bottom part of dropzone segment, target downto base.
+  ret += bits_fix_outside(dz_target, SEG_BITS(dz_start),  
+			  dz_start, dz_end, fixup); // dropzone bounds
+  // now fix entire other segment,  top is provided, bottom is seg base.
+  ret += bits_fix_outside(other_end, SEG_BITS(other_end), 
+			  dz_start, dz_end, fixup); // dropzone bounds
+  // drop the dropzone; fill with 0.
+  bits_drop(dz_target, dz_start, 0, fixup);
+
   return ret;
   
 }
-#include "util.h"
-U32 cseg_chomp(U32 addr, U32 size){
-  U32 ret = 0;
-  // determine dropzone bounds, pre-drop
-  U32 dz_target = addr;
-  U32 dz_start  = addr + size;
-  U32 dz_end    = CFILL;                  
-  U32 dz_size   = dz_end - dz_start;
-
-hd(PTR(U8*,0x40000E40),4);
-printf("\n");
-
- printf("fix_inside(%08x,%08x,  %08x\n",
-	dz_end, dz_start,size);                          // fixup
-
- 
- ret += bits_fix_inside(dz_end,dz_start,  // pre-drop dropzone
-			dz_end,size);           // fixup
-
-printf("\ninside: %d\n",ret); hd(PTR(U8*,0x40000E40),4);
-
- printf("fix_outside(%08x,%08x, %08x,%08x, %08x\n",
-	dz_target, CODE_SEG_ADDR,  // region below drop
-	dz_start,dz_end,           // refs to pre-drop dropzone
-	size);                     // fixup by -size
-
-	
-  ret += bits_fix_outside(dz_target, CODE_SEG_ADDR,  // region below drop
-		   dz_start,dz_end,           // refs to pre-drop dropzone
-		   size);                     // fixup by -size
-  
-printf("\noutside:%d\n",ret); hd(PTR(U8*,0x40000E40),4);  
-
-  // now fix data segment!
-  ret += bits_fix_outside(DFILL, DATA_SEG_ADDR,  // entire code segment
-			  dz_start,dz_end,       // refs to pre-drop dropzone
-			  size);                 // fixup by -size
-printf("\n%ds:d\n",ret); hd(PTR(U8*,0x40000E40),4);  
-
-// drop the dropzone; fill with 0.
- printf("bit_drop(%08x,%08x, %d, %08x)\n",
-	dz_target, dz_start, 0, dz_size);
- bits_drop(dz_target, dz_start, 0, dz_size);
- printf("after drop:\n");
- hd(PTR(U8*,0x40000E40),4);
-
- 
-
-
- return ret;
-
-}
-U32 aseg_chomp(U32 addr, U32 size){
-  if(IN_DATA_SEG(addr))
-    return dseg_chomp(addr,size);
-  else
-    return cseg_chomp(addr,size);
-}
-
-    
