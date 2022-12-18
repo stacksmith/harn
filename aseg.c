@@ -143,6 +143,34 @@ U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup,  U32 other_end){
 
   return ret;
   
+}U32 aseg_delete1(U32 dz_start, U32 fixup){
+  U32 ret = 0;
+
+  U32 dz_end;                   // end of art dropzone segment
+  U32 otherend;                 // end of other segment
+  if(IN_DATA_SEG(dz_start)){
+    dz_end =  DFILL;
+    otherend = CFILL;
+  } else {
+    dz_end = CFILL;
+    otherend = DFILL;
+  }
+   U32 dz_target = dz_start - fixup;
+  // fix the dropzone itself
+  //  hd(PTR(U8*,0x40000e40),4);
+  ret += bits_fix_inside(dz_start, dz_end,  fixup); // 
+  // fix the bottom part of dropzone segment, target downto base.
+  ret += bits_fix_outside(dz_target, 
+			  dz_start, dz_end, fixup); // dropzone bounds
+  // now fix entire other segment,  top is provided, bottom is seg base.
+  ret += bits_fix_outside(otherend, 
+			  dz_start, dz_end, fixup); // dropzone bounds
+  // drop the dropzone; fill with 0.
+  bits_drop(dz_target, dz_start, dz_end-dz_start);
+  //  hd(PTR(U8*,0x40000e40),4);
+
+  return ret;
+  
 }
 /*----------------------------------------------------------------------------
   aseg_reref                    Fix all refs to old, point them at new.

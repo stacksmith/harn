@@ -108,7 +108,8 @@ U32 sym_del(sSym* sym){
   //                       
   U32 ret = mseg_delete(THE_U32(sym), SYM_BYTES(sym),
 			artzone, artend, artfix);
-  ret += aseg_delete(artzone, artend, artfix, otherend);
+  //  ret += aseg_delete(artzone, artend, artfix, otherend);
+  ret += aseg_delete1(artzone, artfix);
   return ret;
 }
 

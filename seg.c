@@ -239,6 +239,9 @@ U64 mapc(mapcfun fun,U32 list){
   sym_delete                  delete an unlinked symbol, whose artifacts are
                               free from refs
 
+ So it is my conjecture that in bits_fix_meta, artend is not really important;
+ above artzone requires fixup, and we just have to make sure we are still in
+ the art segment.
 
 ----------------------------------------------------------------------------*/
 U32 mseg_delete(U32 hole, U32 holesize,

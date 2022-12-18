@@ -29,4 +29,7 @@ U32  cseg_append(U8* start,U64 size);
 
 
 U32 aseg_delete(U32 dz_start, U32 dz_end, U32 fixup, U32 other_end);
+U32 aseg_delete1(U32 dz_start, U32 fixup);
+
+
 U32 aseg_reref(U32 old, U32 new);
