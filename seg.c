@@ -239,12 +239,15 @@ U64 mapc(mapcfun fun,U32 list){
 
 
 ----------------------------------------------------------------------------*/
-U32 temp(U32 dropzone, U32 fix, U32 artzone, U32 artend, U32 artsize){
+U32 mseg_delete(U32 hole, U32 holesize,
+		U32 artzone, U32 artend, U32 artfix){
+  //  U32 temp(U32 dropzone, U32 fix, U32 artzone, U32 artend, U32 artfix)
   U32 mfill = MFILL; // MFILL will be altered - keep original copy.
+  U32 dropzone = hole+holesize; // end of hole
   // prepare meta segment references for upcoming drop.
-  U32 ret = bits_fix_meta(mfill, dropzone, fix,
-			  artzone,artend,artsize);
-  //  dest: hole start   src:hole-end   bytes from hole_end to top
-  bits_drop(dropzone-fix, dropzone,  mfill-dropzone);
+  U32 ret = bits_fix_meta(mfill, dropzone, holesize,
+			  artzone,artend,artfix);
+  
+  bits_drop(hole, dropzone,  mfill-dropzone); // like memcpy
   return ret;
 }

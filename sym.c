@@ -44,6 +44,7 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
 
 ----------------------------------------------------------------------------*/
 #include "aseg.h"
+/*
 U32 sym_delete(sSym* sym){
   printf("sym_delete %p\n",sym);
   sym_dump1(sym);
@@ -88,6 +89,26 @@ U32 sym_delete(sSym* sym){
 
   printf("aseg_chomp(%08x,%08x,%08x, %08x)\n",	artzone, artend, artsize, otherend);
   ret += aseg_delete(artzone, artend, artsize, otherend);
+  return ret;
+}
+*/
+U32 sym_del(sSym* sym){
+  U32 artfix  = ROUND8(sym->size);
+  U32 artzone = sym->art + artfix;    //start of art dropzone
+
+  U32 artend;                   // end of art dropzone segment
+  U32 otherend;                 // end of other segment
+  if(IN_DATA_SEG(artzone)){
+    artend =  DFILL;
+    otherend = CFILL;
+  } else {
+    artend = CFILL;
+    otherend = DFILL;
+  }
+  //                       
+  U32 ret = mseg_delete(THE_U32(sym), SYM_BYTES(sym),
+			artzone, artend, artfix);
+  ret += aseg_delete(artzone, artend, artfix, otherend);
   return ret;
 }
 

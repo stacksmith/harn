@@ -25,6 +25,8 @@ typedef U64 (*pfresolver)(char* name);
 #define PTR(type,val) ( (type)(U64)(val) )
 #define X32(val) ( (U32)(U64)(val) )
 #define THE_U32(it) ((U32)(U64)(it))
+
+#define ROUND8(val) (((THE_U32(val))+7) & 0xFFFFFFF8)
 /*----------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------*/

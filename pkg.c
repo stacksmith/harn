@@ -263,7 +263,7 @@ void pk_incorporate(sSym* new){
       U32 fixups = aseg_reref(old->art,new->art);
       printf("%d old refs fixed from %08X to %08X\n",fixups, old->art, new->art);
       hd(PTR(void*,old->art),4);
-      fixups = sym_delete(old);       
+      fixups = sym_del(old);       
       printf("%d gc fixups\n",fixups);
     } else {
       printf("!!! SEGMENT MISMATCH! TODO: FIX!!!!\n");

@@ -20,6 +20,7 @@ typedef struct sSym {
 
 #define SYM_NAME_OFF 22
 #define SYM_NAME(sym)  (((char*)(sym))+SYM_NAME_OFF)
+#define SYM_BYTES(sym) (((sym)->octs)<<3)
 #define U32_SYM(usym) ((sSym*)(U64)(usym))
 
 // name
@@ -34,7 +35,8 @@ char* sym_proto(sSym* sym);
 void sym_dump1(sSym* sym);
 
 
-U32 sym_delete(sSym* sym);
+//U32 sym_delete(sSym* sym);
+U32 sym_del(sSym* sym);
 sSym* sym_wrap(char* name,U32 art, U32 size); // called by elf ingetsor
 
 

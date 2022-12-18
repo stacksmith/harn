@@ -23,6 +23,8 @@ void mseg_alloc();
 void mseg_align8();
 U8*  mseg_append(U8* start,U32 size);
 
+U32 mseg_delete(U32 hole, U32 holesize,
+		U32 artzone, U32 artend, U32 artfix);
 
 
 U32 seg_reref(sSeg*psg,U32 old,U32 new);
@@ -30,4 +32,4 @@ U32 seg_reref(sSeg*psg,U32 old,U32 new);
 sCons* mcons(U32 car, U32 cdr);
 sCons* mins(sCons* after, sCons* it); 
 typedef U64 (*mapcfun)(U32 cons); // return 0 to continue; val exits mapc
-U64 mapc(mapcfun fun,U32 list);
+//U64 mapc(mapcfun fun,U32 list);
