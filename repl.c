@@ -58,7 +58,6 @@ void edit(char* name){
 
 sElf* rebuild(char* name,U32 need_function){
   printf("dumping protos\n");
-  
   pks_dump_protos();
   char buf[256];
   sprintf(buf,"cd sys; ./build.sh %s",name);
@@ -100,13 +99,14 @@ void new_symbol(sSym* new){
     printf("old version exists\n");
     sSym* old = (sSym*)(U64)prev->next;
     printf("prev: %p, old: %p\n",prev,old);
-    
-    U32 bytes_deleted = sym_delete(prev);
-    
-    new = PTR(sSym*,(THE_U32(new) - bytes_deleted));
-    printf("sym is now %p\n",new);
-    
     pk_push_sym(U32_SYM(SRCH_LIST),new);
+    
+    sym_delete(prev);
+
+
+
+    
+
 #if 0
     // first, make ssure it's in the same seg.
     if( (SEG_BITS(old->art)) == (SEG_BITS(new->art))){

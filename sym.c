@@ -88,74 +88,29 @@ U32 sym_delete(sSym* prev){
   }
    printf("will delete %08x to %08x\n",symU32,symend);  
 
-   hd(sym,4);
-printf("bits_fix_meta(top:%08x, hole: %08x, fix:%08x,\n artz:%08x,artend:%08x,artfix:%08x)\n",
-       mtop,symend,symsize,  artzone,artend,artsize);
+   //   hd(sym,4);
+   //printf("bits_fix_meta(top:%08x, hole: %08x, fix:%08x,\n artz:%08x,artend:%08x,artfix:%08x)\n",  mtop,symend,symsize,  artzone,artend,artsize);
  U32 ret = bits_fix_meta(mtop,
-			  symend, symsize,
-			  artzone,artend,artsize);
-  printf("%08X fixups\n",ret);
-  hd(sym,4);
+			 symend, symsize,
+			 artzone,artend,artsize);
+ //  printf("%08X fixups\n",ret);
+ //  hd(sym,4);
   
   //printf("symsize %08x; end %08x\n",symsize, symend);
-  printf("bits_drop(%08x,%08x,%08x,%08x)\n",
-  	 symU32, symend, 0, mtop - symend);
+ //  printf("bits_drop(%08x,%08x,%08x,%08x)\n",	 symU32, symend, 0, mtop - symend);
   // drop in meta, eliminating the symbol
-  ret = bits_drop(symU32, symend, 0, mtop - symend);
+  bits_drop(symU32, symend, 0, mtop - symend);
   //printf("drop got %08X\n",ret);
   // printf("after drop before fix, prev->next is %08x\n",prev->next);
- hd(sym,4);
+  // hd(sym,4);
   // printf("bits_fix_meta: %08X fixups\n",ret);
 
- printf("Requesting drop %08X, %08X\n",art,artsize);
- printf("aseg_chomp(%08x,%08x,%08x, %08x)\n",
-	artzone, artend, artsize, otherend);
- ret = aseg_chomp(artzone, artend, artsize, otherend);
- printf("aseg_chomp: %08X fixups\n",ret);
+  // printf("Requesting drop %08X, %08X\n",art,artsize);
+  //rintf("aseg_chomp(%08x,%08x,%08x, %08x)\n",	artzone, artend, artsize, otherend);
+ ret += aseg_chomp(artzone, artend, artsize, otherend);
+ printf(" %08X fixups\n",ret);
  
-   
- /*
-
-  */
-
-
- 
- //d(prev,4);
-
-
-  /*
-
-  {
- printf("\nfixdown is broken!  It must only fix within the segment!\n\n");
-    // incoming data segment.
-    sSeg* seg = (sSeg*)(U64)SEG_BITS(art);
-    seg_align(seg,8);
-  hd( U32_SYM(0x40000000),4); 
-    U32 ret = bits_hole(art, art+artsize, 0, seg->fill - (art+artsize));
-    printf("bits_hole got %08X\n",ret);
-    hd( U32_SYM(0x40000000),4);
-
-    printf("bits_fixdown(%08x,%08x,%08x,%08x)\n"
-	   , seg->fill,PTR_U32(seg), art,artsize);
-    ret = bits_fixdown(seg->fill, SEG_BITS(art), art, artsize);
-    printf("bits_fixdown on seg got %08X\n",ret);
-
-    U32 seg1bits = (0xC0000000 ^ SEG_BITS(art));
-    sSeg* seg1 = (sSeg*)(U64)seg1bits;
-    printf("bits_fixdown(%08x,%08x,%08x,%08x)\n"
-	   , seg1->fill,seg1bits, art,artsize);
-    ret = bits_fixdown(seg1->fill, seg1bits, art, artsize);
-    printf("bits_fixdown on seg got %08X\n",ret);
-    // now drop meta, to update any artifact pointers
-    printf("final meta bits_fixdown(%08x,%08x,%08x,%08x)\n"
-	   , psMeta->fill, PTR_U32(psMeta), art,artsize);
-    ret = bits_fixdown(psMeta->fill, PTR_U32(psMeta), art,artsize);
-    printf("bits_fixdown on final meta got %08X\n",ret);
-    
-
-  }
-  */
-  return symsize;
+ return ret;
 }
 
 /*
