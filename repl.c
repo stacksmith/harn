@@ -248,7 +248,7 @@ void repl_loop(){
     if(!strncmp("words",linebuf,4)){ repl_words(p); continue; }
     //if(!strncmp("edit",linebuf,4)){ repl_edit(p);  continue; }
 
-    //if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
+    if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
 
     if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }
     if(!strncmp("dump",linebuf,4)){ repl_dump(p); continue; }
