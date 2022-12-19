@@ -1,4 +1,4 @@
-#define pass 4
+#define pass 2
 #if (pass==1)
 U32 ass = 18;
 #endif

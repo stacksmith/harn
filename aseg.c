@@ -113,7 +113,6 @@ U32 cseg_append(U8* start,U64 size){
     memset(dest,0,size);
   return THE_U32(dest);
 }
-
 void cseg_align8(){
   CFILL = (CFILL+7) & 0xFFFFFFF8;
 }

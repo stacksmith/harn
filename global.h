@@ -9,15 +9,19 @@ typedef uint64_t U64;
 typedef int32_t  S32;
 typedef int64_t  S64;
 // a convenient way to return data and size in a single U64
-typedef struct sDataSize {
+typedef struct sBounds {
   union {
-    U64 val;
+    U64 value;
     struct {
-      U32 data;
+      U32 addr;
       U32 size;
     };
   };
-} sDataSize;
+} sBounds;
+
+#define  BOUNDS(address,size) (sBounds){.addr=(address),(size)}
+#define  BOUNDS_V(val) (sBounds){.value=(val)}
+#define  BOUNDS_0 (sBounds){.value=0}
 
 // a resolver function to lookup symbol addresses
 typedef U64 (*pfresolver)(char* name);

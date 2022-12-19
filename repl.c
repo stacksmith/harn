@@ -12,8 +12,8 @@
 #include "sym.h"
 #include "pkg.h"
 
-sSym* ing_elf(sElf* pelf);
-U64 ing_elf_func(sElf* pelf);
+U32 ing_elf(sElf* pelf,U32 need_fun);
+//U64 ing_elf_func(sElf* pelf);
 
 extern sSeg* psMeta;
 
@@ -56,29 +56,20 @@ void edit(char* name){
   */
 }
 
-sElf* rebuild(char* name,U32 need_function){
+sElf* rebuild(char* name){
   pks_dump_protos();
   char buf[256];
   sprintf(buf,"cd sys; ./build.sh %s",name);
    //puts(buf);
   int ret = system(buf);
-  if(ret){
+    if(ret){
     printf("OS shellout to compiler failed! Build Error %d\n",ret);
     return 0;
   }
   sprintf(buf,"sys/%s.o",name);
 
   sElf* pelf = elf_load(buf);
-  if(!pelf->unique){
-    printf("rebuild: ELF file has no unique global symbol\n");
-    elf_delete(pelf);
-    return 0;
-  }
-  if(need_function && (ELF64_ST_TYPE(pelf->unique->st_info) != STT_FUNC)){
-    printf("repl_expr: must be a functional expression\n");
-    elf_delete(pelf);
-    return 0;
-  }
+
   return pelf;
 }
 
@@ -89,18 +80,24 @@ compile
 
 sSym* repl_compile(char*p){
   sSym* sym=0;
-  {
-    sElf* pelf = rebuild("unit",0);
-    if(pelf)
-      sym = ing_elf(pelf);  //frees pelf!
+  sElf* pelf = rebuild("unit");
+  if(pelf) {
+    U32 ret = ing_elf(pelf,0);  //frees pelf!
+    U32 addr = pelf->ing_start;
+    if(!ret){
+      char* name = pelf->unique->st_name + pelf->str_sym;
+      sym = sym_for_artifact(name, addr);
+    } // else error ingesting, or unresolveds, but pelf is allocated...
+    elf_delete(pelf);
   }
-
-  if(sym){ // OK, this means we are done with ingestion.
+  if(sym){ // OK, this means we made it!
     printf("Ingested %s: %s %d bytes\n", SYM_NAME(sym),sym_proto(sym),sym->size);
     pk_incorporate(sym);
-  } else 
+  } else { // no symbol
     printf("aborted.\n");
+  }
   return sym;
+
 }
 
 
@@ -191,33 +188,32 @@ void repl_expr(char*p){
   fputs(p,f);
   fputs("\n}\n",f);
   fclose(f);
-  REL_FLAG = 0;     // turn off relocation, as we shall erase this ASAP
-  U32 start  = CFILL; // for undoing..
-  printf("OK, cfill is %08x\n",start);
-
-  sElf* pelf = rebuild("commandline",1);
-  printf("OK, rebuild: %p\n",pelf);
-  if(!pelf) return;
-printf("OK, ingesting\n");
   
-  U32 addr = (U32)ing_elf_func(pelf); // don't care about size
-  elf_delete(pelf);
+  cseg_align8();    // TODO: redundant... make up your mind...
+  U32 start  = CFILL; // for undoing..
 
+  sElf* pelf = rebuild("commandline");
+  if(!pelf)   // no harm... just get out...
+    return;
+
+  REL_FLAG = 0;     // turn off relocation, as we shall erase this ASAP
+  U32 ret = ing_elf(pelf,1); // request a function..
+  //  U32 addr = pelf->ing_start;
+  elf_delete(pelf);   // no longer need any of it
   REL_FLAG = 1;
 
-  if(addr){
-    fpreplfun entry = (fpreplfun)(U64)(addr);
-    printf("about to call %p\n",entry);
-    hd(entry,4);
-    
-    (*entry)(p);
+  if(!ret) { // looks like successful ingestion
+    if(CFILL > start) {// compiled something
+      fpreplfun entry = PTR(fpreplfun,start);
+      printf("about to call %p\n",entry);
+      hd(entry,4);
+      (*entry)(p);
+    }
   }
-  U32 end = CFILL;
-  CFILL = start;
-    
+  U32 end = CFILL; // note end position
+  CFILL = start;  // clear code segment
+ 
   memset(PTR(U8*,start),0,end-start);
-
-
 
 }
 

@@ -104,13 +104,20 @@ This is called by ing_elf after ingesting the data.  Some assumptions:
 * compiled source for this artifact is in 'code.c'; will be absorbed.
 
 ----------------------------------------------------------------------------*/
-sSym* sym_for_artifact(char* name,U32 art, U32 size){
+sSym* sym_for_artifact(char* name,U32 art){
   U32 srclen; //not used!
   U32 src = src_from_body(&srclen);  // store source and get file offset
   // if function, extract proto
   char* proto = 0;
-  if(IN_CODE_SEG(art))
+  U32 size;
+  if(IN_CODE_SEG(art)){
     proto = aux_proto();    // allocated buffer with prototype from aux-info
+    size = CFILL - art;
+    cseg_align8();
+  } else {
+    size = DFILL - art;
+    dseg_align8();
+  }
   // create a new symbol (proto is copied);
   sSym* ret = sym_new(name, art, size, src, proto);
   free(proto);

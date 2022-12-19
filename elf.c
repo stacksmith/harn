@@ -48,6 +48,7 @@ sElf* elf_load(char* path){
 
   // for this application, find the unique symbol
   pelf->unique = elf_unique_global_symbol(pelf);
+  pelf->ing_start = 0;
   return pelf;
 }
 /*-------------------------------------------------------------
