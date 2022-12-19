@@ -70,7 +70,7 @@ sElf* rebuild(char* name,U32 need_function){
 
   sElf* pelf = elf_load(buf);
   if(!pelf->unique){
-    printf("ing_elf: no unique global symbol\n");
+    printf("rebuild: ELF file has no unique global symbol\n");
     elf_delete(pelf);
     return 0;
   }
@@ -192,7 +192,7 @@ void repl_expr(char*p){
   fputs("\n}\n",f);
   fclose(f);
   REL_FLAG = 0;     // turn off relocation, as we shall erase this ASAP
-  U32 start  = CFILL; // code segment goes down!
+  U32 start  = CFILL; // for undoing..
   printf("OK, cfill is %08x\n",start);
 
   sElf* pelf = rebuild("commandline",1);

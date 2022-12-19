@@ -83,24 +83,7 @@ U32 sym_del(sSym* sym){
   //  hd(PTR(U8*,0x40000e40),4);
   return ret;
 }
-/*
-void sym_wipe_last(sSym* sym){
-  U32 bytes = sym->octs * 8;
-  U32 addr = sym->data;
-  U32 size = sym->size;
-  if(IN_CODE_SEG(addr)){
-    psCode->fill = addr; // drop the code segment, eliminate code
-  } else {
-    psData->fill = addr;
-  }
-  memset((U8*)(U64)addr,0,size); // clear it
-  memset((U8*)(U64)(addr/8),0,(size+7)/8); // clear rel
 
-  psMeta->fill = (U32)(U64)sym;  
-  memset(sym,0,bytes);
-  memset((U8*)(U64)(psMeta->fill/8),0,sym->octs); // clear rel
-}
-*/
 char* sym_name(sSym* sym){
   return ((char*)sym)+SYM_NAME_OFF;
 }

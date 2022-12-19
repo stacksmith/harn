@@ -171,11 +171,15 @@ sSym* ing_elf(sElf* pelf){
     bounds = ing_elf_data(pelf);
     break;
   default:
+    printf("ing_elf: unable to extract a public function or variable\n");
     elf_delete(pelf);
     return 0;
   }
-  char* name = pelf->unique->st_name + pelf->str_sym;
-  sSym* sym = sym_for_artifact(name, bounds.data, bounds.size);
+  sSym* sym = 0;
+  if(bounds.val){
+    char* name = pelf->unique->st_name + pelf->str_sym;
+    sym = sym_for_artifact(name, bounds.data, bounds.size);
+  }
   elf_delete(pelf);
   return sym;
 }
