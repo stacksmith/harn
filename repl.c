@@ -22,28 +22,7 @@ extern sSeg* psMeta;
 
 typedef void (*fpreplfun)(char*p);
 typedef U64 (*fpvoidfun)();
-
-sElf* rebuild(char* name){
-  pks_dump_protos();
-  char buf[256];
-  sprintf(buf,"cd sys; ./build.sh %s",name);
-   //puts(buf);
-  int ret = system(buf);
-    if(ret){
-    printf("OS shellout to compiler failed! Build Error %d\n",ret);
-    return 0;
-  }
-  sprintf(buf,"sys/%s.o",name);
-
-  sElf* pelf = elf_load(buf);
-
-  return pelf;
-}
-
-
-
-
-
+// bogus, careful...
 void exec_repl_sym(sSym* sym,char*p){
   U32 addr = sym->art;
   if(IN_CODE_SEG(addr)){
@@ -55,6 +34,7 @@ void exec_repl_sym(sSym* sym,char*p){
   }
 }
 
+
 void run_repl_fun(U32 hash,char*p){
   sSym* sym = pks_find_hash0(PTR(sCons*,SRCH_LIST),hash);
   if(sym){  //
@@ -63,22 +43,6 @@ void run_repl_fun(U32 hash,char*p){
     printf("can't find it\n");
   }
 }
-
-
-
-
-
-void edit(char* name){
-  printf("Editing [%s].. type 'cc' to compile when done...\n",name);
-  /*
-  siSymb* symb =  pkgs_symb_of_name(name);
-  // write headers for packages in use
-  pkgs_dump_protos();
-
-  siSymb_src_to_body(symb);
-  */
-}
-
 
 
 /*----------------------------------------------------------------------------
@@ -97,6 +61,22 @@ sSym* repl_compile(char*p){
   return sym;
 
 }
+
+
+
+
+void edit(char* name){
+  printf("Editing [%s].. type 'cc' to compile when done...\n",name);
+  /*
+  siSymb* symb =  pkgs_symb_of_name(name);
+  // write headers for packages in use
+  pkgs_dump_protos();
+
+  siSymb_src_to_body(symb);
+  */
+}
+
+
 
 char linebuf[1024];
 
@@ -177,7 +157,6 @@ You can call any compiled function from the command line.\n";
 void repl_help(char*p){
   puts(helpstr);
 }
-
 U32 ingest_run(char* name,char*p);
 
 void repl_expr(char*p){
