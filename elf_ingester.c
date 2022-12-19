@@ -51,6 +51,7 @@ U32 ing_elf_code_sec(sElf*pelf,U32 isec){
                        get prototype via auxinfo
  return: 0, or error
 -----------------------------------------------------------------------------*/
+
 U32 ing_elf_func(sElf*pelf){
   pelf->ing_start = CFILL;
   //now bring in the unique function
@@ -81,10 +82,9 @@ U32 ing_elf_func(sElf*pelf){
     rel_mark(p,kind);
   }
   // codesec+1 may be its relocations... If not, no harm done.
-  elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc);
-  
-  return 0;
-  
+  // normally returns 0, but static data will cause error.
+  return elf_process_rel_section(pelf,(pelf->shdr)+codesec+1,relproc);
+    
 }
 /*----------------------------------------------------------------------------
  pkg_load_elf_data                Load a data object into package
@@ -118,8 +118,9 @@ U32 ing_elf_data(sElf* pelf){
   dseg_align8(); // align data seg for new data object
   U32 sec = psym->st_shndx;
   ing_elf_data_sec(pelf,sec);
+
 #ifdef DEBUG
-  printf("ing_elf_data: for %s\n",name);
+  printf("ing_elf_data: for %s\n",pelf->unique->st_name + pelf->str_sym);
 #endif 
   // Now, walk the symbols and ingest any referenced sections.  All will go
   // into the data segment, above the original data object.
@@ -179,7 +180,9 @@ U32 ing_elf(sElf* pelf,U32 need_function){
   if(!pelf->unique)
     return elf_error(pelf,"ELF file has no unique global symbol");
 
+  //char* name = pelf->unique->st_name + pelf->str_sym;
   U32 unresolved = 0;
+  
   switch(ELF64_ST_TYPE(pelf->unique->st_info)){
   case STT_FUNC:
     unresolved =ing_elf_func(pelf);
@@ -193,4 +196,89 @@ U32 ing_elf(sElf* pelf,U32 need_function){
     return elf_error(pelf," not func or object...");
   }
   return unresolved; // hopefully, 0...
+}
+
+/*----------------------------------------------------------------------------
+  rebuild                              invoke a shell to rebuild a file and
+                                       generate an elf file...  And load it
+
+ 
+------------------------------------------------------------------------------*/
+
+sElf* ing_rebuild(char* name){
+  pks_dump_protos();
+  char buf[256];
+  sprintf(buf,"cd sys; ./build.sh %s",name);
+   //puts(buf);
+  int ret = system(buf);
+    if(ret){
+    printf("OS shellout to compiler failed! Build Error %d\n",ret);
+    return 0;
+  }
+  sprintf(buf,"sys/%s.o",name);
+
+  sElf* pelf = elf_load(buf);
+  
+  return pelf;
+}
+
+/*----------------------------------------------------------------------------
+  ingest_elf                           ingest an elf file, and return
+                                       artifact address.
+
+Handle all errors, wiping the system clean if at all possible (which it
+should be...)
+
+------------------------------------------------------------------------------*/
+
+sElf* ingest_elf_prim(char* name){
+  sElf* pelf = ing_rebuild(name);
+  U32   err;
+  if(pelf) {
+    err  = ing_elf(pelf,0);    //0 is good; otherwise error
+    if(err){
+      U32 addr = pelf->ing_start;  //if addr is set, possibly ingested
+      aseg_wipe(addr); //works if it's 0, same as fill, or whatever...
+      addr = 0;
+      elf_delete(pelf);
+      return 0;
+    }
+  }
+  // return a pelf with ing_start, or 0 if could not build or ingest.
+  return pelf;
+}
+
+sSym* ingest_elf(char* name){
+  sElf* pelf = ingest_elf_prim(name);
+  sSym* sym = 0;
+  if(pelf){
+    U32 addr = pelf->ing_start;
+    char* name = pelf->unique->st_name + pelf->str_sym;
+    sym = sym_for_artifact(name, addr);
+    elf_delete(pelf);
+  }
+  return sym;
+}
+typedef void (*fpreplfun)(char*p);
+
+
+U32 ingest_run(char* name,char*p){
+  cseg_align8();    // TODO: redundant... make up your mind...
+  REL_FLAG = 0;     // turn off relocation, as we shall erase this ASAP
+  sElf* pelf = ingest_elf_prim("commandline");
+  if(pelf){   // no harm... just get out...
+    U32 addr = pelf->ing_start;
+    elf_delete(pelf);
+    if(CFILL > addr) {// compiled something..
+      fpreplfun entry = PTR(fpreplfun,addr);
+      printf("about to call %p\n",entry);
+      hd(entry,4);
+      (*entry)(p);
+      U32 end = CFILL;
+      CFILL = addr;
+      memset(PTR(U8*,addr),0,end-addr);
+    }
+  }
+  REL_FLAG = 1;
+  return 0;
 }

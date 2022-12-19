@@ -166,4 +166,29 @@ U32 aseg_reref(U32 old, U32 new){
   fixcnt +=    bits_reref(DFILL, DATA_SEG_ADDR, old, new);
   return fixcnt;
 }
-  
+
+/*----------------------------------------------------------------------------
+  aseg_wipe                     wipe the segment clean, up from addr,
+                                including rel table. 
+
+  The ELF ingester or other compiler tools may error, and require wiping the
+  slate clean.  Be careful
+
+----------------------------------------------------------------------------*/
+
+
+void aseg_wipe(U32 addr){
+  // let's get the end address for the segment
+  if(addr){
+    U32 end = IN_CODE_SEG(addr) ? CFILL : DFILL ;
+    U32 bytes = end-addr;
+    if(bytes){
+      memset( PTR(U8*,addr), 0, bytes) ;
+      memset( PTR(U8*,(addr>>3)), 0, bytes>>3);
+      if(IN_CODE_SEG(addr))
+	CFILL = addr;
+      else
+	DFILL = addr;
+    }
+  }
+}

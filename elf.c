@@ -265,7 +265,7 @@ Note: we eliminate GOTs and PLTs, and use direct references.
 elf_process_rel      process a single ELF relocation, fixing up
                      data in segs and calling the proc.
 -------------------------------------------------------------*/
-void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
+U32 elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
 		     pfRelProc proc){
   U64 base = shto->sh_addr; // base address of image being fixed-up
   U64 p = base + prel->r_offset;
@@ -273,8 +273,19 @@ void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
   // symbol must be previously resolved.
   U64 s = psym->st_value;
   if(!s) {
+    // One reason this happens is trying to use a static var in a func;
+    if( (3 == ELF64_ST_TYPE(psym->st_info)) &&
+	(!strcmp(".bss",section_name(pelf, psym->st_shndx))) ){
+      printf("\
+Your function contains uninitialized static data in the .bss section.\n\
+Harn does not allow functions to create inaccessible data; if you need\n\
+the equivalent of a static, simply create a data object\n");
+      return 0xFFFF000;
+    }
+
     printf("process_rel: symbol %ld is not initialized!\n",
 	   ELF64_R_SYM(prel->r_info));
+    sym_dump(pelf,psym);
     exit(1);
   }
   U64 a = prel->r_addend;
@@ -301,6 +312,7 @@ void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
     rel_dump(pelf,prel);
     exit(1);
   }
+  return 0;
 }
 
 /*----------------------------------------------------------------------------
@@ -308,7 +320,7 @@ void elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
                                 each relocation (see above).
                                 
 ----------------------------------------------------------------------------*/
-void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc){
+U32 elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc){
   if(SHT_RELA == shrel->sh_type){ // redundant, but pkg does not check!
     U32 relnum = shrel->sh_size / shrel->sh_entsize;
 #ifdef DEBUG
@@ -321,13 +333,16 @@ void elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc){
     printf("Applying relocations against %lX, %ld\n",shto->sh_addr,shto->sh_size);
 #endif
     for(U32 i=0; i<relnum; i++,prel++){
-      elf_process_rel(pelf,prel,shto,proc);
+      U32 ret = elf_process_rel(pelf,prel,shto,proc);
+      if(ret)
+	return ret;
     }
   } else {
 #ifdef DEBUG
     printf("elf_process_rel_section: no relocations\n");
 #endif
   }
+  return 0;
 }
 /*----------------------------------------------------------------------------
 elf_apply_rels                   process each rel section in the file.

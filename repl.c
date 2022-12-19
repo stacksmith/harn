@@ -12,7 +12,9 @@
 #include "sym.h"
 #include "pkg.h"
 
-U32 ing_elf(sElf* pelf,U32 need_fun);
+
+sSym* ingest_elf(char* name);
+ 
 //U64 ing_elf_func(sElf* pelf);
 
 extern sSeg* psMeta;
@@ -20,6 +22,27 @@ extern sSeg* psMeta;
 
 typedef void (*fpreplfun)(char*p);
 typedef U64 (*fpvoidfun)();
+
+sElf* rebuild(char* name){
+  pks_dump_protos();
+  char buf[256];
+  sprintf(buf,"cd sys; ./build.sh %s",name);
+   //puts(buf);
+  int ret = system(buf);
+    if(ret){
+    printf("OS shellout to compiler failed! Build Error %d\n",ret);
+    return 0;
+  }
+  sprintf(buf,"sys/%s.o",name);
+
+  sElf* pelf = elf_load(buf);
+
+  return pelf;
+}
+
+
+
+
 
 void exec_repl_sym(sSym* sym,char*p){
   U32 addr = sym->art;
@@ -56,22 +79,7 @@ void edit(char* name){
   */
 }
 
-sElf* rebuild(char* name){
-  pks_dump_protos();
-  char buf[256];
-  sprintf(buf,"cd sys; ./build.sh %s",name);
-   //puts(buf);
-  int ret = system(buf);
-    if(ret){
-    printf("OS shellout to compiler failed! Build Error %d\n",ret);
-    return 0;
-  }
-  sprintf(buf,"sys/%s.o",name);
 
-  sElf* pelf = elf_load(buf);
-
-  return pelf;
-}
 
 /*----------------------------------------------------------------------------
 compile
@@ -79,17 +87,7 @@ compile
 ------------------------------------------------------------------------------*/
 
 sSym* repl_compile(char*p){
-  sSym* sym=0;
-  sElf* pelf = rebuild("unit");
-  if(pelf) {
-    U32 ret = ing_elf(pelf,0);  //frees pelf!
-    U32 addr = pelf->ing_start;
-    if(!ret){
-      char* name = pelf->unique->st_name + pelf->str_sym;
-      sym = sym_for_artifact(name, addr);
-    } // else error ingesting, or unresolveds, but pelf is allocated...
-    elf_delete(pelf);
-  }
+  sSym* sym =  ingest_elf("unit");
   if(sym){ // OK, this means we made it!
     printf("Ingested %s: %s %d bytes\n", SYM_NAME(sym),sym_proto(sym),sym->size);
     pk_incorporate(sym);
@@ -99,7 +97,6 @@ sSym* repl_compile(char*p){
   return sym;
 
 }
-
 
 char linebuf[1024];
 
@@ -177,10 +174,11 @@ You can call any compiled function from the command line.\n";
 
 
 
-
 void repl_help(char*p){
   puts(helpstr);
 }
+
+U32 ingest_run(char* name,char*p);
 
 void repl_expr(char*p){
   FILE*f = fopen("sys/cmdbody.c","w");		
@@ -188,33 +186,8 @@ void repl_expr(char*p){
   fputs(p,f);
   fputs("\n}\n",f);
   fclose(f);
-  
-  cseg_align8();    // TODO: redundant... make up your mind...
-  U32 start  = CFILL; // for undoing..
 
-  sElf* pelf = rebuild("commandline");
-  if(!pelf)   // no harm... just get out...
-    return;
-
-  REL_FLAG = 0;     // turn off relocation, as we shall erase this ASAP
-  U32 ret = ing_elf(pelf,1); // request a function..
-  //  U32 addr = pelf->ing_start;
-  elf_delete(pelf);   // no longer need any of it
-  REL_FLAG = 1;
-
-  if(!ret) { // looks like successful ingestion
-    if(CFILL > start) {// compiled something
-      fpreplfun entry = PTR(fpreplfun,start);
-      printf("about to call %p\n",entry);
-      hd(entry,4);
-      (*entry)(p);
-    }
-  }
-  U32 end = CFILL; // note end position
-  CFILL = start;  // clear code segment
- 
-  memset(PTR(U8*,start),0,end-start);
-
+  ingest_run("commandline",p);
 }
 
 void repl_dump(char*p){

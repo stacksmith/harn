@@ -32,3 +32,4 @@ U32 aseg_delete(U32 dz_start, U32 fixup);
 
 
 U32 aseg_reref(U32 old, U32 new);
+void aseg_wipe(U32 addr);
