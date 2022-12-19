@@ -1,6 +1,17 @@
 // smSymb.h
+/*
+  Symbols live in the meta segment and contain enough data to track
+artifacts in code or data segment, and maintain a search chain using
+cdr link A32 pointer.   
 
-// smSymbs are symbols stored in the meta segment.
+Search chains are headed by packages, which are special symbols that 
+point at another package, forming a package list.  Packages have names
+just like normal symbols.
+
+Packages are therefore searched by cdr threading; art points at the
+next package to search.
+
+ */
 
 
 typedef struct sSym {
@@ -17,6 +28,9 @@ typedef struct sSym {
   U8  octs;               // total size in blocks of 8.
   U8  namelen;
 } sSym;
+// null-terminated name follows;
+// null-terminated signature follows;
+// padded to align8, so octs accounts for this space...
 
 #define SYM_NAME_OFF 22
 #define SYM_NAME(sym)  (((char*)(sym))+SYM_NAME_OFF)
@@ -38,6 +52,6 @@ void sym_dump1(sSym* sym);
 //U32 sym_delete(sSym* sym);
 
 U32 sym_del(sSym* sym);
-sSym* sym_for_artifact(char* name,U32 art); // called by elf ingetsor
+sSym* sym_for_artifact(char* name,U32 art); // called by elf ingesror
 
 
