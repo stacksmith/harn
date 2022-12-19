@@ -15,64 +15,104 @@
 /*----------------------------------------------------------------------------
 A package is a group of related symbols, kept in a linked list. 
 
-The head of the package is a cons
- cdr = first symbol in package;
- car = next package (see pkgs)
+The prototype area of a package may be used for private storage.  
+library bindings use it to store the name of the dll to open
 
 ----------------------------------------------------------------------------*/
-sCons* pk_new(char*name){
-  return mcons(0,0);
+sSym* pk_new(char*name,char* opt){
+  return sym_new(name,0,0,0,opt);
 }
 
-void pk_dump(sCons* pk){
-  sSym*s = U32_SYM(pk->cdr);
-  while(s){
+void pk_dump(sSym* s){
+  printf("package ");
+  sym_dump1(s);
+  while((s=U32_SYM(s->cdr))){
     sym_dump1(s);
-    s = U32_SYM(s->cdr); 
   }
 }
 
-void pk_push_sym(sCons* pk, sSym* sym){
+void pk_push_sym(sSym* pk, sSym* sym){
   sym->cdr = pk->cdr;
   pk->cdr = THE_U32(sym);
 }
 
-sCons* pk_find_prev_hash(sCons* prev,U32 hash){
+sSym* pk_find_prev_hash(sSym* prev,U32 hash){
   sSym* next;
   while((next = PTR(sSym*,prev->cdr))){
     if (hash == next->hash) 
       return prev;
-    prev = (sCons*)next;
+    prev = (sSym*)next;
   } 
-  return (sCons*)next;
+  return next;
 }
 
 
-sSym* pk_find_hash(sCons* pk,U32 hash){
-  while((pk = PTR(sCons*,pk->cdr))){
-    if (hash == ((sSym*)pk)->hash) 
+sSym* pk_find_hash(sSym* pk,U32 hash){
+  while((pk = PTR(sSym*,pk->cdr))){
+    if (hash == pk->hash) 
       break;
   }
-  return PTR(sSym*,pk);
+  return pk;
 }
 
-void pk_dump_protos(sCons* pk,FILE* f){
-  sSym*s = PTR(sSym*,pk->cdr);  //skip pk, cdr is it
+
+
+
+
+/*
+sSym* apkg_walk1(sSym* s, U64 hash, U64 p1, U64 p2, apkgfun fun){
+  sSym* ret;
+  while((s = PTR(sSym*,s->cdr))){
+    ret = (*fun)(s,hash,p1,p2);
+    if(ret) break;
+  }
+  return ret;
+} 
+
+
+sSym* pk_find_hash10(sSym* s, U32 hash){
+  return (s && (s->hash != hash)) ? pk_find_hash10(PTR(sSym*,s->cdr),hash) : s;
+
+
+}
+
+sSym* proc(sSym* s,U64 hash,U64 p1, U64 p2){
+  return ((s->hash == hash)) ?  s : 0;
+ }
+
+sSym* pk_find_hash1(sSym* pk, U64 hash,U64 p1, U64 p2){
+ return (sSym*) apkg_walk(pk,hash,p1,p2,proc);
+}
+
+U8 proc2(sSym* s,U32 hash){
+  return (s->hash == hash);
+}
+
+sSym* pk_find_hash2(sSym* pk, U64 hash){
+  return apkg_walk2(pk,hash,proc2);
+}
+
+*/
+
+//(*fun)(pk,hash, 
+
+
+void pk_dump_protos(sSym* s,FILE* f){
   char* proto;
-  while(s){
+  while((s = PTR(sSym*,s->cdr))){
+    //skip pk, cdr is it){
     //    printf("pk_dump_protos: %p\n",s);
     proto = sym_proto(s);
     //    printf("  proto is at %p\n",proto);
     if(*proto){
       fprintf(f,"%s\n",proto);
     }
-    s = PTR(sSym*,s->cdr);
   }
 }
 
 
-sSym* pk_find_name(sCons*pk, char*name){
-  return pk_find_hash(pk,string_hash(name));
+sSym* pk_find_name(sSym*s, char*name){
+  return pk_find_hash(s,string_hash(name));
 }
 /*
 sSym* pk_find_name1(sCons*pk, char*name){
@@ -127,67 +167,89 @@ sSymIn pks_find_name1(sCons*pk, char*name){
 }
 */
  
- sSym* pks_find_hash0(sCons*pk, U32 hash){
+sSym* pks_find_hash(sSym*pk, U32 hash){
   sSym* ret;
   do {
     if((ret = pk_find_hash(pk,hash)))
       break;
     // ow, ret is 0!
-  } while ( (pk = PTR(sCons*,pk->car)) );
+  } while ( (pk = PTR(sSym*,pk->art)) );
   //either good, or both pk and ret are 0.
   return ret;
 }
 
-sSym*pks_find_name0(sCons*pk, char*name){
+sSym* pks_find_name(sSym*pk, char*name){
   U32 hash = string_hash(name);
-  return pks_find_hash0(pk,hash);
+  return pks_find_hash(pk,hash);
 }
 
 
-sCons* pks_find_prev_hash0(sCons*pk, U32 hash){
-  sCons* ret;
+sSym* pks_find_prev_hash(sSym*pk, U32 hash){
+  sSym* ret;
   do {
     if((ret = pk_find_prev_hash(pk,hash))){
       break;
     }
-  } while ((pk = PTR(sCons*,pk->car)));
+  } while ((pk = PTR(sSym*,pk->art)));
   return ret;
 }
 
 
 U64 find_global(char*name){
-  sSym* sym = pks_find_name0(PTR(sCons*,SRCH_LIST),name);
+  sSym* sym = pks_find_name(PTR(sSym*,SRCH_LIST),name);
   if(sym)
     return sym->art;
   else
     return 0;
 }
 
-/*
- 
-sCons* pks_find_prev_hash(sCons*pk, U32 hash,sCons**in){
-  sCons* ret;
-  do {
-    if((ret = pk_find_prev_hash(pk,hash))){
-      if(in) *in = pk;
-      return ret;
-    }
-  } while ((pk = PTR(sCons*,pk->car)));
-  if(in)  *in = 0;
-  return 0;
-}
-*/
+
 void pks_dump_protos(){
   FILE* f = fopen("sys/headers.h","w");
-  sCons* pk = PTR(sCons*,SRCH_LIST);
+  sSym* pk = PTR(sSym*,SRCH_LIST);
   do {
     pk_dump_protos(pk,f);
-  } while ((pk = PTR(sCons*,pk->car)));
+  } while ((pk = PTR(sSym*,pk->art)));
   fclose(f);
 }
 
 
- 
+void srch_list_push(sSym* pk){
+  pk->art = SRCH_LIST;  // next package;
+  SRCH_LIST = THE_U32(pk);
+}
+
+
+sSym* srch_list_find_pkg(U32 hash){
+  sSym* pk = PTR(sSym*,SRCH_LIST);
+  do {
+    if(pk->hash == hash)
+      break;
+  } while((pk = PTR(sSym*,pk->art)));
+  return pk;
+}
+// first find it, then call this..
+// 0 means SRCH_LIST is pointing at it.
+sSym* srch_list_prev_pkg(sSym* pkg){
+  sSym* pk = PTR(sSym*,SRCH_LIST);
+  if(pk== pkg)
+    return 0 ; 
+  do {
+    if(pk->art == THE_U32(pkg))
+      break;
+  } while((pk = PTR(sSym*,pk->art)));
+  return pk;
+}
+
+
+void srch_list_pkgs_ls(){
+  sSym* pk = (PTR(sSym*,SRCH_LIST));
+  while(pk){
+    printf("%s ",SYM_NAME(pk));
+    pk= (PTR(sSym*,pk->art));
+  }
+  printf("\n");
+}
 
 
 char* next_line(char* p){
@@ -196,16 +258,20 @@ char* next_line(char* p){
     *p++ = 0;
   return p;
 }
- 
-sCons* pk_from_libtxt(char* name,char*path){
+// using a text file at path to initialize names of dl symbols...
+// the library package is not actually linked to the system -
+// pk_rebind must be invoked to bind to the current addresses after
+// a load...
+sSym* pk_from_libtxt(char* name,char* dlpath,char*path){
   // a 12-byte prototype of an assembly trampoline
   U8 ljump[12]={0x48,0xB8,   // mov rax,?
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //64-bit address
     0xFF,0xE0 }; // jmp rax
   
   char* buf = filebuf_malloc(path);
-  if(!buf) return 0;
-  sCons* pk = pk_new(name);
+  if(!buf)
+    return 0;
+  sSym* pk = pk_new(name,dlpath); 
   char* pc = buf;
   char* next;
   while((next = next_line(pc))){
@@ -220,27 +286,23 @@ sCons* pk_from_libtxt(char* name,char*path){
   return pk;
   
 }
-void pk_rebind(sCons* pk,char*dllpath){
+void pk_rebind(sSym* s){
+  char* dllpath = sym_proto(s);
   void* dlhan = dlopen(dllpath,RTLD_NOW);
   if(!dlhan){
     fprintf(stderr,"Unable to open dll %s\n",dllpath);
     exit(1);
   }
-  sSym*s = PTR(sSym*,pk->cdr);
-  while(s){
-     void* pfun = dlsym(dlhan,SYM_NAME(s));
+  
+  while((s = PTR(sSym*,s->cdr))){
+    void* pfun = dlsym(dlhan,SYM_NAME(s));
     if(!pfun)
       printf("pk_rebind: could not bind to %s\n",SYM_NAME(s));
     *((void**)(U64)(s->art+2)) = pfun; // fixup to function address
-    s = PTR(sSym*,s->cdr); 
+    dlclose(dlhan);
   }
-  dlclose(dlhan);
 }
 
-void srch_list_push(sCons* pk){
-  pk->car = SRCH_LIST;  // next package;
-  SRCH_LIST = THE_U32(pk);
-}
 
 /*----------------------------------------------------------------------------
   pk_incorporate            Given a new, unlinked symbol, make sure it is
@@ -252,7 +314,7 @@ This is particularly tricky, as:
 ----------------------------------------------------------------------------*/
 void pk_incorporate(sSym* new){
   // do we already have a symbol with same name?  Hold onto it.
-  sCons* prev = pks_find_prev_hash0(PTR(sCons*,SRCH_LIST), new->hash);
+  sSym* prev = pks_find_prev_hash(PTR(sSym*,SRCH_LIST), new->hash);
   if(prev) { // older version we are replacing?
     sSym* old = PTR(sSym*,prev->cdr);
     //printf("prev: %p, old: %p\n",prev,old);
@@ -271,6 +333,6 @@ void pk_incorporate(sSym* new){
       //segment mismatch..
     }
   } else {
-    pk_push_sym(PTR(sCons*,SRCH_LIST),new);   
+    pk_push_sym(PTR(sSym*,SRCH_LIST),new);   
   }
 }

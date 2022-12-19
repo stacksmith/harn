@@ -344,4 +344,3 @@ bits_fix_inside:
 	jae	.loop0          ; no action
 	sub     [rsi],edx       ;within drop zone, fix by -hole!
 	jmp	.loop0
-

@@ -36,7 +36,7 @@ void exec_repl_sym(sSym* sym,char*p){
 
 
 void run_repl_fun(U32 hash,char*p){
-  sSym* sym = pks_find_hash0(PTR(sCons*,SRCH_LIST),hash);
+  sSym* sym = pks_find_hash(PTR(sSym*,SRCH_LIST),hash);
   if(sym){  //
     exec_repl_sym(sym,p);
   } else {
@@ -109,7 +109,7 @@ char* cmd_ws(char*p){
 
 void repl_list(char* p){
   U32 hash = cmd_hash(&p);
-  sSym* sym = pks_find_hash0(PTR(sCons*,SRCH_LIST),hash);
+  sSym* sym = pks_find_hash(PTR(sSym*,SRCH_LIST),hash);
   if(sym){
     puts("-------------------------------------------------------------");
     //    printf("In package: %s\n",SYM_NAME(pkg));
@@ -119,9 +119,52 @@ void repl_list(char* p){
   }
 }
 
+sSym* pk_find_hash2(sSym* pk, U64 hash);
+  
+
 void repl_words(char* p){
-  pk_dump(PTR(sCons*,SRCH_LIST));
+  pk_dump(PTR(sSym*,SRCH_LIST));
+  /*
+  sSym* proc(sSym* s,U64 hash){
+    return ((s->hash == hash)) ?  s : 0;
+  }
+  sSym* qqq = apkg_walk2( PTR(sSym*,SRCH_LIST),
+			 0xa94d67e5,
+			 proc);
+  */
+  //  sSym* qqq = pk_find_hash1( PTR(sSym*,SRCH_LIST),0xa94d67e5,0,0 );
+  //   sSym* qqq = pk_find_hash2( PTR(sSym*,SRCH_LIST),0xa94d67e5 );
+  //  if(qqq)    printf("helo %p %08x\n",qqq,qqq->hash);
+  //else    printf("0.\n");
 }
+
+void repl_pkg(char* p){
+  if(!strncmp(p,"ls",2)) { srch_list_pkgs_ls();
+
+    return; }
+  if(!strncmp(p,"use",3)) {
+    p = cmd_ws(p+3);
+    U32 hash = cmd_hash(&p);
+    sSym* pkg = srch_list_find_pkg(hash); // find the desired package
+    if(pkg){
+      sSym* prev = srch_list_prev_pkg(pkg);
+      if(prev){ // unlink
+	sym_dump1(prev);
+	prev->art = pkg->art;
+	pkg->art = SRCH_LIST;
+	SRCH_LIST = THE_U32(pkg);
+      } // else we are already on top
+      srch_list_pkgs_ls();
+      return;
+    }
+    //   hd(p,1);
+    //return;
+  }
+  
+}
+
+
+
 char* helpstr =
   "built-in commands:\n\
  bye<cr>           exit\n\
@@ -195,12 +238,12 @@ void repl_load(char*p){
   seg_deserialize(psMeta,f);
   fclose(f);
   //TODO: automate search for libraries to rebind upon load
-  pk_rebind((PTR(sCons*,SRCH_LIST)->car),"libc.so.6");
+  pk_rebind((PTR(sSym*,SRCH_LIST)->art));
   //pk_rebind( ((sSym*)(U64)SRCH_LIST),"libc.so.6");
 }
 #endif
 void repl_edit(char*p){
-  sSym* sym = pks_find_name0(PTR(sCons*,SRCH_LIST),p);
+  sSym* sym = pks_find_name(PTR(sSym*,SRCH_LIST),p);
   FILE*f = fopen("sys/body.c","w");
   if(sym){
     src_to_file(sym->src,f);
@@ -248,10 +291,12 @@ void repl_loop(){
     if(!strncmp("words",linebuf,4)){ repl_words(p); continue; }
     //if(!strncmp("edit",linebuf,4)){ repl_edit(p);  continue; }
 
-    if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
-
     if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }
     if(!strncmp("dump",linebuf,4)){ repl_dump(p); continue; }
+    if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
+    if(!strncmp("pkg",linebuf,3)){ repl_pkg(p);  continue; }
+
+	
     //if(!strncmp("save",linebuf,4)){ repl_save(p); continue; }
     //if(!strncmp("load",linebuf,4)){ repl_load(p); continue; }
 

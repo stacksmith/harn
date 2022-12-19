@@ -3,35 +3,46 @@
 // smSymbs are symbols stored in the meta segment.
 
 
-void pk_dump(sCons* pk);
-sCons* pk_new(char*name);
-void pk_push_sym(sCons* pkg, sSym* sym);
+void pk_dump(sSym* pk);
+sSym* pk_new(char*name,char* extra);
+void pk_push_sym(sSym* pkg, sSym* sym);
 //void pk_wipe_last_sym(sSym* pkg);
-sSym* pk_find_hash(sCons* pk,U32 hash);
-sSym* pk_find_name(sCons*pk, char*name);
-sCons* pk_find_prev_hash(sCons*pk, U32 hash);
+sSym* pk_find_hash(sSym* pk,U32 hash);
+sSym* pk_find_name(sSym*pk, char*name);
+sSym* pk_find_prev_hash(sSym*pk, U32 hash);
 
-void pk_dump_protos(sCons*pk,FILE* f);
-sSym* pk_unlink_sym(sCons*pk, sSym* sym);
+void pk_dump_protos(sSym*pk,FILE* f);
+sSym* pk_unlink_sym(sSym*pk, sSym* sym);
 
-//sSym* pks_find_hash(sCons*pk, U32 hash,sCons** in);
-//sSym* pks_find_name(sCons*pk, char*name,sCons** in);
+//sSym* pks_find_hash(sSym*pk, U32 hash,sSym** in);
+//sSym* pks_find_name(sSym*pk, char*name,sSym** in);
 
-sSym* pks_find_hash0(sCons*pk, U32 hash);
-sSym* pks_find_name0(sCons*pk, char*name);
+sSym* pks_find_hash(sSym*pk, U32 hash);
+sSym* pks_find_name(sSym*pk, char*name);
 
-//sCons* pks_find_prev_hash(sCons*pk, U32 hash,sCons**in);
-sCons* pks_find_prev_hash0(sCons*pk, U32 hash);
+//sSym* pks_find_prev_hash(sSym*pk, U32 hash,sSym**in);
+sSym* pks_find_prev_hash(sSym*pk, U32 hash);
 void pks_dump_protos();
 
 
 
 U64 find_global(char* name);
 
-sCons* pk_from_libtxt(char*name, char*path);
-void pk_rebind(sCons* pk,char*dllpath);
+sSym* pk_from_libtxt(char*name, char* dlpath,char*path);
+void pk_rebind(sSym* pk);
 
 
-void srch_list_push(sCons* pk);
+void srch_list_push(sSym* pk);
+void srch_list_pkgs_ls();
+sSym* srch_list_find_pkg(U32 hash);
+sSym* srch_list_prev_pkg(sSym* pkg);
 
 void pk_incorporate(sSym* new); 
+
+// assembly-coded
+typedef sSym* (*apkgfun)(sSym* sym,U64 p0, U64 p1, U64 p2);
+U64 apkg_walk(sSym* pkg,U64 parm0, U64 parm1, U64 parm2, apkgfun fun);
+sSym* pk_find_hash1(sSym* pk,U64 hash,U64 parm1, U64 parm2);
+
+typedef U8 (*pkgfun2)(sSym* sym,U64 p0);
+sSym* apkg_walk2(sSym* pkg,U64 parm0,pkgfun2 fun);
