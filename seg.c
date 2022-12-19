@@ -239,20 +239,27 @@ U64 mapc(mapcfun fun,U32 list){
   sym_delete                  delete an unlinked symbol, whose artifacts are
                               free from refs
 
- So it is my conjecture that in bits_fix_meta, artend is not really important;
- above artzone requires fixup, and we just have to make sure we are still in
- the art segment.
+ This purges the symbol from the metadata segment and compacts it.  Any
+ dereferenced pointers to symbols are stale!
+
+ Additionally, the symbols have been adjusted for the upcoming artifact 
+ purge, and any symbol->artifact references are not reliable until the
+ final artifact drop
+
+
 
 ----------------------------------------------------------------------------*/
+/*
 U32 mseg_delete(U32 hole, U32 holesize,
-		U32 artzone, U32 artend, U32 artfix){
+		U32 artzone,  U32 artfix){
   //  U32 temp(U32 dropzone, U32 fix, U32 artzone, U32 artend, U32 artfix)
   U32 mfill = MFILL; // MFILL will be altered - keep original copy.
   U32 dropzone = hole+holesize; // end of hole
   // prepare meta segment references for upcoming drop.
   U32 ret = bits_fix_meta(mfill, dropzone, holesize,
-			  artzone,artend,artfix);
+			  artzone,artfix);
   
   bits_drop(hole, dropzone,  mfill-dropzone); // like memcpy
   return ret;
 }
+*/

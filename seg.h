@@ -24,7 +24,7 @@ void mseg_align8();
 U8*  mseg_append(U8* start,U32 size);
 
 U32 mseg_delete(U32 hole, U32 holesize,
-		U32 artzone, U32 artend, U32 artfix);
+		U32 artzone,  U32 artfix);
 
 
 U32 seg_reref(sSeg*psg,U32 old,U32 new);

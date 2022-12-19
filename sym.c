@@ -38,81 +38,51 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   return p;
 }
 /*----------------------------------------------------------------------------
-  sym_delete                  delete an unlinked symbol, whose artifacts are
-                              free from refs
+  sym_delete                  delete a symbol and its artifact.
 
+  Must be unlinked and unreferenced!
 
+  It's a little convoluted, but this is a multi-step process which must be
+  completed, as referential integrity is broken while segments are fixed-up
+  and dropped, one by one...  If anything fails here we are toast; luckily,
+  not too much can go wrong, god willing.
 ----------------------------------------------------------------------------*/
-#include "aseg.h"
-/*
-U32 sym_delete(sSym* sym){
-  printf("sym_delete %p\n",sym);
-  sym_dump1(sym);
-  // before the symbol disappears, read the data stored therein...
-  U32 symU32 = THE_U32(sym);
-  U32 symsize = sym->octs << 3;  // size of the hole, in bytes
-  U32 symend = symU32 + symsize; // alignment inherent
-  // artifact bounds
-  U32 art = sym->art;
-  U32 artsize = 0xFFFFFFF8 & (sym->size + 7);
 
-  U32 artzone = art+artsize;    //start of art dropzone
-  U32 artend;                   // end of art dropzone segment
-  U32 otherend;                 // end of other segment
-  U32 mtop = MFILL;             
-  if(IN_DATA_SEG(art)){
-    artend =  DFILL;
-    otherend = CFILL;
-  } else {
-    artend = CFILL;
-    otherend = DFILL;
-  }
-  printf("will delete %08x to %08x\n",symU32,symend);  
-  printf("  art: %08x, %08x\n",art,artsize);
-  hd(sym,4);
-  printf("bits_fix_meta(top:%08x, hole: %08x, fix:%08x,\n artz:%08x,artend:%08x,artfix:%08x)\n",  mtop,symend,symsize,  artzone,artend,artsize);
- U32 ret = bits_fix_meta(mtop,
-			 symend, symsize,
-			 artzone,artend,artsize);
-   printf("%08X fixups\n",ret);
-   hd(sym,4);
-  
- ///printf("symsize %08x; end %08x\n",symsize, symend);
-   printf("bits_drop(%08x,%08x,%08x)\n",	 symU32, symend,  mtop - symend);
-  // drop in meta, eliminating the symbol
-  bits_drop(symU32, symend,  mtop - symend);
-  printf("drop got %08X\n",ret);
-  // printf("after drop before fix, prev->next is %08x\n",prev->next);
-  // printf("bits_fix_meta: %08X fixups\n",ret);
-
-  // printf("Requesting drop %08X, %08X\n",art,artsize);
-
-  printf("aseg_chomp(%08x,%08x,%08x, %08x)\n",	artzone, artend, artsize, otherend);
-  ret += aseg_delete(artzone, artend, artsize, otherend);
-  return ret;
-}
-*/
 U32 sym_del(sSym* sym){
-  U32 artfix  = ROUND8(sym->size);
-  U32 artzone = sym->art + artfix;    //start of art dropzone
-
-  U32 artend;                   // end of art dropzone segment
-  U32 otherend;                 // end of other segment
-  if(IN_DATA_SEG(artzone)){
-    artend =  DFILL;
-    otherend = CFILL;
+  // start by assembling data about the symbol bounds in the meta seg,
+  // as well as the artifact boundaries in one of the two art segs.
+  U32 adz_fix  = ROUND8(sym->size);   // art dropzone will drop this much
+  U32 adz_tgt  = sym->art;           // to this target pozition
+  U32 adz_lo   = adz_tgt + adz_fix; // starting from here, up
+  U32 mfill    = MFILL; // MFILL will be altered - keep original copy.
+  U32 hole     = THE_U32(sym);    // meta segment hole/drop-target;
+  U32 holesize = SYM_BYTES(sym); // meta segment fixup
+  U32 dropzone = hole+holesize; // meta segment dropzone start
+  // fixupe all intersegment meta pointers in anticipation of the drop;
+  // while traversing, fixup artifact references to post-art-drop state.
+  U32 ret = bits_fix_meta(mfill, dropzone, holesize,  adz_lo, adz_fix);
+  // The system is now broken; do not access any segment data!
+  // compact meta segment and rel table
+  bits_drop(hole, dropzone,  mfill-dropzone); // like memcpy
+  // OK, this fixes most of metadata except for artifact pointers
+  // Determine which segment the artifact sits in, and get the
+  U32 adz_hi, otherend;    // fill-ptrs/tops for both segments.
+  if(IN_DATA_SEG(adz_lo)){ // 
+    adz_hi =  DFILL;    otherend = CFILL;
   } else {
-    artend = CFILL;
-    otherend = DFILL;
+    adz_hi =  CFILL;    otherend = DFILL;
   }
-  //                       
-  U32 ret = mseg_delete(THE_U32(sym), SYM_BYTES(sym),
-			artzone, artend, artfix);
-  //  ret += aseg_delete(artzone, artend, artfix, otherend);
-  ret += aseg_delete1(artzone, artfix);
+  // fix the references inside the artifact drop zone itself
+  ret += bits_fix_inside(adz_lo, adz_hi,  adz_fix);
+  // now fix the outside, bottom part of the artifact segment
+  ret += bits_fix_outside(adz_tgt,   adz_lo, adz_hi, adz_fix);
+  // and the entire other segment as there may be cross-seg refs
+  ret += bits_fix_outside(otherend,  adz_lo, adz_hi, adz_fix); 
+  // finally, compact the artifact segment and rel tables
+  bits_drop(adz_tgt, adz_lo, (adz_hi - adz_lo)); // like memcpy
+  //  hd(PTR(U8*,0x40000e40),4);
   return ret;
 }
-
 /*
 void sym_wipe_last(sSym* sym){
   U32 bytes = sym->octs * 8;
@@ -143,17 +113,15 @@ void sym_dump1(sSym* sym){
   printf("%p: %s:\t %08X %04X %s\n",sym,SYM_NAME(sym),sym->art, sym->size,sym_proto(sym));
 }
 /*----------------------------------------------------------------------------
-  sym_for_artifact            create a sSym for an artifact in aseg...
+  sym_for_artifact            create a sSym for an ELF in aseg...
 
 This is called by ing_elf after ingesting the data.  Some assumptions:
-* sElf structure is still alive and contains the name (delete later!)
+* sElf structure is still alive and contains the name (ing_elf deletes later)
 * gcc invoked with '-aux-info info.txt'; last line is func prototype
 * compiled source for this artifact is in 'code.c'; will be absorbed.
 
 ----------------------------------------------------------------------------*/
-
-
-sSym* sym_wrap(char* name,U32 art, U32 size){
+sSym* sym_for_artifact(char* name,U32 art, U32 size){
   U32 srclen; //not used!
   U32 src = src_from_body(&srclen);  // store source and get file offset
   // if function, extract proto

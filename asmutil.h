@@ -85,4 +85,4 @@ extern U32 bits_fix_outside(U32 top,
 ----------------------------------------------------------------------------*/
 
 extern U32 bits_fix_meta(U32 top, U32 metazone, U32 fix,
-			 U32 artzone, U32 artend, U32 artfix);
+			 U32 artzone, U32 artfix);

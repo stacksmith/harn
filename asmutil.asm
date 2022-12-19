@@ -170,13 +170,14 @@ bits_fix_meta:
 ;;; edi = region top+1 ;region bottom is always top & 0xC00000000
 ;;; esi = metazone start 
 ;;; edx = metazone drop/fixup
-;;; ecx = artzone start (before drop)
-;;; r8  = artzone end (before drop);
-;;; r9  = artzone drop
+;;; ecx = artzone start 
+;;; r8  = artzone drop/fixup
 	push    rbx             ;ebx used to synthesize fixup
 	push	rbp             ;ebp = count of fixups
 	xor	ebp,ebp		;fixup count
 	xor	eax,eax
+	mov     r9d,ecx
+	or      r9d,0x3FFFFFFF  ;r9 is top of art segment
 	
 .loop: 	dec	edi
 	cmp	edi,0xC0000000
@@ -187,10 +188,10 @@ bits_fix_meta:
 	dec	edi             ; 0 1 1 0 assumed
 				;
 ;;; %if 0
-	mov	ebx,r9d		;prepare to drop by artzone drop
+	mov	ebx,r8d		;prepare to drop by artzone drop
 	cmp	[rdi],ecx	;<bottom?
 	cmovb	ebx,eax		;adjust by 0 (avoiding branches)
-	cmp	[rdi],r8d       ;> artzone top?
+	cmp	[rdi],r9d       ;> artzone top?
 	cmova   ebx,eax         ;adjust by 0
 	cmp     [rdi],esi       ;> metazone start?
 	cmovae  ebx,edx         ;adjust by meta fixup.

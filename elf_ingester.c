@@ -175,7 +175,7 @@ sSym* ing_elf(sElf* pelf){
     return 0;
   }
   char* name = pelf->unique->st_name + pelf->str_sym;
-  sSym* sym = sym_wrap(name, bounds.data, bounds.size);
+  sSym* sym = sym_for_artifact(name, bounds.data, bounds.size);
   elf_delete(pelf);
   return sym;
 }
