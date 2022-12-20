@@ -113,11 +113,15 @@ So, pkgs_walk will keep an internal packages pointer, param, and invoke
 ;; Unlike pkg_walk, we do not skip the first (package) symbol, but send it
 ;; directly to the walker.  For now, we won't bother with the prev - pkg
 ;; reordering within the srch_list is not done often...
+
+Note that to find a hash, we pass pkgs_walk a routine, and it in turn sends
+it to pkg_walk invoked internally.  That is, we don not call pk_find_hash,
 	*/
 %endif
 	
-global pkgs_walk
-	
+	global pkgs_walk
+	global pkgs_walk_U32	
+pkgs_walk_U32:	
 pkgs_walk:
 	xchg	eax,edi
 .loop:	xchg	eax,edi         ;edi = next package

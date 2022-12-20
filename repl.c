@@ -140,6 +140,10 @@ U64 proc1(sSym* s,sSym*prev,U64 hash){
 
 void repl_words(char* p){
    pk_dump(PTR(sSym*,SRCH_LIST));
+
+   sSym* q  = PTR(sSym*,SRCH_LIST);
+   q = pks_find_hash(q,0xA52bCAF9);  //0xA52bCAF9);//    0xa94d67e5);
+  printf("%p. final\n",q);
   /*
   sSym* q  = PTR(sSym*,SRCH_LIST);
   
