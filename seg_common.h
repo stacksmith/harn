@@ -27,8 +27,8 @@ Segments are at constant locations
 /*-----------------------------------------------------------------------------
   Meta segment:
   * MFILL
-  * SRCHLIST
-  * RELFLAG
+  * SRCH_LIST
+  * REL_FLAG
 
 -----------------------------------------------------------------------------*/
 #define META_SEG_ADDR 0xC0000000
@@ -40,6 +40,12 @@ Segments are at constant locations
 
 #define MFILL (*MFILL_ADDR)
 #define SRCH_LIST (*SRCH_LIST_ADDR)
+#define TOP_PKG (PTR(sSym*,SRCH_LIST))
+#define WALK_SRCH_LIST (PTR(sSym*,META_SEG_ADDR))
+// Danger zone: the new symbol-space walkers for pks and plst need to start
+// with meta seg base!  They will immediately indirect at +8, which happens
+// to be SRCH_LIST...  That will also provide PREV for unlinkin..
+
 #define REL_FLAG  (*REL_FLAG_ADDR)
 
 #define MFILL_PTR (PTR(U8*,MFILL))

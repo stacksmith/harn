@@ -22,13 +22,7 @@
 A fillable area for code or data
 
   ==============================================================*/
-/*typedef struct sSeg {
-  U8* base; // ptr of allocation/mapping
-  U8* fillptr;
-  U8* end;
-  char name[8];
-} sSeg;
-*/
+
 void mseg_dump(){
   printf("Segment %08X %08x\n",META_SEG_ADDR,MFILL);
 }
@@ -57,10 +51,13 @@ void mseg_alloc(){
 /* -------------------------------------------------------------
 Metaseg has some system variables (each 32 bits long)
 0 fill      A32  fill pointer
-4 top       --   top of segment
-8 srchlist  A32  link to search path
+4 top       --   top of segment ???? don't need it really...
+8 srchlist  A32  link to search path !!!! DO NOT MOVE!  
 C rel_flag  --   relocation control
 
+Note: PLST_WALK uses the base of metaseg as a fake HEAD, since
+package heads use the art pointer at offset 8 of every head...
+DO NOT MOVE SRCHLIST, and DO NOT USE PREV for anything but 
 ---------------------------------------------------------------*/
 
 /*

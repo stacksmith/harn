@@ -206,7 +206,7 @@ U32 ing_elf(sElf* pelf,U32 need_function){
 ------------------------------------------------------------------------------*/
 
 sElf* ing_rebuild(char* name){
-  pks_dump_protos();
+  pkgs_dump_protos();
   char buf[256];
   sprintf(buf,"cd sys; ./build.sh %s",name);
    //puts(buf);

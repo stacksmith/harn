@@ -19,11 +19,12 @@
  15 U8  namelen
  16 ..name,etc.
 -------------------------------------------------------------------------*/
-%endif
+
+
 	global  pkg_find_hash
 ;;; edi - pkg to srrch         on fail, eax is 0; on match, eax = sym.
-;;; esi   hash
-;;; 
+;;; esi   hash               
+;;;                     This is a monolithic non-composable loop..
 pkg_find_hash:
         ;;  we always start with a package pointer, TODO: skip it..
 	mov	edi,[rdi+4]     ;load package's cdr...
@@ -35,39 +36,30 @@ pkg_find_hash:
 	jnz	.loop           ;z? eax is pointing at the last sym
 	xor	eax,eax	        ;and not a match, so there.
 .done:  ret
-
+%endif
 %if 0
 /* -------------------------------------------------------------------------
-pkg_walk - a generic walker for traversing packages ; calls a a c function
-U32 pkgfun2(cSym* s, cSym*prev, U64 param) ; along these lines...
-	;; 		 
 
-Be careful declaring the called function!  It is tempting to use a void*
-in the walker setup, and it will generally work, but note that gcc has 
-given me hours of grief because I called a function return a U8 flag --
-which made it leterally 6 bytes to compare hash!  But the walker exits on
-rax currently, and the function set a byte, giving me intermittent failures
-depending on who screwed with rax...
+  The package subsystem consists of two levels, or dimensions of objects:
 
-Anyway, this is a wonderful walker, and the calling function gets the Sym
-pointer, the previous pointer if it wants to unlink, and a parameter which
-is sent to pkg_walk at setup time, and can be anything.  The canonical 
-usage is walking a package looking for a hash sent as a parameter, with
-a callback:
+  * HORIZONTAL Top level is a linked list of PKG headers.  
+    PKGs belong to this list.   PKGs do not have associated artifacts, and
+    package names are used exclusively for manipulating PKGs ; they are 
+    not visible during searches.
 
-sSym* proc1(sSym* s,sSym*prev,U  hash){
-  return (s->hash == hash) ? (U64)(prev) : 0;
-}
-q = pkg_walk(proc1,q,0xA52bCAF9) ;
+  * VERTICAL.  Each PKG starts a linked list of actual symbols.  Each 
+    package contains related symbols, and the entire package is searchanble.
 
-This will find the symbol with a matching hash and return the previous 
-symbol, allowing us to unlink it.  
+  The searches generally span the entire symbol space, traversing from one 
+  PKG to then next sequentially, and transparently.
 
-By the way, with wrapper functions like these, make sure parameter lists
-match as much as possible, otherwise functions get really big shuffling
-registers.   Moved parameters pf pkg_walk to keep pkg and parm as 1 and2 ;
-now will move the invoked proc parameters to match:
-(pkg,parm,prev) because next is pretty rare, really...
+  So we wanto to be able to 
+pkg_   * search and operate on symbols of single  package ;
+pkgs_  * search and operate on all symbols in the entire PKG list
+plst   * work on PKGs objects only
+
+ symbol, allowing us to unlink it.  
+
 -------------------------------------------------------*/
 %endif
 global pkg_walk
@@ -81,8 +73,7 @@ pkg_walk:
 	mov	rbp,rdx		;rbp = fun to call
 	mov	edx,edi         ; ptr (edx = old, edi = current)
 	xor	eax,eax
-.loop: 
-	add	eax,[edx+4]     ;advance, and test for 0
+.loop: 	add	eax,[edx+4]     ;advance, and test for 0
 	jz     .done		; at the end, return 0
 	xchg	eax,edi         ;edi=ptr, ready for call
 	push	rdi             ;preserve it
@@ -92,49 +83,73 @@ pkg_walk:
         pop	rdx		;edx serves as prev
 	test	rax,rax
 	jz	.loop
-
 .done: 	pop	rbp
 	ret
+%if 0
+/* -------------------------------------------------------------------------
+plst_walk   a layer above, we want to traverse top list visiting each 
+            package head, and operating on it specifically
+
+ENTER WITH META_SEG_ADDR!!!! immediately indirects through 8, AKA SRCH_LIST                                                      
+ -------------------------------------------------------------------------*/
+%endif
+	global plst_walk_U32
+	global plst_walk
+plst_walk_U32:	
+plst_walk:
+;;; rdi = ptr    ;              ; rdi = ptr
+;;; rsi = param    ; callback :	; rsi = param
+;;; rdx = fun                   ; rdx = prev 
+	push	rbp             ; param stays in rsi!
+	mov	rbp,rdx		;rbp = fun to call
+	mov	edx,edi         ; META_SEG_ADDR will be first prev@
+	xor	eax,eax
+.loop: 	add	eax,[edx+8]     ;advance, and test for 0
+	jz     .done		; at the end, return 0
+	xchg	eax,edi         ;edi=ptr, ready for call
+	push	rdi             ;preserve it
+	push    rsi             ;preserve param
+	call	rbp		;;call fun
+	test	rax,rax         ;chec result of call
+	pop     rsi
+        pop	rdx		;edx serves as prev
+	jz	.loop
+.done: 	pop	rbp
+	ret
+	
 %if 0	
 /* -------------------------------------------------------------------------
-pkgs_walk   Let's take this to the next logical level: a packages
-            walker, which walks through packages, invoking pkg_walk on each
- and passing it a package, a parameter, and whatnot.  
+pkgs_walk   operate on all symbols in the entire space by iterating on
+            PKLST, and doing a pkg_walk on every encountered PKG
 
-So, pkgs_walk will keep an internal packages pointer, param, and invoke 
-    pkg_walk with the first symbol, param, and proc....  If the pkg_walk
-    returns 0, we move to the next package ; any other value will be
-    returned,  Note: packages are linked via the art pointer!
+	    Use the same procs pkg_walk, since it dispatches ther.
+ENTER WITH META_SEG_ADDR!!!! immediately indirects through 8, AKA SRCH_LIST   
+We don't actually invoke the fun - we just keep passing it to pkg_walk
+Likewise, prev is not necessary
 
-;;; rdi = ptr - a package pointer
-;;; rsi = parameter to pass around
-;;; rdx = fun to pass to pkg_walk       
-
-;; Unlike pkg_walk, we do not skip the first (package) symbol, but send it
-;; directly to the walker.  For now, we won't bother with the prev - pkg
-;; reordering within the srch_list is not done often...
-
-Note that to find a hash, we pass pkgs_walk a routine, and it in turn sends
-it to pkg_walk invoked internally.  That is, we don not call pk_find_hash,
+;;; rdi = ptr - a package pointer                    ; edi = 
+;;; rsi = parameter to pass around  in callback:   --; rsi   
+;;; rdx = fun to pass to pkg_walk ;                  ; edx   
 	*/
 %endif
-	
 	global pkgs_walk
 	global pkgs_walk_U32	
 pkgs_walk_U32:	
 pkgs_walk:
-	xchg	eax,edi
-.loop:	xchg	eax,edi         ;edi = next package
+	xor     eax,eax
+.loop:	add	eax,[edi+8]     ;next package
+	jz      .done           ;if eax is not zero
+	xchg	eax,edi         ;edi = next package
 	push    rsi             ;save param
 	push    rdx             ;save fun
 	push	rdi		;save package
 	call	pkg_walk
+	test	rax,rax         ;test result of call
 	pop     rdi
 	pop	rdx
 	pop	rsi
-;;; check result
-	test	rax,rax	
-	jnz	.done           ;rax is maybe result?
-	add	eax,[edi+8]     ;next package
-	jnz     .loop           ;if eax is not zero
+	jz	.loop           ;rax is maybe result?
+
 .done:	ret
+
+

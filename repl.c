@@ -36,11 +36,11 @@ void exec_repl_sym(sSym* sym,char*p){
 
 
 void run_repl_fun(U32 hash,char*p){
-  sSym* sym = pks_find_hash(PTR(sSym*,SRCH_LIST),hash);
+  sSym* sym = pkgs_find_hash(WALK_SRCH_LIST,hash);
   if(sym){  //
     exec_repl_sym(sym,p);
   } else {
-    printf("can't find it\n");
+    printf("run_repl_fun: can't find it\n");
   }
 }
 
@@ -51,16 +51,17 @@ compile
 ------------------------------------------------------------------------------*/
 
 sSym* repl_compile(char*p){
+    pkgs_dump_protos();
   sSym* sym =  ingest_elf("unit");
   if(sym){ // OK, this means we made it!
     printf("Ingested %s: %s %d bytes\n", SYM_NAME(sym),sym_proto(sym),sym->size);
-    pk_incorporate(sym);
+    pkg_incorporate(sym);
   } else { // no symbol
     printf("aborted.\n");
   }
   return sym;
 
-}
+}  
 
 
 
@@ -109,41 +110,24 @@ char* cmd_ws(char*p){
 
 void repl_list(char* p){
   U32 hash = cmd_hash(&p);
-  sSym* sym = pks_find_hash(PTR(sSym*,SRCH_LIST),hash);
+  sSym* sym = pkgs_find_hash(WALK_SRCH_LIST,hash);
   if(sym){
     puts("-------------------------------------------------------------");
-    //    printf("In package: %s\n",SYM_NAME(pkg));
+    //    printf("In package: %s\n",SYM_NAME(pkg));Xx
     puts("-------------------------------------------------------------");
     src_to_file(sym->src,stdout); //todo: src length...
     puts("-------------------------------------------------------------");
   }
 }
 
-sSym* pk_find_hash2(sSym* pk, U64 hash);
-  
-
-
-
-
-U64 proc1(sSym* s,sSym*prev,U64 hash){
-  //     printf(" %p %08x   %p,\n",s,s->hash,prev);
-  //  printf(".");
-  return (s->hash == hash)
-    ? (U64)(prev) : 0;
-     
-
-
- 
-  //  return p->hash == 0xa94d67e5;
-}
 
 
 void repl_words(char* p){
-   pk_dump(PTR(sSym*,SRCH_LIST));
+  pkg_dump(TOP_PKG);
 
-   sSym* q  = PTR(sSym*,SRCH_LIST);
-   q = pks_find_hash(q,0xA52bCAF9);  //0xA52bCAF9);//    0xa94d67e5);
-  printf("%p. final\n",q);
+   //..  .   sSym* q  = PTR(sSym*,SRCH_LIST);
+   // q = pkgs_find_hash(q,0xA52bCAF9);  //0xA52bCAF9);//    0xa94d67e5);
+   // printf("%p. final\n",q);
   /*
   sSym* q  = PTR(sSym*,SRCH_LIST);
   
@@ -172,44 +156,38 @@ void repl_words(char* p){
 }
 
 void repl_pkg(char* p){
-  if(!strncmp(p,"ls",2)) { srch_list_pkgs_ls();
-
-    return; }
+  if(!strncmp(p,"ls",2)) {
+    srch_list_pkgs_ls();
+    return;
+  }
   if(!strncmp(p,"use",3)) {
     p = cmd_ws(p+3);
     U32 hash = cmd_hash(&p);
-    sSym* pkg = srch_list_find_pkg(hash); // find the desired package
-    if(pkg){
-      sSym* prev = srch_list_prev_pkg(pkg);
-      if(prev){ // unlink
-	sym_dump1(prev);
-	prev->art = pkg->art;
-	pkg->art = SRCH_LIST;
-	SRCH_LIST = THE_U32(pkg);
-      } // else we are already on top
-      srch_list_pkgs_ls();
-      return;
+    sSym* prev =PTR(sSym*,plst_find_prev_hash(WALK_SRCH_LIST,hash));
+    if(prev && (WALK_SRCH_LIST != prev)) { // are we already there?
+      sSym* pkg = pkg_unlink(prev); // unlink prev's next and get it.
+      if(pkg)
+	srch_list_push(pkg);  // and relink it in front
     }
-    //   hd(p,1);
-    //return;
+    srch_list_pkgs_ls();
   }
-  
 }
 
-
-
+ 
 char* helpstr =
   "built-in commands:\n\
  bye<cr>           exit\n\
  cc<cr>            compile sys/unit.c; please edit sys/body.c first\n\
- dump XXXXXXXX<cr> hexdump data at hex address\n\
- edit <name><cr>   put the source of symbol into sys/body.c\n\
- help<cr>          displays this message\n\
- list <name><cr>   show the source of the symbol\n\
- load<cr>          load the image file\n\
- save<cr>          save the image in image/image.dat file\n\
- sys<cr>           show system statistics\n\
- words<cr>         show the symbol table\n\
+ hd XXXXXXXX       hexdump data at hex address\n\
+ edit <name>       put the source of symbol into sys/body.c\n\
+ help              displays this message\n\
+ list <name>       show the source of the symbol\n\
+ load              load the image file\n\
+ save              save the image in image/image.dat file\n\
+ sys               show system statistics\n\
+ words             show the symbols in the active package\n\
+ pkg ls            show packages; the first one is active\n\
+ pkg use <name>    makes the named package active\n\
 \n\
 puts(\"hello\");     execute any stdlib or your own function\n\
 \n\
@@ -271,12 +249,13 @@ void repl_load(char*p){
   seg_deserialize(psMeta,f);
   fclose(f);
   //TODO: automate search for libraries to rebind upon load
-  pk_rebind((PTR(sSym*,SRCH_LIST)->art));
+  printf("repl_load is assuming bad things\n");
+  pkg_rebind(TOP_PKG->art);
   //pk_rebind( ((sSym*)(U64)SRCH_LIST),"libc.so.6");
 }
 #endif
 void repl_edit(char*p){
-  sSym* sym = pks_find_name(PTR(sSym*,SRCH_LIST),p);
+  sSym* sym = pkgs_find_name(WALK_SRCH_LIST,p);
   FILE*f = fopen("sys/body.c","w");
   if(sym){
     src_to_file(sym->src,f);
@@ -287,7 +266,8 @@ void repl_edit(char*p){
 /*---------------------------------------------------------------------------
 
   ----------------------------------------------------------------------------*/
-void repl_sys(char* p){
+void repl_sys(char* p){\
+
   aseg_dump();
   mseg_dump();
   //pkgs_list();
@@ -298,7 +278,7 @@ void repl_sys(char* p){
 ----------------------------------------------------------------------------*/
 
 void repl_loop(){
-  pks_dump_protos();
+  pkgs_dump_protos();
   puts("harn - an interactive C environment.  (c) 2022 StackSmith\n\n\
       ...try 'help<cr>', or 'printf(\"Hello World!\\n\")<cr>'\n");
   while(1) {

@@ -70,15 +70,15 @@ int main(int argc, char **argv){
   aseg_alloc();
   src_init();      // open source files and setup buffers
 
-  sSym* pk = pk_from_libtxt("libc","libc.so.6","libc.txt");
-  pk_rebind(pk);
+  sSym* pk = pkg_from_libtxt("libc","libc.so.6","libc.txt");
+  pkg_rebind(pk);
   srch_list_push(pk);
   aseg_dump();
  
 
-   sym_dump1(pk_find_name(pk,"printf"));
+   sym_dump1(pkg_find_name(pk,"printf"));
   
-   sSym* pku = pk_new("user",0);
+   sSym* pku = pkg_new("user",0);
   srch_list_push(pku);
   repl_loop();
   return 0;
