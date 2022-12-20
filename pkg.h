@@ -43,12 +43,12 @@ void pk_incorporate(sSym* new);
 // assembly-coded
 sSym* pkg_find_hash(sSym* pkg, U32 hash);
 
-typedef U8 (*pkgfun2)(sSym* sym,sSym* prev,U64 p0);
+typedef U8 (*pkgfun2)(sSym* sym,U64 parm,sSym* prev);
 
 sSym* pkg_walk(sSym*pkg, U64 parm,void* fun);
 sSym* pkg_walk_U32(sSym*pkg, U32 parm,void* fun);
 
-
+sSym* pkgs_walk(sSym* pkgk, U64 parm, void* fun);
 /*
 typedef sSym* (*apkgfun)(sSym* sym,U64 p0, U64 p1, U64 p2);
 U64 apkg_walk(sSym* pkg,U64 parm0, U64 parm1, U64 parm2, apkgfun fun);
