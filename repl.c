@@ -174,43 +174,15 @@ void repl_pkg(char* p){
 }
 
  
-char* helpstr =
-  "built-in commands:\n\
- bye<cr>           exit\n\
- cc<cr>            compile sys/unit.c; please edit sys/body.c first\n\
- hd XXXXXXXX       hexdump data at hex address\n\
- edit <name>       put the source of symbol into sys/body.c\n\
- help              displays this message\n\
- list <name>       show the source of the symbol\n\
- load              load the image file\n\
- save              save the image in image/image.dat file\n\
- sys               show system statistics\n\
- words             show the symbols in the active package\n\
- pkg ls            show packages; the first one is active\n\
- pkg use <name>    makes the named package active\n\
-\n\
-puts(\"hello\");     execute any stdlib or your own function\n\
-\n\
-The entire libc is available; <stdio.h> and <stdlib.h> are always included; \n\
-other headers may need to be included in each unit, add to /sys/types.h if \n\
-you intend to use a header or type a lot.\n\
-\n\
-Each edit/compilation unit must have exactly one global symbol - one data \n\
-object or one function.  Make sure to add declarations for global data; \n\
-your function prototypes will be automatically generated.\n\n\
-If you use emacs, keep a buffer with sys/body.c, and turn on \n\
-auto-revert-mode.  Now when you type in 'edit foo<cr>', the source of foo \n\
-will appear in the buffer.  After making changes, enter `cc` to compile and \n\
-integrate the changes.  Or edit sys/body.c, save, and cc to compile.\n\
-\n\
-You can call any compiled function from the command line.\n";
-
-
-
-
 void repl_help(char*p){
-  puts(helpstr);
+  FILE*f = fopen("sys/help_page.txt","r");
+  char c;
+  while((c = fgetc(f)) != EOF )
+    putchar(c);
+  fclose(f);
 }
+
+
 U32 ingest_run(char* name,char*p);
 
 void repl_expr(char*p){

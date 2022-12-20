@@ -5,7 +5,17 @@ harn - an interactive C environment.  (c) 2022 StackSmith
 
       ...try 'help<cr>', or 'printf("Hello World!\n")<cr>'
 
->
+
+
+2022-12-20 Having replaced just about everything I am amazed that it actually works... It will compile little functions and variables, and in case of replacement will relink and delete old versions, maintaining referential integrity.  I am still reworking large chunks, and there are many clumsy and redundant, and often misnamed components but...
+* ELF harness works and ingestion of code seems solit;
+* REPL expressions are transparently compiled and executed
+* Reference tracing, object deletion, segment compaction
+* Completely new segment structure after catdog;
+* relocation bitmap code solid
+* really compact and reusable iterators for symbols and packages
+
+So at this point every component works pretty close to how intended, at least in a toy sense.  Type help at the repl to see what y
 ```
 Edit and compile functions (or data objects), one at a time; execute your own or any libc function from the command line...
 

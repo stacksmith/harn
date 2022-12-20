@@ -11,12 +11,26 @@
 #include "pkg.h"
 
 /*----------------------------------------------------------------------------
+
+ Physically symbols are grouped into packages,
+
 A package is a group of related symbols, kept in a linked list. 
 
-The prototype area of a package may be used for private storage.  
-library bindings use it to store the name of the dll to open
+sym          a named symbol corresponding to an artifact in code or data area;
 
-This is a fourth try to streamline packages using the new package walker...
+head         a special symbol used to hold a package, a linked list of 
+             symbols which are attached to this head.  The head is not 
+             a part of the package, but rather contains a package.
+
+pkg          a conceptual idea of the contents of the head, or a bunch of
+             related symbols, or a group of symbols anchored to the head.
+
+plist        a separately linked grouping of heads creating a combined 
+             namespace.
+
+
+
+
 ----------------------------------------------------------------------------*/
 
 // Some procs used by the pkg_walk and pkgs_walk
@@ -24,9 +38,25 @@ This is a fourth try to streamline packages using the new package walker...
 
 
 /*----------------------------------------------------------------------------
-  .._find_hash
 
-  ----------------------------------------------------------------------------*/
+  S
+  Symbols are accessible via walkers or iterators set up to visit groupings.
+  Walkers are started with a 'proc', which are called for every item in the
+  group.  Different procs are developed for particulaar operations (although
+  procs can often be reused).  Upon completion of its task on a single item,
+  a proc returns 0 to continue, or any other value to exit, in which case
+  the walker stops and returns that value.
+
+  There are curently three walkers
+
+  * a package walker iterates on all symbols within a package;
+  * a namespace walker visits all packages 
+  * a package is searchable via its head an `pkg_walk` iterator
+  * the entire namespace is 
+
+
+
+  ----------------------------------------------------------------------------*// 
 sSym* pkg_find_hash_proc(sSym* s,U32 hash,sSym*prev){
   return (s->hash == hash) ? s : 0;
 }

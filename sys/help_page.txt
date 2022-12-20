@@ -1,0 +1,35 @@
+
+built-in commands:
+ bye<cr>           exit
+ cc<cr>            compile sys/unit.c; please edit sys/body.c first
+ hd XXXXXXXX       hexdump data at hex address
+ edit <name>       put the source of symbol into sys/body.c
+ help              displays this message
+ list <name>       show the source of the symbol
+ load              load the image file
+ save              save the image in image/image.dat file
+ sys               show system statistics
+ words             show the symbols in the active package
+ pkg ls            show packages; the first one is active
+ pkg use <name>    makes the named package active
+
+puts("hello");     execute any stdlib or your own function
+
+The entire libc is available; <stdio.h> and <stdlib.h> are always included; 
+other headers may need to be included in each unit, add to /sys/types.h if 
+you intend to use a header or type a lot. Do this to see the contents of
+the libc package:
+
+pkg use libc
+words
+
+Each edit/compilation unit must have exactly one global symbol - one data 
+object or one function.  Make sure to add declarations for global data; 
+your function prototypes will be automatically generated.
+
+If you use emacs, keep a buffer with sys/body.c, and turn on 
+auto-revert-mode.  Now when you type in 'edit foo<cr>', the source of foo 
+will appear in the buffer.  After making changes, enter `cc` to compile and 
+integrate the changes.  Or edit sys/body.c, save, and cc to compile.
+
+You can call any compiled function from the command line.

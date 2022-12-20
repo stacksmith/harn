@@ -11,6 +11,18 @@
 #include "sym.h"
 #include "asmutil.h"
 
+char* sym_name(sSym* sym){
+  return ((char*)sym)+SYM_NAME_OFF;
+}
+char* sym_proto(sSym* sym){
+  char* pname = ((char*)sym)+SYM_NAME_OFF;
+  return (pname + sym->namelen);
+}
+
+U32 sym_dump1(sSym* sym){
+  printf("%p: %s:\t %08X %04X %s\n",sym,SYM_NAME(sym),sym->art, sym->size,sym_proto(sym));
+  return 0;
+}
 sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   U32 namelen = strlen(name);
   U32 protolen = proto ? strlen(proto) : 0;
@@ -18,22 +30,23 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   U8* bptr = mseg_append(0,octs*8);
   U32 uptr = (U32)(U64)bptr;
   sSym* p = (sSym*)bptr;
-  
-  rel_mark(uptr+4,2); // next pointer is a 32-bit pointer
-  rel_mark(uptr+8,2); // art o
-
+  // There are two reeferences: both are A32 pointers
+  rel_mark(uptr+4,2); // next   symbols are linked-listed...
+  rel_mark(uptr+8,2); // art    artifact reference
   mseg_align8();
-  p->hash = string_hash(name);
-  p->art = art;
-  p->size = size;
-  p->src  = src;
-  p->octs = octs;
+  // Now populate the fields
+  p->hash    = string_hash(name);
+  p->art     = art;
+  p->size    = size;
+  p->src     = src;
+  p->octs    = octs;
   p->namelen = namelen+1;
-  strcpy(bptr+SYM_NAME_OFF, name);
-
-  if(proto){
+  // copy the provided name directly after the symbol structure
+  strcpy(bptr+SYM_NAME_OFF, name); // null-terminated
+  // If prototype provided, copy that after the name
+  if(proto)
     strcpy(bptr+SYM_NAME_OFF+1+namelen, proto);
-  }
+  // always keep the segments aligned to 8
   mseg_align8();
   return p;
 }
@@ -46,6 +59,15 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   completed, as referential integrity is broken while segments are fixed-up
   and dropped, one by one...  If anything fails here we are toast; luckily,
   not too much can go wrong, god willing.
+
+  The symbol in the metasegment has a reference to the artifact in
+  code or data segment, which mus likewize be removed.
+
+  The are occupied by the symbol or artifact is referred to as a hole,
+  while the span above the hole to the top of the segment is called
+  'dropzone'.  The dropzone will be dropped covering the hole, later.
+  before that happens, we need to fix a variety of references which will
+  be affected by the movement of data -- references in all segments!
 ----------------------------------------------------------------------------*/
 
 U32 sym_del(sSym* sym){
@@ -67,7 +89,7 @@ U32 sym_del(sSym* sym){
   // OK, this fixes most of metadata except for artifact pointers
   // Determine which segment the artifact sits in, and get the
   U32 adz_hi, otherend;    // fill-ptrs/tops for both segments.
-  if(IN_DATA_SEG(adz_lo)){ // 
+  if(IN_DATA_SEG(adz_lo)){ 
     adz_hi =  DFILL;    otherend = CFILL;
   } else {
     adz_hi =  CFILL;    otherend = DFILL;
@@ -84,18 +106,7 @@ U32 sym_del(sSym* sym){
   return ret;
 }
 
-char* sym_name(sSym* sym){
-  return ((char*)sym)+SYM_NAME_OFF;
-}
-char* sym_proto(sSym* sym){
-  char* pname = ((char*)sym)+SYM_NAME_OFF;
-  return (pname + sym->namelen);
-}
 
-U32 sym_dump1(sSym* sym){
-  printf("%p: %s:\t %08X %04X %s\n",sym,SYM_NAME(sym),sym->art, sym->size,sym_proto(sym));
-  return 0;
-}
 /*----------------------------------------------------------------------------
   sym_for_artifact            create a sSym for an ELF in aseg...
 
