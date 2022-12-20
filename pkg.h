@@ -39,10 +39,21 @@ sSym* srch_list_prev_pkg(sSym* pkg);
 
 void pk_incorporate(sSym* new); 
 
+
 // assembly-coded
+sSym* pkg_find_hash(sSym* pkg, U32 hash);
+
+typedef U8 (*pkgfun2)(sSym* sym,sSym* prev,U64 p0);
+
+sSym* pkg_walk(sSym*pkg, U64 parm,void* fun);
+sSym* pkg_walk_U32(sSym*pkg, U32 parm,void* fun);
+
+
+/*
 typedef sSym* (*apkgfun)(sSym* sym,U64 p0, U64 p1, U64 p2);
 U64 apkg_walk(sSym* pkg,U64 parm0, U64 parm1, U64 parm2, apkgfun fun);
 sSym* pk_find_hash1(sSym* pk,U64 hash,U64 parm1, U64 parm2);
 
-typedef U8 (*pkgfun2)(sSym* sym,U64 p0);
-sSym* apkg_walk2(sSym* pkg,U64 parm0,pkgfun2 fun);
+
+;;sSym* apkg_walk2(sSym* pkg,U64 parm0,pkgfun2 fun);
+*/

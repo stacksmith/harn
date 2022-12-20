@@ -122,8 +122,37 @@ void repl_list(char* p){
 sSym* pk_find_hash2(sSym* pk, U64 hash);
   
 
+
+
+
+U64 proc1(sSym* s,sSym*prev,U64 hash){
+  //     printf(" %p %08x   %p,\n",s,s->hash,prev);
+  //  printf(".");
+  return (s->hash == hash)
+    ? (U64)(prev) : 0;
+     
+
+
+ 
+  //  return p->hash == 0xa94d67e5;
+}
+
+
 void repl_words(char* p){
-  pk_dump(PTR(sSym*,SRCH_LIST));
+   pk_dump(PTR(sSym*,SRCH_LIST));
+  /*
+  sSym* q  = PTR(sSym*,SRCH_LIST);
+  
+  q = PTR(sSym*,0xC0000010L);//q->art);
+  //  q = pkg_walk2(q,0x1234,proc2);
+  q = pkg_walk(proc1,q,0xA52bCAF9);
+
+  printf("%p. final\n",q);
+  
+  
+  q = pkg_find_hash(q,0xA52bCAF9);  //0xA52bCAF9);//    0xa94d67e5);
+  printf("found %p\n",q);
+  */
   /*
   sSym* proc(sSym* s,U64 hash){
     return ((s->hash == hash)) ?  s : 0;
@@ -292,7 +321,7 @@ void repl_loop(){
     //if(!strncmp("edit",linebuf,4)){ repl_edit(p);  continue; }
 
     if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }
-    if(!strncmp("dump",linebuf,4)){ repl_dump(p); continue; }
+    if(!strncmp("hd",linebuf,2)){ repl_dump(p); continue; }
     if(!strncmp("list",linebuf,4)){ repl_list(p);  continue; }
     if(!strncmp("pkg",linebuf,3)){ repl_pkg(p);  continue; }
 

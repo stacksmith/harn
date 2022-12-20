@@ -19,8 +19,8 @@ sSym* sym_new(char* name, U32 art, U32 size, U32 src,char* proto){
   U32 uptr = (U32)(U64)bptr;
   sSym* p = (sSym*)bptr;
   
-  rel_mark(uptr+0,2); // next pointer is a 32-bit pointer
-  rel_mark(uptr+8,2); // data pointer is a 32-bit pointer
+  rel_mark(uptr+4,2); // next pointer is a 32-bit pointer
+  rel_mark(uptr+8,2); // art o
 
   mseg_align8();
   p->hash = string_hash(name);
@@ -92,8 +92,9 @@ char* sym_proto(sSym* sym){
   return (pname + sym->namelen);
 }
 
-void sym_dump1(sSym* sym){
+U32 sym_dump1(sSym* sym){
   printf("%p: %s:\t %08X %04X %s\n",sym,SYM_NAME(sym),sym->art, sym->size,sym_proto(sym));
+  return 0;
 }
 /*----------------------------------------------------------------------------
   sym_for_artifact            create a sSym for an ELF in aseg...
