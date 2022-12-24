@@ -36,7 +36,7 @@ void exec_repl_sym(sSym* sym,char*p){
 
 
 void run_repl_fun(U32 hash,char*p){
-  sSym* sym = pkgs_find_hash(WALK_SRCH_LIST,hash);
+  sSym* sym = pkgs_find_hash(GNS_AS_SYM,hash);
   if(sym){  //
     exec_repl_sym(sym,p);
   } else {
@@ -110,7 +110,7 @@ char* cmd_ws(char*p){
 
 void repl_list(char* p){
   U32 hash = cmd_hash(&p);
-  sSym* sym = pkgs_find_hash(WALK_SRCH_LIST,hash);
+  sSym* sym = pkgs_find_hash(GNS_AS_SYM,hash);
   if(sym){
     puts("-------------------------------------------------------------");
     //    printf("In package: %s\n",SYM_NAME(pkg));Xx
@@ -163,8 +163,8 @@ void repl_pkg(char* p){
   if(!strncmp(p,"use",3)) {
     p = cmd_ws(p+3);
     U32 hash = cmd_hash(&p);
-    sSym* prev =PTR(sSym*,plst_find_prev_hash(WALK_SRCH_LIST,hash));
-    if(prev && (WALK_SRCH_LIST != prev)) { // are we already there?
+    sSym* prev =PTR(sSym*,plst_find_prev_hash(GNS_AS_SYM,hash));
+    if(prev && (GNS_AS_SYM != prev)) { // are we already there?
       sSym* pkg = pkg_unlink(prev); // unlink prev's next and get it.
       if(pkg)
 	srch_list_push(pkg);  // and relink it in front
@@ -227,7 +227,7 @@ void repl_load(char*p){
 }
 #endif
 void repl_edit(char*p){
-  sSym* sym = pkgs_find_name(WALK_SRCH_LIST,p);
+  sSym* sym = pkgs_find_name(GNS_AS_SYM,p);
   FILE*f = fopen("sys/body.c","w");
   if(sym){
     src_to_file(sym->src,f);

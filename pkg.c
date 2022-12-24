@@ -17,19 +17,22 @@
 A package is a group of related symbols, kept in a linked list. 
 
 sym          a named symbol corresponding to an artifact in code or data area;
+             representation: sSym
 
 head         a special symbol used to hold a package, a linked list of 
              symbols which are attached to this head.  The head is not 
              a part of the package, but rather contains a package.
+	     repr: sSym with art -> next head...
 
 pkg          a conceptual idea of the contents of the head, or a bunch of
              related symbols, or a group of symbols anchored to the head.
+	     repr: sSym; rather its cdr list of sSyms
 
-plist        a separately linked grouping of heads creating a combined 
-             namespace.
+ns           a namespace, or a group of packages.
+             repr: a linked list of heads (via art)
 
-
-
+GNS          global namespace, a namespace pointed to by the GNS variable.
+             repr: global pointer GNS
 
 ----------------------------------------------------------------------------*/
 
@@ -56,7 +59,7 @@ plist        a separately linked grouping of heads creating a combined
 
 
 
-  ----------------------------------------------------------------------------*// 
+  ----------------------------------------------------------------------------*/
 sSym* pkg_find_hash_proc(sSym* s,U32 hash,sSym*prev){
   return (s->hash == hash) ? s : 0;
 }
@@ -150,8 +153,8 @@ sSym* pkg_unlink(sSym* prev){
 
 // insert a package into srch_list
 void srch_list_push(sSym* pk){
-  pk->art = SRCH_LIST;  // next package;
-  SRCH_LIST = THE_U32(pk);
+  pk->art = GNS;  // next package;
+  GNS = THE_U32(pk);
 }
 
 
@@ -160,7 +163,7 @@ void srch_list_pkgs_ls(void){
      printf("%s ",SYM_NAME(pk));
     return 0;
   }
-  plst_walk_U32(WALK_SRCH_LIST, 0,proc);
+  plst_walk_U32(GNS_AS_SYM, 0,proc);
   printf("\n"); 
 }
 
@@ -182,9 +185,8 @@ void pkg_dump_protos(sSym* s,FILE* f){
 }
 
 void pkgs_dump_protos(){
-  FILE* f = fopen("sys/headers.h","w");
-  sSym* pk = WALK_SRCH_LIST;
-  pkgs_walk (pk, (U64)(f), pkg_dump_protos_proc);
+  FILE* f = fopen("sys/headers.h","w");;
+  pkgs_walk (GNS_AS_SYM, (U64)(f), pkg_dump_protos_proc);
   fclose(f);
 }
 
@@ -266,7 +268,7 @@ This is particularly tricky, as:
 ----------------------------------------------------------------------------*/
 void pkg_incorporate(sSym* new){
   // search for previous symbos of same name.  New is not linked!  Get prev.
-  sSym* prev = pkgs_find_prev_hash(WALK_SRCH_LIST, new->hash);
+  sSym* prev = pkgs_find_prev_hash(GNS_AS_SYM, new->hash);
   //  printf("pkg_inc prev %p   new: %p\n",prev,new);
   if(!prev) { // no previous versions; simply link it into 
      pkg_push_sym(TOP_PKG,new);   

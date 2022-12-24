@@ -1,47 +1,48 @@
 #ifndef SEG_COMMON_DEFS
 #define SEG_COMMON_DEFS
-/* ==============================================================
+/* ============================================================================
 
-Segments are at constant locations
+There are 3 segments at fixed locations:
 
-  ==============================================================*/
+0x40000000 CODE_SEG - executable code artifacts (and related constants);
+0x80000000 DATA_SEG - global variables, CODE_SEG and DATA_SEG fill-pointers
+0xC0000000 META_SEG - metadata
+
+ ============== ==============================================================*/
 #define CODE_SEG_ADDR 0x40000000
 #define CODE_SEG_SIZE 0x10000000
+#define DATA_SEG_ADDR 0x80000000
+#define DATA_SEG_SIZE 0x10000000
+#define META_SEG_ADDR 0xC0000000
+#define META_SEG_SIZE 0x10000000
 
 /*-----------------------------------------------------------------------------
   Data segment keeps the fill-pointers for both data and code segments -- to 
-  avoid writing into code segment...
-
+  avoid writing into code segment...   DO NOT PUT IN METADATA!
+  Meta fill-ptr is in meta...
 -----------------------------------------------------------------------------*/
-
-#define DATA_SEG_ADDR 0x80000000
-#define DATA_SEG_SIZE 0x10000000
-
-#define DFILL_ADDR ((U32*)0x80000000L)
 #define CFILL_ADDR ((U32*)0x80000004L)
+#define DFILL_ADDR ((U32*)0x80000000L)
 #define CFILL (*CFILL_ADDR)
 #define DFILL (*DFILL_ADDR)
 #define DFILL_PTR (PTR(U8*,DFILL))
 #define CFILL_PTR (PTR(U8*,CFILL))
 
 /*-----------------------------------------------------------------------------
-  Meta segment:
+  Meta segment vars
   * MFILL
-  * SRCH_LIST
+  * GNS  global namespace
   * REL_FLAG
 
 -----------------------------------------------------------------------------*/
-#define META_SEG_ADDR 0xC0000000
-#define META_SEG_SIZE 0x10000000
-
-#define MFILL_ADDR     ((U32*)0xC0000000L)
-#define SRCH_LIST_ADDR ((U32*)0xC0000008)
-#define REL_FLAG_ADDR  ((U32*)0xC000000C)
+#define MFILL_ADDR ((U32*)0xC0000000L)
+#define GNS_ADDR ((U32*)0xC0000008L)
+#define REL_FLAG_ADDR  ((U32*)0xC000000CL)
 
 #define MFILL (*MFILL_ADDR)
-#define SRCH_LIST (*SRCH_LIST_ADDR)
-#define TOP_PKG (PTR(sSym*,SRCH_LIST))
-#define WALK_SRCH_LIST (PTR(sSym*,META_SEG_ADDR))
+#define GNS (*GNS_ADDR)
+#define TOP_PKG (PTR(sSym*,GNS))
+#define GNS_AS_SYM (PTR(sSym*,META_SEG_ADDR))
 // Danger zone: the new symbol-space walkers for pks and plst need to start
 // with meta seg base!  They will immediately indirect at +8, which happens
 // to be SRCH_LIST...  That will also provide PREV for unlinkin..

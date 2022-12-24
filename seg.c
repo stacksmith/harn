@@ -41,11 +41,11 @@ void mseg_alloc(){
 	   PROT_READ | PROT_WRITE,"meta-rel");
 
   MFILL = META_SEG_ADDR + 16;
-  SRCH_LIST = 0;
+  GNS = 0;
   REL_FLAG = 1;
 
   rel_mark(THE_U32(MFILL_ADDR), 2); // fill  
- rel_mark(THE_U32(SRCH_LIST_ADDR), 2); // srch_list  
+  rel_mark(THE_U32(GNS_ADDR), 2); // srch_list  
 
 }
 /* -------------------------------------------------------------
