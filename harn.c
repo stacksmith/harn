@@ -72,14 +72,14 @@ int main(int argc, char **argv){
 
   sSym* pk = pkg_from_libtxt("libc","libc.so.6","libc.txt");
   pkg_rebind(pk);
-  srch_list_push(pk);
+  ns_pkg_push(pk);
   aseg_dump();
  
 
    sym_dump1(pkg_find_name(pk,"printf"));
   
    sSym* pku = pkg_new("user",0);
-  srch_list_push(pku);
+  ns_pkg_push(pku);
   repl_loop();
   return 0;
 }

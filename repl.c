@@ -36,7 +36,7 @@ void exec_repl_sym(sSym* sym,char*p){
 
 
 void run_repl_fun(U32 hash,char*p){
-  sSym* sym = pkgs_find_hash(GNS_AS_SYM,hash);
+  sSym* sym = ns_find_hash(GNS_AS_SYM,hash);
   if(sym){  //
     exec_repl_sym(sym,p);
   } else {
@@ -110,7 +110,7 @@ char* cmd_ws(char*p){
 
 void repl_list(char* p){
   U32 hash = cmd_hash(&p);
-  sSym* sym = pkgs_find_hash(GNS_AS_SYM,hash);
+  sSym* sym = ns_find_hash(GNS_AS_SYM,hash);
   if(sym){
     puts("-------------------------------------------------------------");
     //    printf("In package: %s\n",SYM_NAME(pkg));Xx
@@ -157,19 +157,19 @@ void repl_words(char* p){
 
 void repl_pkg(char* p){
   if(!strncmp(p,"ls",2)) {
-    srch_list_pkgs_ls();
+    ns_pkgs_ls();
     return;
   }
   if(!strncmp(p,"use",3)) {
     p = cmd_ws(p+3);
     U32 hash = cmd_hash(&p);
-    sSym* prev =PTR(sSym*,plst_find_prev_hash(GNS_AS_SYM,hash));
+    sSym* prev =PTR(sSym*,ns_find_prev_pkg_hash(GNS_AS_SYM,hash));
     if(prev && (GNS_AS_SYM != prev)) { // are we already there?
       sSym* pkg = pkg_unlink(prev); // unlink prev's next and get it.
       if(pkg)
-	srch_list_push(pkg);  // and relink it in front
+	ns_pkg_push(pkg);  // and relink it in front
     }
-    srch_list_pkgs_ls();
+    ns_pkgs_ls();
   }
 }
 
@@ -227,7 +227,7 @@ void repl_load(char*p){
 }
 #endif
 void repl_edit(char*p){
-  sSym* sym = pkgs_find_name(GNS_AS_SYM,p);
+  sSym* sym = ns_find_name(GNS_AS_SYM,p);
   FILE*f = fopen("sys/body.c","w");
   if(sym){
     src_to_file(sym->src,f);

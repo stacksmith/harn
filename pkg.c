@@ -34,105 +34,17 @@ ns           a namespace, or a group of packages.
 GNS          global namespace, a namespace pointed to by the GNS variable.
              repr: global pointer GNS
 
+
+Typically, there are three kinds of things we do:
+* Operate on symbols of a package;
+* Operate on all symbols of a namespace;
+* Operate on packages of a namespace.
+
+These access patterns are abstracted into three iterators, or walkers, which
+call a proc on every visited symbol (and if it returns a value, abort walk 
+and return the value.  See pkgasm.asm
 ----------------------------------------------------------------------------*/
-
-// Some procs used by the pkg_walk and pkgs_walk
-
-
-
-/*----------------------------------------------------------------------------
-
-  S
-  Symbols are accessible via walkers or iterators set up to visit groupings.
-  Walkers are started with a 'proc', which are called for every item in the
-  group.  Different procs are developed for particulaar operations (although
-  procs can often be reused).  Upon completion of its task on a single item,
-  a proc returns 0 to continue, or any other value to exit, in which case
-  the walker stops and returns that value.
-
-  There are curently three walkers
-
-  * a package walker iterates on all symbols within a package;
-  * a namespace walker visits all packages 
-  * a package is searchable via its head an `pkg_walk` iterator
-  * the entire namespace is 
-
-
-
-  ----------------------------------------------------------------------------*/
-sSym* pkg_find_hash_proc(sSym* s,U32 hash,sSym*prev){
-  return (s->hash == hash) ? s : 0;
-}
-
-sSym* pkg_find_hash(sSym* s,U32 hash){
-  return pkg_walk_U32(s,hash,pkg_find_hash_proc);
-}
-
-sSym* pkgs_find_hash(sSym* pk,U32 hash){
-  return pkgs_walk_U32(pk,hash,pkg_find_hash_proc);
-}
-
-sSym* plst_find_hash(sSym* pk,U32 hash){
-  return plst_walk_U32(pk,hash,pkg_find_hash_proc);
-}
-
-
-
-/*----------------------------------------------------------------------------
-  .._find_prev_hash
-
-----------------------------------------------------------------------------*/
-
-
-sSym* pkg_find_name(sSym*s, char*name){
-  return pkg_find_hash(s,string_hash(name));
-}
-
-sSym* pkgs_find_name(sSym*pk, char*name){
-  return pkgs_find_hash(pk,string_hash(name));
-}
-
-
-U64 find_global(char*name){
-  sSym* sym = pkgs_find_name(PTR(sSym*,META_SEG_ADDR),name);
-  if(sym)
-    return sym->art;
-  else
-    return 0;
-}
-
-
-
-
-
-
-/*----------------------------------------------------------------------------
-  .._find_prev_hash
-
-----------------------------------------------------------------------------*/
-U32 pkg_find_prev_hash_proc(sSym* s,U32 hash, U32 prev){
-  return (s->hash == hash) ?  prev : 0;
-}
-
-sSym* pkg_find_prev_hash(sSym* s,U32 hash){
-  return pkg_walk_U32(s,hash,pkg_find_prev_hash_proc);
-}
-
-sSym* pkgs_find_prev_hash(sSym* pk,U32 hash){
-  return pkgs_walk_U32(pk,hash,pkg_find_prev_hash_proc);
-}
-
-
-sSym* plst_find_prev_hash(sSym* pk,U32 hash){
-  return plst_walk_U32(pk,hash,pkg_find_prev_hash_proc);
-}
-
-
-/*----------------------------------------------------------------------------
-  package insertion and suck
-
-----------------------------------------------------------------------------*/
-
+  
 
 sSym* pkg_new(char*name,char* opt){
   return sym_new(name,0,0,0,opt);
@@ -151,14 +63,22 @@ sSym* pkg_unlink(sSym* prev){
   return it;                           //may be 0 if prev was last
 }
 
-// insert a package into srch_list
-void srch_list_push(sSym* pk){
+void pkg_dump(sSym*s){ 
+  pkg_walk(s,0,sym_dump1);
+}
+/*----------------------------------------------------------------------------
+  ns_pkg_push             pre-pend pkg into global namespace
+
+----------------------------------------------------------------------------*/
+void ns_pkg_push(sSym* pk){
   pk->art = GNS;  // next package;
   GNS = THE_U32(pk);
 }
+/*----------------------------------------------------------------------------
+  ns_pkg_ls               show all packages in namespace
 
-
-void srch_list_pkgs_ls(void){
+----------------------------------------------------------------------------*/
+void ns_pkgs_ls(void){
   U32 proc(sSym* pk){
      printf("%s ",SYM_NAME(pk));
     return 0;
@@ -168,10 +88,86 @@ void srch_list_pkgs_ls(void){
 }
 
 
-  
-void pkg_dump(sSym*s){ 
-  pkg_walk(s,0,sym_dump1);
+
+
+
+
+/*----------------------------------------------------------------------------
+  find_hash                         Locate a has within a package or ns...
+
+----------------------------------------------------------------------------*/
+sSym* pkg_find_hash_proc(sSym* s,U32 hash,sSym*prev){
+  return (s->hash == hash) ? s : 0;
 }
+
+sSym* pkg_find_hash(sSym* s,U32 hash){
+  return pkg_walk_U32(s,hash,pkg_find_hash_proc);
+}
+
+sSym* ns_find_hash(sSym* pk,U32 hash){
+  return pkgs_walk_U32(pk,hash,pkg_find_hash_proc);
+}
+// this one finds the package name in namespace!
+sSym* ns_find_pkg_hash(sSym* pk,U32 hash){
+  return plst_walk_U32(pk,hash,pkg_find_hash_proc);
+}
+/*----------------------------------------------------------------------------
+  
+
+----------------------------------------------------------------------------*/
+
+
+sSym* pkg_find_name(sSym*s, char*name){
+  return pkg_find_hash(s,string_hash(name));
+}
+
+sSym* ns_find_name(sSym*pk, char*name){
+  return ns_find_hash(pk,string_hash(name));
+}
+
+
+U64 find_global(char*name){
+  sSym* sym = ns_find_name(PTR(sSym*,META_SEG_ADDR),name);
+  if(sym)
+    return sym->art;
+  else
+    return 0;
+}
+
+
+
+
+
+
+/*----------------------------------------------------------------------------
+  find_prev_hash                  Find the symbol whse link points to
+                                  matching symbol
+----------------------------------------------------------------------------*/
+U32 pkg_find_prev_hash_proc(sSym* s,U32 hash, U32 prev){
+  return (s->hash == hash) ?  prev : 0;
+}
+
+sSym* pkg_find_prev_hash(sSym* s,U32 hash){
+  return pkg_walk_U32(s,hash,pkg_find_prev_hash_proc);
+}
+
+sSym* ns_find_prev_hash(sSym* pk,U32 hash){
+  return pkgs_walk_U32(pk,hash,pkg_find_prev_hash_proc);
+}
+
+// this one finds the previous pkg whose art points at matching pkg!
+sSym* ns_find_prev_pkg_hash(sSym* pk,U32 hash){
+  return plst_walk_U32(pk,hash,pkg_find_prev_hash_proc);
+}
+
+
+
+
+/*----------------------------------------------------------------------------
+  dump_protos                 if there is a prototype, dump it.
+   
+This is used to make a prototype file prior to invoking the C compiler...
+----------------------------------------------------------------------------*/
 
 U32 pkg_dump_protos_proc(sSym* s,FILE* f){
   char* proto = sym_proto(s);
@@ -189,13 +185,6 @@ void pkgs_dump_protos(){
   pkgs_walk (GNS_AS_SYM, (U64)(f), pkg_dump_protos_proc);
   fclose(f);
 }
-
-
-/*----------------------------------------------------------------------------
- pkgs  global namespace operations on all visible packages.  Use same procs
-       as pkg_walk
-
-----------------------------------------------------------------------------*/
 
 
 
@@ -268,7 +257,7 @@ This is particularly tricky, as:
 ----------------------------------------------------------------------------*/
 void pkg_incorporate(sSym* new){
   // search for previous symbos of same name.  New is not linked!  Get prev.
-  sSym* prev = pkgs_find_prev_hash(GNS_AS_SYM, new->hash);
+  sSym* prev = ns_find_prev_hash(GNS_AS_SYM, new->hash);
   //  printf("pkg_inc prev %p   new: %p\n",prev,new);
   if(!prev) { // no previous versions; simply link it into 
      pkg_push_sym(TOP_PKG,new);   
