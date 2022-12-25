@@ -56,33 +56,6 @@ void aseg_alloc(){
   rel_mark (THE_U32(DFILL_ADDR),  2); //dfill A32
   rel_mark (THE_U32(CFILL_ADDR),  2); //cfill A32
 }
-/*=============================================================================
-Serialization
-The data segment contains the fill-pointers for both code and data, and is 
-responsible for the sequencing...
-* DATA_SEG
-* DATA_REL
-* CODE_SEG
-* CODE_REL
-
-=============================================================================*/
-
-
-/*
-
-// TODO: should wipe rel first; otherwise, deserializing a shorter segment
-// than current will leave old garbage.
-void seg_deserialize(sSeg* psg,FILE*f){
-  fread(psg,1,8,f);
-  U32 size = psg->fill - (U32)(U64)psg;
-  printf("size %x\n",size);
-  size_t rd1 = fread(psg+1,1,size-8,f);
-  U8* prel = (U8*)(((U64)psg)>>3);
-  size_t rd2 = fread (prel,1,size>>3,f);
-  printf("read: %lx %lx\n",rd1+8,rd2);
-}
-
-*/
 /* -------------------------------------------------------------
 xseg_append  Append a run of bytes to the segment
             size   number of bytes to append
@@ -117,43 +90,6 @@ U32 cseg_append(U8* start,U64 size){
 void cseg_align8(){
   CFILL = (CFILL+7) & 0xFFFFFFF8;
 }
-/*----------------------------------------------------------------------------
-  aseg_delete                     Delete an artifact; drop rest of segment;
-                                  perform fixups within asegs.
-
-----------------------------------------------------------------------------*/
-//#include "util.h"
-/*
-U32 aseg_delete(U32 dz_start, U32 fixup){
-  U32 ret = 0;
-
-  U32 dz_end;                   // end of art dropzone segment
-  U32 otherend;                 // end of other segment
-  if(IN_DATA_SEG(dz_start)){
-    dz_end =  DFILL;
-    otherend = CFILL;
-  } else {
-    dz_end = CFILL;
-    otherend = DFILL;
-  }
-   U32 dz_target = dz_start - fixup;
-  // fix the dropzone itself
-  //  hd(PTR(U8*,0x40000e40),4);
-  ret += bits_fix_inside(dz_start, dz_end,  fixup); // 
-  // fix the bottom part of dropzone segment, target downto base.
-  ret += bits_fix_outside(dz_target, 
-			  dz_start, dz_end, fixup); // dropzone bounds
-  // now fix entire other segment,  top is provided, bottom is seg base.
-  ret += bits_fix_outside(otherend, 
-			  dz_start, dz_end, fixup); // dropzone bounds
-  // drop the dropzone; fill with 0.
-  bits_drop(dz_target, dz_start, dz_end-dz_start);
-  //  hd(PTR(U8*,0x40000e40),4);
-
-  return ret;
-  
-}
-*/
 /*----------------------------------------------------------------------------
   aseg_reref                    Fix all refs to old, point them at new.
 

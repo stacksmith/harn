@@ -1,3 +1,15 @@
+/*---------------------------------------------------------------------------
+  ELF_INGESTER
+
+This subsystem is responsible for ingesting compiled unit from an ELF object
+file.
+
+Used primarily by the REPL 'cc' command which calls 'ingest_elf(name)', and
+the REPL expression runner, calls 'ingets_run(name,p)'
+
+This is a fairly high level subsystem, capable of creating new symbols...
+
+  ----------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h> //malloc
 #include <string.h> //memcpy
@@ -11,7 +23,7 @@
 #include "src.h"
 #include "sym.h"
 #include "pkg.h"
-// in case of error, 
+// in case of error,  
 U32 elf_error(sElf* pelf,char* msg1){
   printf("ing_elf: %s\n",msg1);
   return 0x100; //error number?
@@ -29,9 +41,6 @@ U32 ing_elf_resolve(sElf*pelf){
    Also, set the section address in the ELF section header (for resolution)
    return: section address in segment.
 -----------------------------------------------------------------------------*/
-
-
-
 U32 ing_elf_code_sec(sElf*pelf,U32 isec){
   Elf64_Shdr* shdr = pelf->shdr + isec;
   U8* src = elf_section_data(pelf,shdr);
