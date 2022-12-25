@@ -56,19 +56,20 @@ void aseg_alloc(){
   rel_mark (THE_U32(DFILL_ADDR),  2); //dfill A32
   rel_mark (THE_U32(CFILL_ADDR),  2); //cfill A32
 }
-/* ------------------------------------------------------------- */
+/*=============================================================================
+Serialization
+The data segment contains the fill-pointers for both code and data, and is 
+responsible for the sequencing...
+* DATA_SEG
+* DATA_REL
+* CODE_SEG
+* CODE_REL
+
+=============================================================================*/
+
 
 /*
-void seg_serialize(sSeg* psg,FILE* f){
-  // save data area
-  seg_align(psg,8);
-  U32 size = psg->fill - (U32)(U64)(psg);  // byte size of segment data
-  size_t wr1 = fwrite(psg,1,size,f);
-  U8* prel = (U8*)(((U64)psg)>>3);
- 
-  size_t wr2 = fwrite(prel,1,size>>3,f);
-  printf("wrote: %lx and %lx\n",wr1,wr2);
-}
+
 // TODO: should wipe rel first; otherwise, deserializing a shorter segment
 // than current will leave old garbage.
 void seg_deserialize(sSeg* psg,FILE*f){

@@ -59,6 +59,10 @@ There are 3 segments at fixed locations:
 void rel_mark(U32 pos,U32 kind);
 
 void* seg_mmap(void* addr, U64 size, U64 PROT, char* which);
+U32 seg_serialize(U32 fillptr,FILE*f);
+
+U32 seg_deserialize(U32 fillptr,FILE*f,U32 already);
+U32 seg_deserialize_start(U32 addr,U32 bytes,FILE*f);
 
 typedef struct sCons {
   U32 cdr;
