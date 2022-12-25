@@ -5,11 +5,11 @@
 #include "global.h"
 #include "util.h"
 #include "src.h"
-#include "seg.h"
-#include "aseg.h" 
+#include "seg_meta.h"
+#include "seg_art.h" 
 
 #include "sym.h"
-#include "asmutil.h"
+#include "seg_asm.h"
 
 char* sym_name(sSym* sym){
   return ((char*)sym)+SYM_NAME_OFF;

@@ -5,8 +5,8 @@
 #include "global.h"
 #include "util.h"
 #include "elf.h"
-#include "seg.h"
-#include "aseg.h"
+#include "seg_meta.h"
+#include "seg_art.h"
 //#include "pkgs.h"
 #include "src.h"
 #include "sym.h"
@@ -14,6 +14,7 @@
 
 
 sSym* ingest_elf(char* name);
+U32 ingest_run(char* name,char*p);
  
 //U64 ing_elf_func(sElf* pelf);
 
@@ -30,7 +31,7 @@ void exec_repl_sym(sSym* sym,char*p){
     fpreplfun entry = (fpreplfun)(U64)(addr);
     (*entry)(p);
   } else {
-    printf("can't run data %s\n",SYM_NAME(sym));
+    printf("can't run data %s\n",SYM_NAME(sym)); 
   }
 }
 
@@ -183,7 +184,6 @@ void repl_help(char*p){
 }
 
 
-U32 ingest_run(char* name,char*p);
 
 void repl_expr(char*p){
   FILE*f = fopen("sys/cmdbody.c","w");		

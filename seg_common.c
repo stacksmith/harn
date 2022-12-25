@@ -14,8 +14,9 @@
 #include <errno.h>
 
 #include "global.h"
-#include "asmutil.h"
-#include "aseg.h"
+#include "seg_common.h"
+#include "seg_asm.h"   // for bits_
+//#include "aseg.h"
 
 /* ==============================================================
 

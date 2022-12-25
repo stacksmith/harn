@@ -10,22 +10,22 @@ CFLAGS= -Wall -Os -std=c99 \
 -fno-stack-protector  -fno-mudflap 
 
 cfiles= harn.c elf.c elfdump.c util.c src.c repl.c sym.c pkg.c \
-elf_ingester.c seg_common.c seg.c aseg.c  
+elf_ingester.c seg_common.c seg_art.c seg_meta.c  
 
 all: harn
 
 tsv2names: tsv2names.c
 	$(CC) -o $@ $^ $(CFLAGS) 	
 
-asmutil.o:	asmutil.asm
-	nasm -f elf64 -l asmutil.lst -o asmutil.o asmutil.asm
+seg_asm.o:	seg_asm.asm
+	nasm -f elf64 -l seg_asm.lst -o seg_asm.o seg_asm.asm
 
-pkgasm.o:	pkgasm.asm
-	nasm -f elf64 -l pkgasm.lst -o pkgasm.o pkgasm.asm
+pkg_asm.o:	pkg_asm.asm
+	nasm -f elf64 -l pkg_asm.lst -o pkg_asm.o pkg_asm.asm
 
 
-harn: $(cfiles) asmutil.o pkgasm.o *.h
-	$(CC) -o $@ asmutil.o pkgasm.o $(cfiles) $(CFLAGS) 
+harn: $(cfiles) seg_asm.o pkg_asm.o *.h
+	$(CC) -o $@ seg_asm.o pkg_asm.o $(cfiles) $(CFLAGS) 
 
 clean:
 	rm harn harn.o *.o *~

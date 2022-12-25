@@ -5,8 +5,8 @@
 #include "global.h"
 #include "util.h"
 
-#include "seg.h"
-#include "aseg.h"
+#include "seg_meta.h"
+#include "seg_art.h"
 #include "sym.h"
 #include "pkg.h"
 

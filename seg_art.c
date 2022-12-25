@@ -13,9 +13,9 @@
 
 
 #include "global.h"
-#include "asmutil.h"
+#include "seg_asm.h"
 
-#include "aseg.h"
+#include "seg_art.h"
 
 /* ==============================================================
 

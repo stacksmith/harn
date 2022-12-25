@@ -14,8 +14,8 @@
 #include <errno.h>
 
 #include "global.h"
-#include "asmutil.h"
-#include "seg.h"
+#include "seg_asm.h"
+#include "seg_meta.h"
 
 /* ==============================================================
 
