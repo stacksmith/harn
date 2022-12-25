@@ -31,83 +31,65 @@ In the end I wound up with 3 normalish segments, each a little different...
 
 Segments, Artifacts, References, Symbols and Packages
 
-Segments
+## Segments
 
-Segments are large, managed areas of memory for keeping data and metadata.
-There are three segments: code, data, and metadata.  Code segment is for 
-executable code, data segment is used for storage of static variables,
-strings, and other data used by code.  The Meta(data) segment exists 
-exclusively for keeping track of data in code or data segments.
+Segments are large, managed areas of memory for keeping code, data, and metadata.  Code segment is for executable code, data segment is used for storage of static variables, strings, and other data used by code.  The Meta(data) segment exists exclusively for keeping additional information about what's in the code and data segments.
 
-Artifacts
+## Artifacts
 
-An artifact is a contiguous and indivisible region of code or data in
-it appropriate segment.  Artifacts are basic units of operation. A single 
-compiled function, a variable, or a string of characters are examples of 
-artifacts.  Artifacts occupy space in their respective segments, and 
-each artifact has a unique address, and a non-zero size (in bytes).
+An artifact is a contiguous and indivisible region of code or data in its appropriate segment.  Artifacts are basic units of storage and operation. A single compiled function, a variable, or a string of characters are examples of artifacts.  Artifacts occupy space in their respective segments, and each artifact has a unique address, and a non-zero size (in bytes).
 
-Artifacts exist exclusively in code and data segments.  The Meta segment 
-contains iformation about artifacts and provides the means of tracking, 
-operating on, and reasoning about artifacts.  Artifacts exist separately 
-from the metadata and are not aware of metadata - the code and data 
-segments contain no references to the meta segment.  The Meta segment,
-however is all about tracking artifacts. Meta segment contains numerous 
-references into code and data segments.
+Artifacts exist exclusively in code and data segments.  The Meta segment contains iformation about artifacts and provides the means of tracking, operating on, and reasoning about artifacts.  Artifacts exist separately from the metadata and are not aware of metadata.  The Meta segment, however is all about tracking artifacts.
 
-Symbols
+## Segments and References
 
-Every artifact has a piece of metadata known as a symbol bound to it. 
- A symbol is a named entity which exists eclusively to provide access to 
-and information about its artifact ; A symbol is created at the same time 
-as the associated artifact, and continues to exist for the entire lifespan 
-of the artifact.  At the very minimum, every symbol provides a name, 
-information about the artofact's position and size.  Usually symbols 
-provide the means of obtaining detailed information about the nature of 
-the artifact (such as the source code and build data used to create it) and 
-crucial information about how to use the artifact in various contexts.
+In addition to allocating memory, segments provide a crucial service of managing references.  A reference is a pointer or an offset stored in a segment -- such as a pointer variable, or a jump to a function.  Segments track all refences in the system.
 
-Segments and References
+All references must be registered with the segment in which they exist.  This is taken care by the ELF ingester, and is generally transparent.
 
-In addition to providing separate spaces for stoing artifacts and metadata, 
-segment provide a crucial service of managing memory.
+## Relocation and Referential Integrity
 
-Segments are pools of memory for storage of artifacts and symbols, but 
-segments are not aware of their contents other than providing basic 
-and primitive allocation services and keeping a 'fill-pointer'  Segments 
-are filled from the bottom up, and upon request, will provide a contiguous 
-region of memory.
+At certain times it is necessary to remove artifacts that are not in use and compact the segment.  Segments are capable of making sure that all references remain correct after such movement.
 
-In addition to allocating memory, segments provide a crucial service of 
-managing refernces.  A reference is a kind of a pointer from one allocated 
-memory location to another.  References occupy space, which is used to 
-encode information about another allocated memory position in the same or
-different segment.  Segments keep detailed information about reference: 
-each reference site, the size of the reference, and the reference type is
-known to the segment.  
+Segments can answer questions such as: who is calling a function or accessing a variable.
 
-Segment know the details of references and are capable of visiting every 
-reference site, decypher the reference data, and deterine its target -- 
-all without knowing what these references are for.  References are 
-registered with the associated segment as needed, and segments provide
-services for traversing and identifying each reference, for reasons 
-explained later.
+Segments can assist in updating all calls to an old version of a function to a new one.
 
-Code artifacts are the main users of references: every pointer variable, 
-absolute branch, function call is a reference.  However, references need 
-not be in code - any stored address of an object in the system is a 
-reference: every symbol carries the location of its artifact - an inter-
-segment reference. Symbols are generally kept in a linked list structure
- in the metasegment, and each symbol contains a reference to the next
- symbol in the list.
+## Symbols
 
-Currently, the system uses three kinds of references: (R32) 32-bit relative 
-offsets (used extensively in x86 code), (A64) - 64-bit absolute references, 
-used mainly as pointer variables, and (A32) 32-bit absolute references 
-used by the system for tasks such as linking symbols together, or referring 
-to objects inside the system, (as it located in a 32-bit memory space).
+Every artifact has a piece of metadata known as a symbol bound to it.  A symbol is a named entity which exists exclusively to provide access to and information about its artifact ; A symbol is created at the same time as the associated artifact, and continues to exist for the entire lifespan of the artifact.  
 
-Referential Integrity
+At the very minimum, every symbol provides a name, information about the artofact's position and size.  Usually symbols provide the means of obtaining detailed information about the nature of the artifact (such as the source code and build data used to create it) and crucial information about how to use the artifact in various contexts.
+
+## Names and Packages
+
+For convenience, symbols are grouped into lists called packages.  For example, at initialization, harn creates a package "libc" containing bindings to the libc library -- to enable functions like 'printf' and 'putc'.  The system also creates a 'user' package for user code.
+
+The system keeps a list of packages known as the Global Namespace.  The frist package in the namespace is considered 'active', and new compiles are placed into it.
+
+## REPL
+
+The REPL provides a number of built-in commands for examining and manipulating the system.  As of today it supports:
+```
+ bye               exit
+ cc                compile sys/unit.c; please edit sys/body.c first
+ hd XXXXXXXX       hexdump data at hex address
+ hd XXXXXXXXr      hexdump rel data for hex address
+ edit <name>       put the source of symbol into sys/body.c
+ help              displays this message
+ list <name>       show the source of the symbol
+ load              load the image file
+ save              save the image in image/image.dat file
+ sys               show system statistics
+ words             show the symbols in the active package
+ pkg ls            show packages; the first one is active
+ pkg use <name>    makes the named package active (and pulls it to top)
+```
+
+
+REPL command 'pkg ls' lists packages in the namespace, and 'pkg use <name>' pulls the name package to the front, making it active..
+
+
 
 The requirement to register references with segments seems draconian to 
 the uninitiated, but in practice, it is not much of an issue.  Code objects,

@@ -246,7 +246,10 @@ void repl_sys(char* p){\
 }
     
 /*----------------------------------------------------------------------------
-
+  Get a command and execute.
+  ... ;     compile and evaluate as a C expression
+  <cmd>     if recognized as a special REPL command, do that
+            otherwise, try to find hash and execute in-system  
 ----------------------------------------------------------------------------*/
 
 void repl_loop(){
