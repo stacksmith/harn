@@ -205,27 +205,32 @@ void repl_dump(char*p){
     hd((void*)addr,4);
   }
 }
-#if 0
+
 void repl_save(char*p){
   FILE* f = fopen("image/image.dat","w");
-  seg_serialize(psData,f);
-  seg_serialize(psCode,f);
-  seg_serialize(psMeta,f);
+  seg_serialize(DFILL,f);
+  seg_serialize(CFILL,f);
+  seg_serialize(MFILL,f);
   fclose(f);
 }
 
+
 void repl_load(char*p){
   FILE* f = fopen("image/image.dat","r");
-  seg_deserialize(psData,f);
-  seg_deserialize(psCode,f);
-  seg_deserialize(psMeta,f);
+  seg_deserialize_start(DATA_SEG_ADDR,8,f); //load CFILL and DFILL
+  seg_deserialize(DFILL,f,8);
+  seg_deserialize(CFILL,f,0);
+
+  seg_deserialize_start(META_SEG_ADDR,4,f); //load MFILL
+  seg_deserialize(MFILL,f,4);
   fclose(f);
   //TODO: automate search for libraries to rebind upon load
-  printf("repl_load is assuming bad things\n");
-  pkg_rebind(TOP_PKG->art);
+  printf("repl_load is assuming bad things %px\n",TOP_PKG);
+  pkg_dump(PTR(sSym*,(TOP_PKG->art)));
+  pkg_rebind(PTR(sSym*,(TOP_PKG->art)));
   //pk_rebind( ((sSym*)(U64)SRCH_LIST),"libc.so.6");
 }
-#endif
+
 void repl_edit(char*p){
   sSym* sym = ns_find_name(GNS_AS_SYM,p);
   FILE*f = fopen("sys/body.c","w");
@@ -285,8 +290,8 @@ void repl_loop(){
     if(!strncmp("pkg",linebuf,3)){ repl_pkg(p);  continue; }
 
 	
-    //if(!strncmp("save",linebuf,4)){ repl_save(p); continue; }
-    //if(!strncmp("load",linebuf,4)){ repl_load(p); continue; }
+    if(!strncmp("save",linebuf,4)){ repl_save(p); continue; }
+    if(!strncmp("load",linebuf,4)){ repl_load(p); continue; }
 
     // user typed in the name of a function to run as void
     // 0x71F39F63

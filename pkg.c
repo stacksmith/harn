@@ -230,6 +230,8 @@ sSym* pkg_from_libtxt(char* name,char* dlpath,char*path){
   
 }
 void pkg_rebind(sSym* s){
+
+  printf("rebinding package %p\n",s);
   char* dllpath = sym_proto(s);
   void* dlhan = dlopen(dllpath,RTLD_NOW);
   if(!dlhan){
