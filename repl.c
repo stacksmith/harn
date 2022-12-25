@@ -258,10 +258,10 @@ void repl_sys(char* p){\
 
 void repl_loop(){
   pkgs_dump_protos();
-  puts("harn - an interactive C environment.  (c) 2022 StackSmith\n\n\
-      ...try 'help<cr>', or 'printf(\"Hello World!\\n\");<cr>'\n");
+  puts(ANSI_CYAN "harn - an interactive C environment.  (c) 2022 StackSmith\n\n\
+      ...try 'help', or 'printf(\"Hello World!\\n\");'\n" ANSI_RESET);
   while(1) {
-    printf("> ");
+    printf(ANSI_GREEN "> "ANSI_RESET);
     fgets(linebuf,1024,stdin);
 
     char*p=linebuf;

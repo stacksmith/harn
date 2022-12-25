@@ -1,8 +1,9 @@
 
 built-in commands:
- bye<cr>           exit
- cc<cr>            compile sys/unit.c; please edit sys/body.c first
+ bye               exit
+ cc                compile sys/unit.c; please edit sys/body.c first
  hd XXXXXXXX       hexdump data at hex address
+ hd XXXXXXXXr      hexdump relocation data for artifact at hex address
  edit <name>       put the source of symbol into sys/body.c
  help              displays this message
  list <name>       show the source of the symbol
