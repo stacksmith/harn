@@ -1,22 +1,11 @@
 # HARN
-`harn` is a fine-grained interactive linker (toy) for a (subset of) C, licensed under GPL v3.0.  What can you do with it?
+`harn` is a (work-in-progress) fine-grained interactive linker (toy) for a (subset of) C, licensed under GPL v3.0.  What can you do with it (eventually)?
 ```
 harn - an interactive C environment.  (c) 2022 StackSmith
 
-      ...try 'help<cr>', or 'printf("Hello World!\n")<cr>'
-
-
-
-2022-12-20 Having replaced just about everything I am amazed that it actually works... It will compile little functions and variables, and in case of replacement will relink and delete old versions, maintaining referential integrity.  I am still reworking large chunks, and there are many clumsy and redundant, and often misnamed components but...
-* ELF harness works and ingestion of code seems solit;
-* REPL expressions are transparently compiled and executed
-* Reference tracing, object deletion, segment compaction
-* Completely new segment structure after catdog;
-* relocation bitmap code solid
-* really compact and reusable iterators for symbols and packages
-
-So at this point every component works pretty close to how intended, at least in a toy sense.  Type help at the repl to see what y
+      ...try 'help', or 'printf("Hello World!\n");'
 ```
+
 Edit and compile functions (or data objects), one at a time; execute your own or any libc function from the command line...
 
 Status: early proof of concept; allows for command-line execution of functions; adding functions to the symbol table by editing and compiling; recompiling existing functions replaces older versions and relinks all references; save and load image...
