@@ -255,7 +255,7 @@ void repl_sys(char* p){\
 void repl_loop(){
   pkgs_dump_protos();
   puts("harn - an interactive C environment.  (c) 2022 StackSmith\n\n\
-      ...try 'help<cr>', or 'printf(\"Hello World!\\n\")<cr>'\n");
+      ...try 'help<cr>', or 'printf(\"Hello World!\\n\");<cr>'\n");
   while(1) {
     printf("> ");
     fgets(linebuf,1024,stdin);
