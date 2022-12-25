@@ -226,7 +226,7 @@ void repl_load(char*p){
   fclose(f);
   //TODO: automate search for libraries to rebind upon load
   printf("repl_load is assuming bad things\n");
-  // pkg_rebind(TOP_PKG->art);
+  pkg_rebind(PTR(sSym*,(TOP_PKG->art)));
   //pk_rebind( ((sSym*)(U64)SRCH_LIST),"libc.so.6");
 }
 
