@@ -37,9 +37,11 @@ A fillable area for code or data
 ---------------------------------------------------------------*/
 
 void* seg_mmap(void* addr, U64 size, U64 prot, char* which){
-  void* ret  = mmap(addr, size, prot,
+  void* ret  = mmap(addr, size,
+		    PROT_READ | PROT_WRITE | prot,
 		    0x20 | MAP_SHARED | MAP_FIXED, //MAP_ANONYMOUS
 		    0,0);
+
   if(MAP_FAILED == ret){
     fprintf(stderr,"Error allocating %s seg at %p: %d\n",
 	    which,addr,errno);

@@ -244,9 +244,8 @@ void repl_edit(char*p){
 
   ----------------------------------------------------------------------------*/
 void repl_sys(char* p){\
-
-  aseg_dump();
-  mseg_dump();
+  printf(ANSI_MAGENTA "    DATA     CODE     META\n" ANSI_RESET);
+  printf("%08X %08X %08X\n",DFILL,CFILL,MFILL);
   //pkgs_list();
 }
     
