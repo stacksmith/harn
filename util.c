@@ -105,7 +105,6 @@ void file_map_error_msg(S64 id,char*extra,U32 exitcode){
 #include <errno.h>
 char* filebuf_malloc(char* path){
   FILE* f = fopen(path,"r");
-  printf("f: %p\n",f);
   if(!f) {
     printf("Could not fopen,%d\n",errno);
     return 0;

@@ -286,10 +286,11 @@ sSym* ingest_elf(char* name){
   }
   return sym;
 }
-typedef void (*fpreplfun)(char*p);
+typedef void (*fpreplfun)();
 
 
-U32 ingest_run(char* name,char*p){
+U64 ingest_run(char* name){
+  U64 ret = 0;
   cseg_align8();    // TODO: redundant... make up your mind...
   REL_FLAG = 0;     // turn off relocation, as we shall erase this ASAP
   sElf* pelf = ingest_elf_prim("commandline");
@@ -300,14 +301,14 @@ U32 ingest_run(char* name,char*p){
       fpreplfun entry = PTR(fpreplfun,addr);
       printf("about to call %p\n",entry);  
       hd(entry,4);
-      (*entry)(p);
+      (*entry)();
       U32 end = CFILL;
       CFILL = addr;
       memset(PTR(U8*,addr),0,end-addr);
     }
   }
   REL_FLAG = 1;
-  return 0;
+  return ret;
 }
 
 sSym* ingest_elf_test(char* name){

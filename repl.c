@@ -14,8 +14,9 @@
 
 
 sSym* ingest_elf(char* name);
-U32 ingest_run(char* name,char*p);
- 
+
+
+
 //U64 ing_elf_func(sElf* pelf);
 
 extern sSeg* psMeta;
@@ -180,16 +181,16 @@ void repl_help(char*p){
   fclose(f);
 }
 
-
+U64 ingest_run(char* name);
 
 void repl_expr(char*p){
   FILE*f = fopen("sys/cmdbody.c","w");		
-  fputs("void command_line(void){\n ",f);
+  fputs("void command_line(){\n ",f);
   fputs(p,f);
   fputs("\n}\n",f);
   fclose(f);
 
-  ingest_run("commandline",p);
+  ingest_run("commandline");
 }
 
 void repl_dump(char*p){

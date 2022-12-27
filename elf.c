@@ -53,7 +53,7 @@ sElf* elf_load(char* path){
  -------------------------------------------------------------*/
 void elf_delete(sElf* pelf){
   //  printf("Unmapping %p; buf %p, size %ld\n",pelf,pelf->buf,pelf->map_size);
-  printf("deleted %p\n",pelf);
+  //  printf("deleted %p\n",pelf);
   //  fclose(pelf->f);
   free(pelf->buf);
   free(pelf);
@@ -284,6 +284,7 @@ the equivalent of a static, simply create a data object\n");
   switch(ELF64_R_TYPE(prel->r_info)){
   case R_X86_64_PC32:  //data access
   case R_X86_64_PLT32: //calls
+  case R_X86_64_REX_GOTPCRELX: // load address of
     U32 fixup = (U32)(s+a-p);
     *((U32*)p) = fixup;
     (*proc)((U32)p,1,s+a);

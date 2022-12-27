@@ -1,6 +1,4 @@
-void foo(){
-    puts("Hello, World");
-}
+int _GLOBAL_OFFSET_TABLE_ = 0;
 
 
 
