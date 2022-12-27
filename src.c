@@ -103,6 +103,7 @@ char* aux_proto(){
   start+=2;                     // but skip the / and space
   char* ret = (char*)malloc(1+strlen(start));
   strcpy(ret,start);
+  fclose(f);
   return ret;
 }
 #include "time.h"

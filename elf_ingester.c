@@ -263,6 +263,7 @@ sElf* ingest_elf_prim(char* name){
   if(pelf) {
     err  = ing_elf(pelf,0);    //0 is good; otherwise error
     if(err){
+      puts("ingets_elf_prim: err!\n");
       U32 addr = pelf->ing_start;  //if addr is set, possibly ingested
       aseg_wipe(addr); //works if it's 0, same as fill, or whatever...
       addr = 0;
@@ -297,7 +298,7 @@ U32 ingest_run(char* name,char*p){
     elf_delete(pelf);
     if(CFILL > addr) {// compiled something..
       fpreplfun entry = PTR(fpreplfun,addr);
-      printf("about to call %p\n",entry);
+      printf("about to call %p\n",entry);  
       hd(entry,4);
       (*entry)(p);
       U32 end = CFILL;

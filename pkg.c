@@ -210,8 +210,11 @@ sSym* pkg_from_libtxt(char* name,char* dlpath,char*path){
   U8 ljump[12]={0x48,0xB8,   // mov rax,?
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //64-bit address
     0xFF,0xE0 }; // jmp rax
-  
-  char* buf = filebuf_malloc(path,0);
+
+  FILE*f;
+  char* buf = filebuf_malloc(path,&f);
+  printf("pkg_from_libtxt: f %p\n",f);
+  fclose(f);
   if(!buf)
     return 0;
   sSym* pk = pkg_new(name,dlpath); 
@@ -225,6 +228,7 @@ sSym* pkg_from_libtxt(char* name,char* dlpath,char*path){
     pkg_push_sym(pk,sy) ;
     pc = next;
   }
+
   filebuf_free(buf);
   return pk;
   

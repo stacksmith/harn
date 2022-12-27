@@ -121,10 +121,10 @@ char* filebuf_malloc(char* path,FILE** pf){
     free(buf);
     return 0;
   }
-  int closed = fclose(f);
-  if(closed){
-    printf("Could not fclose,%d\n",errno);
-  }
+  //  int closed = fclose(f);
+  //if(closed){
+  //  printf("Could not fclose,%d\n",errno);
+  //}
   buf[len]=0;
   if(pf)
     *pf = f;

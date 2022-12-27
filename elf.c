@@ -53,6 +53,7 @@ sElf* elf_load(char* path){
  -------------------------------------------------------------*/
 void elf_delete(sElf* pelf){
   //  printf("Unmapping %p; buf %p, size %ld\n",pelf,pelf->buf,pelf->map_size);
+  printf("deleted %p\n",pelf);
   fclose(pelf->f);
   free(pelf->buf);
   free(pelf);
