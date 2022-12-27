@@ -25,7 +25,7 @@ returns: sElf*.  Cannot fail
  -------------------------------------------------------------*/
 sElf* elf_load(char* path){
   sElf* pelf = elf_new();
-  pelf->buf = filebuf_malloc(path,&pelf->f);
+  pelf->buf = filebuf_malloc(path);
   // section header array
   pelf->shdr = (Elf64_Shdr*)(pelf->buf + pelf->ehdr->e_shoff);
   pelf->shnum = pelf->ehdr->e_shnum;
@@ -49,12 +49,12 @@ sElf* elf_load(char* path){
 }
 /*-------------------------------------------------------------
    elf_delete    Free allocated memory
-
+ 
  -------------------------------------------------------------*/
 void elf_delete(sElf* pelf){
   //  printf("Unmapping %p; buf %p, size %ld\n",pelf,pelf->buf,pelf->map_size);
   printf("deleted %p\n",pelf);
-  fclose(pelf->f);
+  //  fclose(pelf->f);
   free(pelf->buf);
   free(pelf);
 }

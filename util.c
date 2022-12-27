@@ -103,7 +103,7 @@ void file_map_error_msg(S64 id,char*extra,U32 exitcode){
    file_load into a malloc'ed buffer
  -------------------------------------------------------------*/
 #include <errno.h>
-char* filebuf_malloc(char* path,FILE** pf){
+char* filebuf_malloc(char* path){
   FILE* f = fopen(path,"r");
   printf("f: %p\n",f);
   if(!f) {
@@ -121,13 +121,11 @@ char* filebuf_malloc(char* path,FILE** pf){
     free(buf);
     return 0;
   }
-  //  int closed = fclose(f);
+  fclose(f);
   //if(closed){
   //  printf("Could not fclose,%d\n",errno);
   //}
   buf[len]=0;
-  if(pf)
-    *pf = f;
   return buf;
   
 }

@@ -211,12 +211,8 @@ sSym* pkg_from_libtxt(char* name,char* dlpath,char*path){
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //64-bit address
     0xFF,0xE0 }; // jmp rax
 
-  FILE*f;
-  char* buf = filebuf_malloc(path,&f);
-  printf("pkg_from_libtxt: f %p\n",f);
-  fclose(f);
-  if(!buf)
-    return 0;
+  char* buf = filebuf_malloc(path);
+
   sSym* pk = pkg_new(name,dlpath); 
   char* pc = buf;
   char* next;

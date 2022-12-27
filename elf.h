@@ -19,7 +19,7 @@ typedef struct sElf{
   // U32* sechashes;  // a table of name hashes matching section names
   //  S64 map_size; // for unmapping buf
   //int fd;
-  FILE* f;
+  //  FILE* f; // for some reason, can't close in loader function!
   U32 ing_start;
 
 } sElf;
