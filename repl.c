@@ -248,6 +248,7 @@ void repl_sys(char* p){\
 }
 
 
+/*
 
 sSym* ingest_elf_test(char* name);
 
@@ -274,7 +275,7 @@ sSym* repl_test(char*p){
   return 0;
 }
 
-  
+*/
 
 
 
@@ -311,7 +312,7 @@ void repl_loop(){
     }
 
     if(!strncmp("cc",linebuf,2))  { repl_compile(p);continue; }
-    if(!strncmp("tt",linebuf,2))  { repl_test(p);continue; }
+    //    if(!strncmp("tt",linebuf,2))  { repl_test(p);continue; }
     if(!strncmp("sys",linebuf,3)) { repl_sys(p);    continue; }
     // ox56299123
     // 5CB7AA8A,

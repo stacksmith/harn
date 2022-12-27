@@ -311,15 +311,24 @@ U64 ingest_run(char* name){
   return ret;
 }
 
+#ifdef STRESSTEST
+
 sSym* ingest_elf_test(char* name){
   sElf* pelf = elf_load("sys/unit.o");
-  U32 err  = ing_elf(pelf,0);    //0 is good; otherwise error
   sSym* sym = 0;
   if(pelf){
-    U32 addr = pelf->ing_start;
-    printf("ADDR: %08X\n",pelf->ing_start);
-    sym = sym_for_artifact(name, addr);
-    elf_delete(pelf);
+    U32 err  = ing_elf(pelf,0);    //0 is good; otherwise error
+    if(!err){
+      U32 addr = pelf->ing_start;
+      printf("ADDR: %08X\n",pelf->ing_start);
+      sym = sym_for_artifact(name, addr);
+      elf_delete(pelf);
+    } else {
+      printf("ingest_elf_test: unable to ingest\n");
+    }
+  } else {
+    printf("ingest_elf_test: unable to load ELF object\n");
   }
   return sym;
 }
+#endif
