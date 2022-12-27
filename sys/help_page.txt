@@ -10,7 +10,7 @@ built-in commands:
  load              load the image file
  save              save the image in image/image.dat file
  sys               show system statistics
- words             show the symbols in the active package
+ ls                list symbols in active package
  pkg ls            show packages; the first one is active
  pkg use <name>    makes the named package active
 
@@ -30,7 +30,7 @@ your function prototypes will be automatically generated.
 
 If you use emacs, keep a buffer with sys/body.c, and turn on 
 auto-revert-mode.  Now when you type in 'edit foo<cr>', the source of foo 
-will appear in the buffer.  After making changes, enter `cc` to compile and 
+will appear in the buffer.  After saving changes, enter `cc` to compile and 
 integrate the changes.  Or edit sys/body.c, save, and cc to compile.
 
 You can call any compiled function from the command line.

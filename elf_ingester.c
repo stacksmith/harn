@@ -23,6 +23,7 @@ This is a fairly high level subsystem, capable of creating new symbols...
 #include "src.h"
 #include "sym.h"
 #include "pkg.h"
+
 // in case of error,  
 U32 elf_error(sElf* pelf,char* msg1){
   printf("ing_elf: %s\n",msg1);
@@ -66,7 +67,7 @@ U32 ing_elf_func(sElf*pelf){
   //now bring in the unique function
   Elf64_Sym* psym = pelf->unique;
   U32 codesec = psym->st_shndx; // from the func symbol, get its section
-  ing_elf_code_sec(pelf,codesec); 
+  ing_elf_code_sec(pelf,codesec);  // ingest section! get addr.
   // there maybe rodata.  Bring it in too
   U32 strsec = elf_find_section(pelf,".rodata.str1.1");
   if(strsec) {
@@ -83,12 +84,21 @@ U32 ing_elf_func(sElf*pelf){
     return unresolved; // >0 is error!
   
   // Now that all ELF symbols are resolved, process the relocations.
-  // for every reference, mark bits in our rel table.
-  void relproc(U32 p,U32 kind){
+  // Mark all absolute relocations; offsets inside unit are not marked.
+  U32 start = pelf->ing_start;
+  U32 end = CFILL;
+  void relproc(U32 p,U32 kind,U64 target){
     #ifdef DEBUG
-    printf("Code.Reference at: %08X, %d\n",p,kind);
+    printf("Code.Reference at: %08X, %d; target %08lX\n",p,kind,target);
     #endif
-    rel_mark(p,kind);
+    if(kind == 1){
+      if ((target < start) || (target > end))
+	rel_mark(p,kind);
+    } else {
+      // all absolute relocations are marked
+      rel_mark(p,kind);
+    }
+    
   }
   // codesec+1 may be its relocations... If not, no harm done.
   // normally returns 0, but static data will cause error.
@@ -154,14 +164,21 @@ U32 ing_elf_data(sElf* pelf){
   U32 unresolved = elf_resolve_symbols(pelf,find_global);
   if(unresolved)
     return unresolved;
-  
   // Now, process all relocations, fixing up the references, and setting
-  // the bits in the data segment's rel table.
-  void relproc(U32 p,U32 kind){
+  // the bits in the data segment's rel table for out-of-unit fixups.
+  U32 start = pelf->ing_start;
+  U32 end = CFILL;
+ 
+  void relproc(U32 p,U32 kind,U64 target){
 #ifdef DEBUG
-    printf("data.Reference at: %08X, %d\n",p,kind);
+    printf("data.Reference at: %08X, %d %08lX\n",p,kind,target);
 #endif
-    rel_mark(p,kind);
+    if(kind==1) {// relative relocations? TODO: this never happens in data
+      if ((target < start) || (target > end))
+	rel_mark(p,kind);
+    } else
+      // all absolute relocations are marked.
+      rel_mark(p,kind);
   };
   elf_apply_rels(pelf,relproc);
   

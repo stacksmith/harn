@@ -280,7 +280,7 @@ void repl_loop(){
     if(!strncmp("sys",linebuf,3)) { repl_sys(p);    continue; }
     // ox56299123
     // 5CB7AA8A,
-    if(!strncmp("words",linebuf,4)){ repl_words(p); continue; }
+    if(!strncmp("ls",linebuf,2)){ repl_words(p); continue; }
     //if(!strncmp("edit",linebuf,4)){ repl_edit(p);  continue; }
 
     if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }

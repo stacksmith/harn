@@ -61,7 +61,7 @@ U32 elf_process_symbols(sElf* pelf, pfElfSymProc proc);
 U32 elf_resolve_symbols(sElf* pelf,pfresolver lookup);
 //U32 elf_resolve_undefs(sElf* pelf,pfresolver lookup);
 // called on each relocation... return 0 to continue, or error number
-typedef void (*pfRelProc)(U32 addr,U32 type);
+typedef void (*pfRelProc)(U32 addr,U32 type,U64 target);
 
 U32 elf_process_rel_section(sElf* pelf, Elf64_Shdr* shrel,pfRelProc proc);
 void elf_apply_rels(sElf* pefl,pfRelProc proc);

@@ -268,10 +268,10 @@ elf_process_rel      process a single ELF relocation, fixing up
 U32 elf_process_rel(sElf* pelf, Elf64_Rela* prel, Elf64_Shdr* shto,
 		     pfRelProc proc){
   U64 base = shto->sh_addr; // base address of image being fixed-up
-  U64 p = base + prel->r_offset;
+  U64 p = base + prel->r_offset; // ref site
   Elf64_Sym* psym = &pelf->psym[ELF64_R_SYM(prel->r_info)];
   // symbol must be previously resolved.
-  U64 s = psym->st_value;
+  U64 s = psym->st_value;        // symbol address
   if(!s) {
     // One reason this happens is trying to use a static var in a func;
     if( (3 == ELF64_ST_TYPE(psym->st_info)) &&
@@ -295,14 +295,14 @@ the equivalent of a static, simply create a data object\n");
   case R_X86_64_PLT32: //calls
     U32 fixup = (U32)(s+a-p);
     *((U32*)p) = fixup;
-    (*proc)((U32)p,1);
+    (*proc)((U32)p,1,s+a);
 #ifdef DEBUG
     printf("Fixup: P:%lx A:%ld S:%lx S+A-P: %08x\n",p,a,s,fixup);        
 #endif
     break;
   case R_X86_64_64: //data, pointer
     *((U64*)p) = s + a;
-    (*proc)((U32)p,3); 
+    (*proc)((U32)p,3,s+a); 
 #ifdef DEBUG
     printf("Fixup: P:%lx A:%ld S:%lx S+A: %016lx\n",p,a,s,s+a);
 #endif
