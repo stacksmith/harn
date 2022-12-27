@@ -25,8 +25,33 @@ returns: sElf*.  Cannot fail
  -------------------------------------------------------------*/
 sElf* elf_load(char* path){
   sElf* pelf = elf_new();
-  S64 len = file_map((void**)&pelf->buf,path,PROT_READ|PROT_WRITE);
-  if(len<0) file_map_error_msg(len,path,1);
+  // TODO: clean this up!  Turns out that closing fd after mapping left
+  // handle open!
+  //S64 len = file_map((void**)&pelf->buf,path,PROT_READ|PROT_WRITE);
+  
+    pelf->fd = open(path, O_RDONLY);
+    //printf("fd = %08x\n",pelf->fd);
+    if(pelf->fd<0) exit(-1);
+    
+    off_t len = lseek(pelf->fd, 0, SEEK_END);
+    if(len<0){
+      close(pelf->fd);
+      exit(-2);
+    }
+    
+    void*ptr = mmap(0, len, PROT_READ|PROT_WRITE, MAP_PRIVATE, pelf->fd, 0);
+    close(pelf->fd);
+    if(!ptr) {
+      exit(-3);
+
+    }
+
+    pelf->buf=ptr;
+  
+
+
+  
+  //  if(len<0) file_map_error_msg(len,path,1);
   pelf->map_size = len; // for unmapping
   //  printf("loaded elf %ld\n",len);  
 
@@ -64,7 +89,7 @@ void elf_delete(sElf* pelf){
   // if we allocated a hashlist, free it.
   //  if(pelf->hashes)
   //  free(pelf->hashes);
-  
+  close(pelf->fd);
   free(pelf);
 }
 /*-------------------------------------------------------------

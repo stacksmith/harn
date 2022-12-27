@@ -308,3 +308,16 @@ U32 ingest_run(char* name,char*p){
   REL_FLAG = 1;
   return 0;
 }
+
+sSym* ingest_elf_test(char* name){
+  sElf* pelf = elf_load("sys/unit.o");
+  U32 err  = ing_elf(pelf,0);    //0 is good; otherwise error
+  sSym* sym = 0;
+  if(pelf){
+    U32 addr = pelf->ing_start;
+    printf("ADDR: %08X\n",pelf->ing_start);
+    sym = sym_for_artifact(name, addr);
+    elf_delete(pelf);
+  }
+  return sym;
+}

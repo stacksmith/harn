@@ -59,15 +59,17 @@ typedef struct sFileMap {
  -------------------------------------------------------------*/
 S64 file_map(void** pbuf, char* path,int prot){
   int fd = open(path, O_RDONLY);
+  printf("fd = %08x\n",fd);
   if(fd<0) return -1;
   
   off_t len = lseek(fd, 0, SEEK_END);
-  if(fd<0){
+  if(len<0){
     close(fd);
     return -2;
   }
 
   void*ptr = mmap(0, len, prot, MAP_PRIVATE, fd, 0);
+  close(fd);
   close(fd);
   if(!ptr) {
     return -3;

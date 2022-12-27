@@ -64,9 +64,6 @@ sSym* repl_compile(char*p){
 
 }  
 
-
-
-
 void edit(char* name){
   printf("Editing [%s].. type 'cc' to compile when done...\n",name);
   /*
@@ -248,7 +245,42 @@ void repl_sys(char* p){\
   printf("%08X %08X %08X\n",DFILL,CFILL,MFILL);
   //pkgs_list();
 }
-    
+
+
+
+sSym* ingest_elf_test(char* name);
+
+sSym* repl_test1(char*p){
+
+  sSym* sym =  ingest_elf_test(p);
+  if(sym){ // OK, this means we made it!
+    printf("Ingested %s: %s %d bytes\n", SYM_NAME(sym),sym_proto(sym),sym->size);
+    pkg_incorporate(sym);
+  } else { // no symbol
+    printf("aborted.\n");
+  }
+
+  return sym;
+
+}
+
+sSym* repl_test(char*p){
+  char buf[128];
+  for (int i=0;i<50000;i++){
+    sprintf(buf,"%s%05d",p,i);
+    repl_test1(buf);
+  }
+  return 0;
+}
+
+  
+
+
+
+
+
+
+
 /*----------------------------------------------------------------------------
   Get a command and execute.
   ... ;     compile and evaluate as a C expression
@@ -276,7 +308,9 @@ void repl_loop(){
     { size_t len = strlen(linebuf);
       *(linebuf+len-1)=0;
     }
+
     if(!strncmp("cc",linebuf,2))  { repl_compile(p);continue; }
+    if(!strncmp("tt",linebuf,2))  { repl_test(p);continue; }
     if(!strncmp("sys",linebuf,3)) { repl_sys(p);    continue; }
     // ox56299123
     // 5CB7AA8A,
