@@ -2,7 +2,7 @@
 // elf
 typedef struct sElf{
   union {
-    U8* buf;               // mapped
+    U8* buf;               // malloc'ed
     Elf64_Ehdr* ehdr;
   };
   Elf64_Shdr* shdr;        // array of section headers
@@ -17,9 +17,9 @@ typedef struct sElf{
   
   
   // U32* sechashes;  // a table of name hashes matching section names
-  S64 map_size; // for unmapping buf
-  int fd;
-  
+  //  S64 map_size; // for unmapping buf
+  //int fd;
+  FILE* f;
   U32 ing_start;
 
 } sElf;

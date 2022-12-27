@@ -102,21 +102,32 @@ void file_map_error_msg(S64 id,char*extra,U32 exitcode){
 /* -------------------------------------------------------------
    file_load into a malloc'ed buffer
  -------------------------------------------------------------*/
-char* filebuf_malloc(char* path){
+#include <errno.h>
+char* filebuf_malloc(char* path,FILE** pf){
   FILE* f = fopen(path,"r");
-  if(!f) return 0;
+  printf("f: %p\n",f);
+  if(!f) {
+    printf("Could not fopen,%d\n",errno);
+    return 0;
+  }
   fseek(f, 0, SEEK_END);
   size_t len = ftell(f);
   fseek(f, 0, SEEK_SET);
   char* buf = (char*)malloc(len+1);
   size_t r = fread(buf,1,len,f);
   if(r!=len) {
+    printf("Could not fread,%d\n",errno);
     fclose(f);
     free(buf);
     return 0;
   }
-  fclose(f);
+  int closed = fclose(f);
+  if(closed){
+    printf("Could not fclose,%d\n",errno);
+  }
   buf[len]=0;
+  if(pf)
+    *pf = f;
   return buf;
   
 }

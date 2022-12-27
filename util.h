@@ -12,5 +12,5 @@ void unmap(void*buf,size_t size);
   #define PROT_WRITE 2
 #endif
 
-char* filebuf_malloc(char* path); // mallocs
+char* filebuf_malloc(char* path,FILE**pf); // mallocs
 void filebuf_free(char* buf);

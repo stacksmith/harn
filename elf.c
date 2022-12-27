@@ -25,36 +25,7 @@ returns: sElf*.  Cannot fail
  -------------------------------------------------------------*/
 sElf* elf_load(char* path){
   sElf* pelf = elf_new();
-  // TODO: clean this up!  Turns out that closing fd after mapping left
-  // handle open!
-  //S64 len = file_map((void**)&pelf->buf,path,PROT_READ|PROT_WRITE);
-  
-    pelf->fd = open(path, O_RDONLY);
-    //printf("fd = %08x\n",pelf->fd);
-    if(pelf->fd<0) exit(-1);
-    
-    off_t len = lseek(pelf->fd, 0, SEEK_END);
-    if(len<0){
-      close(pelf->fd);
-      exit(-2);
-    }
-    
-    void*ptr = mmap(0, len, PROT_READ|PROT_WRITE, MAP_PRIVATE, pelf->fd, 0);
-    close(pelf->fd);
-    if(!ptr) {
-      exit(-3);
-
-    }
-
-    pelf->buf=ptr;
-  
-
-
-  
-  //  if(len<0) file_map_error_msg(len,path,1);
-  pelf->map_size = len; // for unmapping
-  //  printf("loaded elf %ld\n",len);  
-
+  pelf->buf = filebuf_malloc(path,&pelf->f);
   // section header array
   pelf->shdr = (Elf64_Shdr*)(pelf->buf + pelf->ehdr->e_shoff);
   pelf->shnum = pelf->ehdr->e_shnum;
@@ -82,14 +53,8 @@ sElf* elf_load(char* path){
  -------------------------------------------------------------*/
 void elf_delete(sElf* pelf){
   //  printf("Unmapping %p; buf %p, size %ld\n",pelf,pelf->buf,pelf->map_size);
-  if(munmap(pelf->buf,pelf->map_size)){
-    fprintf(stderr,"Error unmapping an elf file\n");
-    exit(1);
-  }
-  // if we allocated a hashlist, free it.
-  //  if(pelf->hashes)
-  //  free(pelf->hashes);
-  close(pelf->fd);
+  fclose(pelf->f);
+  free(pelf->buf);
   free(pelf);
 }
 /*-------------------------------------------------------------
