@@ -1,4 +1,5 @@
-int _GLOBAL_OFFSET_TABLE_ = 0;
+int ass = 4;
+
 
 
 

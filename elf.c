@@ -282,21 +282,29 @@ the equivalent of a static, simply create a data object\n");
   U64 a = prel->r_addend;
     
   switch(ELF64_R_TYPE(prel->r_info)){
-  case R_X86_64_PC32:  //data access
+  case R_X86_64_PC32:  //pc-relative 32-bit signed data access (2)
   case R_X86_64_PLT32: //calls
   case R_X86_64_REX_GOTPCRELX: // load address of
     U32 fixup = (U32)(s+a-p);
     *((U32*)p) = fixup;
     (*proc)((U32)p,1,s+a);
 #ifdef DEBUG
-    printf("Fixup: P:%lx A:%ld S:%lx S+A-P: %08x\n",p,a,s,fixup);        
+    printf("R32 Fixup: P:%lx A:%ld S:%lx S+A-P: %08x\n",p,a,s,fixup);        
 #endif
     break;
-  case R_X86_64_64: //data, pointer
+  case R_X86_64_64: //direct 64-bit (1) data, pointer
     *((U64*)p) = s + a;
     (*proc)((U32)p,3,s+a); 
 #ifdef DEBUG
-    printf("Fixup: P:%lx A:%ld S:%lx S+A: %016lx\n",p,a,s,s+a);
+    printf("A64 Fixup: P:%lx A:%ld S:%lx S+A: %016lx\n",p,a,s,s+a);
+#endif
+    break;
+  case R_X86_64_32: //direct 32-bit zero-extended (10)
+    fixup = (U32)(s+a);
+    *((U32*)p)=fixup;
+    (*proc)((U32)p,2,s+a); 
+#ifdef DEBUG
+    printf("A32: P:%lx A:%ld S:%lx S+A: %016lx\n",p,a,s,s+a);
 #endif
     break;
   default:

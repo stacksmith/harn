@@ -1,3 +1,54 @@
+## Loading Address of Function
+
+Unfortunately, the compiler assumes a GOT exists, and generates a load from the GOT with an offset...
+
+   0:	48 8b 05 00 00 00 00 	mov    0x0(%rip),%rax   
+
+Since it can generate a call to the function, why does it not just emit an LEA?
+
+   0:   48 8D 05 00 00 00 00   	lea	rax,[rel .loop]	;
+
+compiling with `-fno-pie -fno_PIE` results in a 32-bit fixed addressing wit an 
+R_X86_64_32 absolute relocation!
+
+   0:	be 00 00 00 00       	mov    $0x0,%esi
+   
+
+
+## Forth/C bridge...
+Let's say we have a datastack pointer in eax, return stack in esp;.
+For C, we take parameters in rdi,rsi,rdx,rcx,r8,r9
+so a call a c func with 2 params and return  a b call
+	
+    xchg eax,esp     ;DSP             ;
+    pop rsi
+	pop rdi
+	xchg eax,esp     ;RSP; eax=DSP
+	xchg eax,ebx     ; preserve DSP
+	call ...
+	xchg eax,ebx     ; retore DSP to eax; ebx=return
+	xchg eax,esp     ;DSP
+	push rbx         ;if returning 1
+
+to call a forth function from c as q=add(a,b), we need to invoke a thunk with
+	xchg eax,ebx     ;restore DSP
+	xchg eax,esp     ;DSTACK
+	push rsi
+	push rdi
+	xchg eax,esp     ;RSTACK
+	call forth fun
+	xchg eax,esp     ;DSTACK
+	pop  rax
+	xchg rax,rbx     ;ebx = result
+	xchg eax,esp     ;DSTACK  ;eax=rsp
+	
+
+
+
+	
+  
+
+
 ## 
 `repl_compile` invokes the compiler build script, which incorporates the user function or data unit contained in `unit.c`.  The compiler leaves us with an ELF object file, and an info.txt file with headers (the last one will match the compiled function, if it was a function). 
 

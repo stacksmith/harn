@@ -153,3 +153,5 @@ pkgs_walk:
 .done:	ret
 
 
+;;; 	call	.loop
+	;;  	lea	rax,[rel .loop]

@@ -91,14 +91,22 @@ U32 ing_elf_func(sElf*pelf){
     #ifdef DEBUG
     printf("Code.Reference at: %08X, %d; target %08lX\n",p,kind,target);
     #endif
-    if(kind == 1){
+    switch(kind){
+    case 1:  // R32 - call or load; do not mark in-unit offsets
       if ((target < start) || (target > end))
 	rel_mark(p,kind);
-    } else {
-      // all absolute relocations are marked
+      break;
+    case 2: // A32 - always mark
       rel_mark(p,kind);
+      break;
+    case 3: // R64 - can funcs ingest a const U64 pointer var?
+      rel_mark(p,kind);
+      break;
+    default:
+      // cannot happen
+      printf("can't happen!\n");
+      exit(-1);
     }
-    
   }
   // codesec+1 may be its relocations... If not, no harm done.
   // normally returns 0, but static data will cause error.
@@ -168,7 +176,8 @@ U32 ing_elf_data(sElf* pelf){
   // the bits in the data segment's rel table for out-of-unit fixups.
   U32 start = pelf->ing_start;
   U32 end = CFILL;
- 
+
+  // TODO: can data ingest local relocatable data pointers?
   void relproc(U32 p,U32 kind,U64 target){
 #ifdef DEBUG
     printf("data.Reference at: %08X, %d %08lX\n",p,kind,target);
@@ -299,8 +308,8 @@ U64 ingest_run(char* name){
     elf_delete(pelf);
     if(CFILL > addr) {// compiled something..
       fpreplfun entry = PTR(fpreplfun,addr);
-      printf("about to call %p\n",entry);  
-      hd(entry,4);
+//      printf("about to call %p\n",entry);  
+ hd(entry,4);
       (*entry)();
       U32 end = CFILL;
       CFILL = addr;
