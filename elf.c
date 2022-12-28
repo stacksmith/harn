@@ -284,7 +284,7 @@ the equivalent of a static, simply create a data object\n");
   switch(ELF64_R_TYPE(prel->r_info)){
   case R_X86_64_PC32:  //pc-relative 32-bit signed data access (2)
   case R_X86_64_PLT32: //calls
-  case R_X86_64_REX_GOTPCRELX: // load address of
+    //  case R_X86_64_REX_GOTPCRELX: // load address of
     U32 fixup = (U32)(s+a-p);
     *((U32*)p) = fixup;
     (*proc)((U32)p,1,s+a);
