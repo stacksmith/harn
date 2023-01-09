@@ -1,5 +1,6 @@
-int ass = 4;
-
+int bar(){
+    puts("Hello World");
+}
 
 
 

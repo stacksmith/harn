@@ -65,19 +65,6 @@ sSym* repl_compile(char*p){
 
 }  
 
-void edit(char* name){
-  printf("Editing [%s].. type 'cc' to compile when done...\n",name);
-  /*
-  siSymb* symb =  pkgs_symb_of_name(name);
-  // write headers for packages in use
-  pkgs_dump_protos();
-
-  siSymb_src_to_body(symb);
-  */
-}
-
-
-
 char linebuf[1024];
 
 #define FNV_PRIME 16777619
@@ -231,6 +218,7 @@ void repl_load(char*p){
 
 void repl_edit(char*p){
   sSym* sym = ns_find_name(GNS_AS_SYM,p);
+  printf("repl_edit: %s\n",p);
   FILE*f = fopen("sys/body.c","w");
   if(sym){
     src_to_file(sym->src,f);
@@ -317,7 +305,7 @@ void repl_loop(){
     // ox56299123
     // 5CB7AA8A,
     if(!strncmp("ls",linebuf,2)){ repl_words(p); continue; }
-    //if(!strncmp("edit",linebuf,4)){ repl_edit(p);  continue; }
+    if(!strncmp("edit",linebuf,4)){ repl_edit(p);  continue; }
 
     if(!strncmp("help",linebuf,4)){ repl_help(p); continue; }
     if(!strncmp("hd",linebuf,2)){ repl_dump(p); continue; }

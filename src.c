@@ -5,6 +5,21 @@
 #include "global.h"
 #include "util.h"
 #include "src.h"
+/*----------------------------------------------------------------------------
+Implementation:
+
+The sources file serves two separate purposes:
+* an immutable append-only log;
+* a random-access source database;
+Two separate handles are used for the two purposes: faSources is append log,
+while fSources is the random-access handle.
+
+A buffer 'srcbuf' is malloc'ed for the temporary storage of source data.
+
+Typically, to access a source entry we need to read the first, special 
+comment line which contains at least the size as a human-readable hex string.
+
+----------------------------------------------------------------------------*/
 
 char* srcbuf;
 U32 srcbuf_size=0x10000;
@@ -24,10 +39,14 @@ void src_init(){
     exit(1);
   }
 }
-/* src_from_body    Extract presumed source from 'body' file, and append it
-                    to the sources log.  Return sources file position and len
+/*
 
  */
+/*----------------------------------------------------------------------------
+ src_from_body      Extract presumed source from 'body' file, and append it
+                    to the sources log.  Return sources file position and len
+----------------------------------------------------------------------------*/
+
 U32 src_from_body(U32* plen){
   // read source
   FILE* f = fopen(bodyname,"r");
@@ -48,30 +67,44 @@ U32 src_from_body(U32* plen){
     return 0;
   }
 }
+/*----------------------------------------------------------------------------
+ src_to_file          Get the source at pos, and dump to file handle.
+
+----------------------------------------------------------------------------*/
+
 void src_to_file(U32 pos,FILE*f){
   if(pos){
     fseek(fSources,pos,SEEK_SET);  // seek in sources
-    fread(srcbuf,1,4096,fSources);  // read source
-    U64 len = strtol(srcbuf+4,0,16);
+    fread(srcbuf,1,4096,fSources);  // read at least first line
+    srcbuf[4096] = 0; // just in case, limit first line length
+    U64 len = strtol(srcbuf+4,0,16); // to determine size
     if(len>srcbuf_size) {
-      printf("len is messed up!\n");
+      printf("src_to_file: len is messed up!\n");
       return;
     }
     if(len>4096) 
       fread(srcbuf+4096,1,len-4096,fSources);
     fwrite(srcbuf+10,1,len,f);     // write to body
   }  
-}  
+}
+/*----------------------------------------------------------------------------
+ src_to_file          Get the source at pos, and dump to 'body.c'
+TODO: get this out of here?
+
+----------------------------------------------------------------------------*/
+
 void src_to_body(U32 pos,U32 len){
   FILE* f = fopen(bodyname,"w");
   src_to_file(pos,f);
   fclose(f);
 }
-
-
-/* aux_proto   for functions, extract the prototype saved on the last line 
+/*----------------------------------------------------------------------------
+ aux_proto   for functions, extract the prototype saved on the last line 
                of file the compiler generated with the -aux-info switch.
-*/
+
+TODO: Technically has nothing to do with source!
+----------------------------------------------------------------------------*/
+
 char* aux_proto(){
   FILE* f = fopen(auxname,"r");
   if(!f){
